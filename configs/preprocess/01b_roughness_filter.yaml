@@ -1,0 +1,17 @@
+# Stage 1b: attach a per-vertex roughness field to each mesh and threshold
+# noisy/bumpy vertices away. Split out of nrrd_to_vtp so it can run
+# standalone against any directory of .vtp meshes.
+stage: roughness_filter
+
+input_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/roughness_filtered
+
+n_rings: 5
+scale_invariant: false
+method: quadric  # "plane" | "quadric"
+threshold: 0.99  # keep vertices with roughness below this fraction of the field's range
+neighbors: knn  # "knn" | "rings"
+max_neighbors: 32
+
+min_bridge_width: 1.0  # bridges narrower than this do not connect regions after thresholding; 0 disables
+min_bridge_relative: false

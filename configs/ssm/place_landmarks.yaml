@@ -1,0 +1,120 @@
+# Configuration for scripts/place_landmarks.py  ->  src.runners.PlaceLandmarksRunner
+#
+#   python scripts/place_landmarks.py --config configs/place_landmarks.yaml
+#
+# Opens the fetus atlas's mean shape and lets you click vertices to build the
+# landmark set it doesn't ship with (see the module docstring of
+# src/model/deformetrica.py - the BabyFM .mat carries 23 landmarks baked in;
+# the atlas carries none). landmark_names below is the BabyFM's own list, so a
+# name placed here lines up one-for-one with outputs/mean_shape/landmark_coordinates.csv.
+#
+# Picking and naming are two separate actions, linked by Enter rather than one
+# triggering the other - so either order works: click a vertex then pick a
+# name, or pick a name then click.
+#
+# Controls:
+#   click            pick the nearest vertex - becomes the *pending* pick
+#                    (a teal marker), not yet written to any name
+#   Enter            link the pending pick to the current checklist name
+#                    (overwrites if that name was already placed)
+#   Esc              discard the pending pick without linking it
+#   Up / Down        move which checklist name is current - any time, before
+#                    or after clicking
+#   a                type a name not on the list and add it as a new target
+#   Delete           clear the current target's placement
+#   drag sliders     move through the shape space, same as sample_shapes.py -
+#                    a landmark is a vertex index, so it stays valid wherever
+#                    the shape is
+#   l                toggle the sliders between linear (PCA, instant) and
+#                    LDDMM (shoots a geodesic per sample, ~throttled while
+#                    dragging) - resets the sliders to zero, since a
+#                    coefficient in one basis means nothing in the other
+#   m                reset the shape to the mean (alpha = 0), also leaving
+#                    subject browsing (below) if it was active
+#   n / p            step to the next / previous real training subject -
+#                    shoots that subject's own momentum and shows it in place
+#                    of the alpha sample, the most faithful "a different
+#                    sample" there is for checking a placement (atlas models
+#                    only; shots are cached, touching a slider or 'm' returns
+#                    to the alpha sample)
+#   h                toggle the surface between curvature and a live
+#                    heatmap_landmarks - heat from every *currently placed*
+#                    landmark, diffused across whatever shape is on screen;
+#                    a landmark that has drifted off its anatomy shows up as
+#                    a hot spot sitting away from the feature it should sit on
+#   v                toggle the mesh between a filled surface and raw points -
+#                    points show through folds and the far side of the shape,
+#                    where a filled surface would hide a landmark from view
+#   s                save now (the window also autosaves landmarks_json on close)
+#   x                export mean.vtp next to landmarks_json - the mean shape
+#                    (the atlas template, for the linear parametrization) with
+#                    total_std / mode_XX_std / curvature / landmark_distance /
+#                    nearest_landmark / heatmap_<name> per landmark placed so
+#                    far / heatmap_landmarks - the same fields mean_shape.py
+#                    writes, a live preview of it before landmarks_json is
+#                    wired into mean_shape_fetus.yaml
+#   t                light / dark
+#   c                reset the camera
+#   drag / scroll    rotate / zoom (scroll over the slider panel scrolls modes)
+#
+# Once landmarks_json has entries, point models.fetus.atlas.landmarks at it in
+# sample_shapes.yaml, and model.atlas.landmarks in mean_shape_fetus.yaml, to
+# turn landmark_distance / landmark_heatmaps / combined_heatmap on there.
+
+shape_model: ${PROJECT_ROOT}/src/FetusModel
+landmarks_json: ${PROJECT_ROOT}/src/FetusModel/landmarks.json
+
+model:
+  normalize: false        # keep millimetres, matching mean_shape_fetus.yaml
+  atlas:
+    kernel_width: null    # null reads 'kwd' from the atlas params.json
+    time_points: 11
+    cache: true            # reuses the shooting cache mean_shape_fetus.yaml warms
+
+# The BabyFM's 23 anatomical landmarks - see src/config/schema.py's
+# DEFAULT_LANDMARK_NAMES for the R/L convention. Press 'a' to add more.
+landmark_names:
+  - exR
+  - enR
+  - n
+  - enL
+  - exL
+  - acR
+  - aR
+  - prn
+  - aL
+  - acL
+  - sn
+  - chR
+  - cphR
+  - ls
+  - cphL
+  - chL
+  - li
+  - sl
+  - pg
+  - tR
+  - oiR
+  - tL
+  - oiL
+
+# The mode sliders, same meaning as sample_shapes.yaml's 'sliders' block -
+# open at the mean (all sliders at 0) and drag to see the anatomy at other
+# points in shape space. Skipped entirely if mode_count resolves to 0 modes.
+sliders:
+  mode_count: null     # null exposes every mode; scroll the panel to reach them
+  visible_rows: 10
+  sigma_range: 3.0
+
+camera_axis: "+z"
+view_up: "+y"
+window_size: [1400, 900]
+theme: light
+
+color_by: curvature       # curvature | none - curvature makes the nose/eyes/chin easy to find
+marker_radius: null       # null = 0.6% of the mesh's bounding radius
+pick_tolerance: 0.01      # vtkPointPicker tolerance, fraction of the render window's diagonal
+point_size: 4.0           # vertex size in the 'v'-toggled point-cloud view
+lddmm_time_points: 6      # shooting resolution for the 'l'-toggled LDDMM sliders
+
+verbose: true

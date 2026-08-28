@@ -1,0 +1,31 @@
+# Configuration for scripts/upsample_atlas.py  ->  src.runners.UpsampleAtlasRunner
+#
+#   python scripts/upsample_atlas.py --config configs/upsample_fetus_hd.yaml
+#
+# Writes a second fetus atlas at roughly 2x the vertex count of
+# src/FetusModel (1416 -> ~2832), by resampling the template surface. The
+# control points and every subject's momenta carry over unchanged - see the
+# module docstring of src/runners/upsample_atlas.py for why that is exact and
+# not an approximation.
+#
+# The output is a normal atlas directory: point shape_model / shape_model_mat
+# at src/FetusModel_x2 in place_landmarks.yaml, mean_shape_fetus.yaml, or a
+# models.<name> entry in sample_shapes.yaml, and every loader treats it like
+# any other atlas. Landmarks placed on src/FetusModel are vertex indices into
+# THAT mesh and do not carry over - a denser mesh needs its own landmarks.json.
+
+source: ${PROJECT_ROOT}/src/FetusModel
+output_dir: ${PROJECT_ROOT}/src/FetusModel_x2
+
+scale: 2.0
+
+# Shoots all 184 subjects at the new resolution and PCAs them once, right
+# after writing, so the slow part (~90s at the original 1416 vertices, more
+# at 2x the points) is already cached beside the new atlas rather than paid
+# on the first real use. Must match whatever time_points another config's
+# model.atlas.time_points asks for to actually reuse this cache - 11 is
+# every other fetus config's default (see configs/mean_shape_fetus.yaml).
+warm_cache: true
+warm_cache_time_points: 11
+
+verbose: true

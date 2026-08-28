@@ -1,0 +1,113 @@
+# Configuration for scripts/pipeline.py  ->  src.runners.PipelineRunner
+#
+#   python scripts/pipeline.py --config configs/pipeline.yaml
+#
+# ${VAR} is looked up in the environment (.env is loaded first).
+# ${PROJECT_ROOT} defaults to the repository root; relative paths are resolved
+# against it.
+
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat   # SSM (.mat)
+  shape_model_mat: ${PROJECT_ROOT}/src/FetusModel_x4
+  mesh_vtp: ${PROJECT_ROOT}/data/processed_ultrasound_fetus/1/20_semanas/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
+  # average of 14-20s-01.csv / 14-20s-02.csv (two annotation passes), name -> [x, y, z]
+  landmarks_json: ${PROJECT_ROOT}/data/processed_ultrasound_fetus/1/20_semanas/aligned_to_template/landmarks_csv
+
+outputs:
+  dir: ${PROJECT_ROOT}/fetus_ssm_outputs/1/high_conf_scan/merged_high_confidence_scan_threshold_0.8
+  files:
+    mean: mean.vtp
+    init_shape: init_shape.vtp
+    surface: surface.vtp
+    rigid_alignment: rigid_alignment.vtp
+    refined_vertices: refined_vertices.vtp
+    original_landmarks: orig_langmarks.vtp
+    transformed_landmarks: new_target_landmarks.vtp
+    matching_field: matching_field.vtp
+    nicp_gamma: nicp_refined_vertices_gamma_{gamma}.vtp
+    nicp_variant: nicp_refined_vertices_{name}.vtp
+    region_vertices: n_region_verts.vtp
+    deformed_vertices: deformed_vertices.vtp
+
+# Which stages run. 
+steps:
+  gmm_2_template: false  # 0b  solve the GMM <-> template similarity transform
+  align: true            # 1a  similarity transform of the target surface into model space
+  landmark_fit: true     # 1b  fit SSM coefficients to the landmarks
+  nicp: true             # 2   correspondence + MAP-regularised surface fit
+  laplacian: false       # 3   spectral operators + regional deformation
+
+model:
+  normalize: false      # rescale the SSM to unit RMS radius when loading
+  atlas:
+    # name -> vertex-index JSON; only read when shape_model_mat is an atlas
+    # directory. FetusModel_x4 only has 13 of the 19 baby landmarks annotated
+    # (no chR/chL/cphR/cphL/li/sl yet) - the pipeline drops the rest from
+    # target_landmarks rather than failing on the mismatch.
+    landmarks: ${PROJECT_ROOT}/src/FetusModel_x4/landmarks.json
+
+# used if template and statitsical model are in different coordinate systems 
+#(e.g. BabyFM is in mm, template is in unit cube)
+gmm_2_template:
+  template_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/template.vtp
+  direction: to_model    # to_model | to_template
+  allow_scale: true
+  apply_to_target: true  # to_model only: also map inputs.mesh_vtp + landmarks
+
+# Step 1 - landmark-driven similarity alignment + landmark fit
+rigid:
+  iterations: 20
+  landmark_fit_learning_rate: 1.0
+  allow_scale: true
+
+# Step 2 - non-rigid ICP: matching and model_optimization are the two halves
+# of one round (estimate correspondences, then fit at a fixed gamma);
+# iterations is how many rounds each gamma/variant below runs on its own,
+# starting fresh from the step 1 result each time. 1 = old one-shot fit.
+nicp:
+  iterations: 10
+  save_every: 1        # write an extra snapshot every Nth round; final round is always saved
+  matching:
+    mode: constrained         # constrained | nearest | none
+    # constrained only: max match distance, in model units. 0.4 was tuned for
+    # BabyFM's ~0.01-unit scale (never actually binding there); the fetus atlas
+    # is in mm (mean shape spans ~56x80x24mm, ~1mm mean edge length), where
+    # rigid-aligned target -> mean nearest-neighbour distances run ~2mm median
+    # / ~12mm p90, so 10mm keeps most of the surface while still dropping
+    # genuine outliers.
+    dist_thresh: 10.0
+    normal_thresh_deg: 60.0   # constrained only: max angle between matched normals
+    k: 50                      # constrained only: candidates examined per model vertex
+    use_target_normals: true # false reproduces the original script (see schema.py)
+    one_to_one: true         # nearest/constrained only: reject many-to-one matches
+                               # in either direction, keeping only the closest pair
+                               # per source vertex and per target point
+  model_optimization:
+    gammas: [0, 0.1, 1, 2, 5,]
+    learning_rate: 1.0
+    chi_clamp: null           # plausibility clamp for the sweep, null = off
+    variants:
+      - name: free
+        gamma: 0
+        chi_clamp: null
+      - name: clamped
+        gamma: 0
+        chi_clamp: 0.99
+spectral:
+  path: ${PROJECT_ROOT}/data/spectral/spectral_data.npz
+  compute: true             # false = load 'path' instead of recomputing
+  save: true                # write the operators to 'path' after computing
+  source_key: null          # result key to build them on, null = laplacian.template_key
+  k_eig: 20
+  downsampling: false       # keep false: the deformation needs one row per vertex
+  test_spectrum: true
+
+laplacian:
+  template_key: gamma_80000
+  target_key: gamma_10000
+  lambda_reg: 1.0
+  region:
+    landmark: prn
+    radius: 0.3
+
+verbose: true

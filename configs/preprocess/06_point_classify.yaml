@@ -1,0 +1,32 @@
+# Optional/experimental stage: unsupervised clustering of mesh points using
+# point-data FEATURE fields (by default, echotexture's echo_* fields) as each
+# point's feature vector - an exploratory attempt at separating tissue types
+# (face, placenta, hand/limb, noise, ...) with no labeled training data.
+#
+# EASY TO REMOVE - see point_classify.py's docstring for the exact lines to
+# delete (this stage only reads an existing mesh - directory or single file -
+# and writes its own output_dir + one new point field; nothing else depends
+# on it). Deliberately NOT wired into pipeline.yaml - run standalone:
+#   python scripts/US/run_stage.py --config configs/06_point_classify.yaml
+stage: point_classify
+
+# Single-file target: subject 14's scan_consistency merged scan at the
+# min_consistency_threshold=0.6 sweep point (input_dir may be a directory to
+# glob, or - as here - one specific mesh file).
+input_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/14/20_semanas/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.6.vtp
+output_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/14/20_semanas/point_classify_threshold_0.6
+
+# Empty -> auto-detect every point field starting with feature_prefix (minus
+# exclude_fields) on the first mesh. Set explicitly to cluster on a
+# hand-picked subset instead.
+feature_fields: []
+feature_prefix: echo_
+exclude_fields: [echo_in_bounds]
+
+n_clusters: 5  # a starting guess (face / placenta / hand-limb / noise / other), not a constraint
+algorithm: minibatch_kmeans  # "minibatch_kmeans" | "kmeans" - minibatch scales to millions of pooled points
+random_state: 0
+n_init: 10
+batch_size: 10000
+
+class_field_name: tissue_cluster

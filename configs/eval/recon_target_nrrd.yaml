@@ -1,0 +1,101 @@
+# Eval/QC tool, not part of the pipeline.yaml chain (uses run_pipeline.py
+# only to chain these two independent stages together, one feeding the
+# other's output - it isn't a step of the actual processing pipeline):
+#  1. recon_target_distance - nearest-neighbor L2 distance fields between the
+#     target and recon meshes (see recon_target_distance.py), saved as two
+#     .vtp files under paths.recon_target_distance.output_dir.
+#  2. vtp_to_nrrd_overlay - paints the recon mesh's points (as lines) onto its
+#     source .nrrd volume, for visual QC. vtp_path below references stage 1's
+#     own output_dir, so it reads the distance-augmented recon .vtp, not the
+#     original.
+#
+# Usage: python scripts/US/run_pipeline.py --config configs/eval/recon_target_nrrd.yaml
+
+stages:
+  - name: recon_target_distance
+  - name: vtp_to_nrrd_overlay
+
+paths:
+  recon_target_distance:
+      target_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/rigid_alignment.vtp
+      recon_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/nicp_refined_vertices_gamma_2_iter_0008.vtp
+      output_dir: ${PROJECT_ROOT}/Eval/baby_ssm_outputs/1/baby_ssm_eval/high_conf_target_threshold_0.8
+      transforms_dir: ${PROJECT_ROOT}/US_samples/VTK_4/1/20_semanas/aligned_to_template/transforms
+
+  vtp_to_nrrd_overlay:
+    nrrd_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/1-20s-02.nrrd
+    output_path: recon_target_distance.output_dir + /recon_w_distance_overlay.nrrd
+
+    # To toggle layers on/off in Slicer, AND let overlapping layers coexist
+    # (a single shared label map can't - one voxel only holds one layer's
+    # value, so later layers silently overwrite earlier ones where they
+    # coincide): load nrrd_path itself (NOT output_path, whose lines are
+    # permanently baked in) as the background volume. Then, for each
+    # {name}.nrrd/{name}.ctbl pair written into label_maps_dir: load the
+    # .nrrd as a Labelmap Volume, in the Volumes module's Display tab set its
+    # Color table to the matching .ctbl ("From file..."), then in the
+    # Segmentations module's Import/Export tab import it into the SAME
+    # Segmentation node (repeat per layer) - each becomes its own named,
+    # colored, independently toggleable segment, free to overlap.
+    label_maps_dir: recon_target_distance.output_dir + /recon_w_distance_overlay_labels
+
+    layers:
+      # Fetus Model Reconstruction
+      - vtp_path: ${PROJECT_ROOT}/Results/fetus_ssm_outputs/1/full/nicp_refined_vertices_gamma_2_iter_0008.vtp
+        name: Fetus_Model_Reconstruction
+        line_color: [255, 255, 0]
+        thickness: 0.2
+        landmark_align:
+          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+
+      # Fetus Model Mean Template
+      - vtp_path: ${PROJECT_ROOT}/Results/fetus_ssm_outputs/1/high_conf_scan/merged_high_confidence_scan_threshold_0.8/init_shape.vtp
+        name: Fetus_Model_Mean_Template
+        line_color: [255, 0, 0]
+        thickness: 0.2
+        landmark_align:
+          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+
+      # Baby Model Reconstruction
+      - vtp_path: recon_target_distance.output_dir + /recon_w_distance.vtp
+        name: Baby_Model_Reconstruction
+        line_color: [255, 0, 0]
+        thickness: 0.2
+        landmark_align:
+          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+
+      # Baby Model Mean Template
+      - vtp_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/init_shape.vtp
+        name: Baby_Model_Mean_Template
+        line_color: [255, 0, 0]
+        thickness: 0.2
+        landmark_align:
+          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+
+      # Original isosurface - already in the nrrd's own world frame, no alignment needed.
+      - vtp_path: ${PROJECT_ROOT}/US_samples/VTK_3/1/20_semanas/1-20s-02.vtp
+        name: Original_Isosurface
+        line_color: [0, 255, 0]
+        thickness: 0.000001
+
+      # Cross-subject high-confidence merged scan - lives in align_to_template's
+      # shared TEMPLATE frame (union of every sweep's aligned mesh, see
+      # scan_consistency.py), not this sweep's own raw frame. Mapped back via
+      # the FULL inverse (rotation+translation+scale) of "1-20s-02"'s own
+      # saved align_to_template transform.
+      - vtp_path: ${PROJECT_ROOT}/US_samples/VTK_3/1/20_semanas/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
+        name: Merged_High_Confidence_Scan
+        line_color: [0, 0, 255]
+        thickness: 0.00001
+        transform:
+          manifest_dir: ${PROJECT_ROOT}/US_samples/VTK_3/1/20_semanas/aligned_to_template/transforms
+          subject_id: 1-20s-02
+          apply_inverse: true
+
+hyperparameters:
+  vtp_to_nrrd_overlay:
+    thickness: 0.2  # fallback line thickness / sphere radius, in mm, for any layer that doesn't set its own

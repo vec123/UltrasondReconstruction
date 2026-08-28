@@ -1,0 +1,11 @@
+# Configuration for scripts/vtu_2_vtp.py  ->  src.runners.VtuToVtpRunner
+#
+#   python scripts/vtu_2_vtp.py --config configs/vtu_2_vtp.yaml
+#
+# Converts an unstructured grid (.vtu) into a surface mesh (.vtp).
+
+input_vtu: ${PROJECT_ROOT}/data/processed_ultrasound/clean.vtu
+output_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/clean.vtp
+
+filter_largest_component: true   # keep only the largest connected component
+verbose: true

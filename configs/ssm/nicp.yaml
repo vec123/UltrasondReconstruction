@@ -1,0 +1,507 @@
+# Configuration for scripts/nicp.py  ->  src.runners.NicpRunner
+#
+#   python scripts/nicp.py --config configs/nicp.yaml
+#   python scripts/nicp.py --list                     # resolve + validate, no fitting
+#   python scripts/nicp.py --run symmetric_i10        # one run only (repeatable)
+#
+# ${VAR} is looked up in the environment (.env is loaded first).
+# ${PROJECT_ROOT} defaults to the repository root; relative paths resolve against it.
+#
+# A fit is five independent choices. Any combination is legal as long as the
+# loss gets what it needs:
+#
+#   correspondence  none | nearest | constrained | symmetric | sinkhorn
+#   loss            matched_l2 | point_to_plane | chamfer | cpd | composite
+#   prior           none | isotropic | mahalanobis
+#   solver          normal_equations | gradient
+#   projection      none | chi_clamp | mahalanobis_clamp
+#
+# Which pairs are admitted is a property of the *pairing*, so max_dist,
+# trim_ratio and the normal test are correspondence kwargs, never loss kwargs.
+# That splits the losses in two:
+#
+#   matched_l2, point_to_plane   consume a pairing; rejection is set above them
+#   chamfer, cpd                 build their own association on every evaluation
+#                                and apply no rejection - 'symmetric' is the
+#                                Chamfer pairing with the rules attached, and it
+#                                also works with the closed-form solver
+#
+# Only two rules are enforced, both before any fitting starts:
+#   * a loss that consumes a pairing needs a correspondence other than 'none'
+#   * normal_equations only solves matched_l2 with a quadratic prior; everything
+#     else needs the gradient solver
+
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+  mesh_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/merged_high_confidence_scan.vtp   # the scan to fit
+
+  # The fit happens in model space; the raw scan is not there. template.vtp is
+  # vertex-wise corresponding with the model (both 31027 points, same order), so
+  # the similarity transform is a closed-form Procrustes fit over every vertex -
+  # no landmarks. Solving it here is what makes this script self-contained: it
+  # does not need the pipeline to have run first.
+  #
+  # Set transform_npz instead to replay a solved one (outputs/gmm_2_template.npz),
+  # or leave both null when mesh_vtp is already in model space. The transformed
+  # target is written to outputs as target_model_space.vtp - open it next to the
+  # model before trusting any distance threshold below.
+  to_model_space:
+    template_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/template.vtp
+    transform_npz: null
+    inverse: false
+    allow_scale: true
+    save_transform: true
+
+  # Start somewhere other than the mean shape. init_alpha_npz reads the 'alpha'
+  # written by an earlier run (so runs can be chained); init_vtp projects a mesh
+  # onto the model basis. At most one, both may be omitted.
+  init_vtp: null
+  init_alpha_npz: null
+
+# Layout. Everything appears in both frames: the fit happens in model space,
+# but the scan and everything downstream of it live in world space, so each
+# result is also mapped back through the inverse transform.
+#
+#   outputs/nicp/
+#     world/{mesh,template}.vtp                 the inputs as they arrived
+#     model_space/{mesh,template}.vtp           the same, transformed - the fit's view
+#     model_space/{mean,init_shape}.vtp         where the fit starts from
+#     gmm_2_template.npz                        the transform, solved or loaded
+#     metrics.csv, summary.json                 every run on one table
+#     <run>/alpha.npz                           the coefficients, to chain runs
+#     <run>/model_space/fit.vtp, matches.vtp
+#     <run>/model_space/iterations/iter_0000.vtp ...
+#     <run>/world/fit.vtp
+#     <run>/world/iterations/iter_0000.vtp ...
+#
+# The transform is written whether it was solved here or loaded, so the folder
+# is self-contained and scripts/sim_tf.py can replay it onto any other mesh.
+#
+# All meshes carry the model's triangulation rather than being bare point
+# clouds, so they render as surfaces.
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/nicp
+  run_dir: "{run}"          # one folder per run; "" to flatten them into dir
+  files:
+    fit: model_space/fit.vtp
+    fit_world: world/fit.vtp
+    alpha: alpha.npz
+    matching_field: model_space/matches.vtp
+    iteration: model_space/iterations/iter_{iteration:04d}.vtp
+    iteration_world: world/iterations/iter_{iteration:04d}.vtp
+    world_mesh: world/mesh.vtp
+    world_template: world/template.vtp
+    model_mesh: model_space/mesh.vtp
+    model_template: model_space/template.vtp
+    model_init: model_space/init_shape.vtp
+    model_mean: model_space/mean.vtp
+    transform: gmm_2_template.npz
+    metrics: metrics.csv
+    summary: summary.json
+  save_alpha: true
+  save_matching_field: true
+  save_history: true        # per-iteration objective, in summary.json
+  # Also write every result mapped back to the input frame. No effect when
+  # to_model_space is off, since the two frames then coincide.
+  save_world: true
+  # One mesh per iteration. ~370 KB each, so a 300-iteration gradient run is
+  # ~110 MB; raise the stride to thin the playback out.
+  save_iterations: true
+  iteration_stride: 1
+
+model:
+  normalize: false          # rescale the SSM to unit RMS radius when loading
+
+compute:
+  device: auto              # auto | cpu | cuda
+  # float32 halves memory traffic and runs ~32x faster than float64 on a
+  # consumer GPU. The 163x163 system inside the closed-form solver is promoted
+  # to float64 regardless, so nothing is lost where precision actually matters.
+  dtype: float32
+  seed: 0                   # seeds the subsampling below
+
+# ---------------------------------------------------------------------------
+# The prior. Both pull the coefficients towards zero, i.e. towards the mean
+# shape; they differ in what they consider expensive.
+#
+#   isotropic     weight * sum(alpha_i^2)
+#                 every mode equally. This is the pipeline's 'gamma'. Ridge
+#                 damping, not the model's prior - the SSM does not claim the
+#                 modes are equally likely.
+#   mahalanobis   weight * sum(alpha_i^2 / lambda_i), rescaled (see below)
+#                 each mode by the variance the training set gave it, so rare
+#                 modes are held back and dominant ones stay free. This is the
+#                 model's own Gaussian prior, i.e. the MAP term.
+#
+# Both weights now share one range, because mahalanobis defaults to
+# normalize: true, which multiplies by lambda_max. At weight w the diagonal
+# added to the normal equations is:
+#
+#   isotropic                w                          on every mode
+#   mahalanobis (normalized) w * lambda_max / lambda_i   w on the dominant mode,
+#                                                        up to 1330*w on the rarest
+#
+# So weight 1 means the same thing on the dominant mode either way, and the
+# 1330:1 spread is the anisotropy - the whole reason to prefer this prior. The
+# data term's eigenvalues are below 1 (Phi^T Phi = I), so:
+#
+#   weight ~0.1   prior a fraction of the data term, fit moves freely
+#   weight ~1     prior comparable to it (measured 1.8 .. 2.8x)
+#   weight ~10    prior overrides it
+#   weight >=100  frozen: through the pipeline, 100 moved the surface by 7.6e-6
+#                 against an RMS shape radius of 5.6e-3, and 1e4 by 7.6e-8.
+#                 The pipeline's sweep to 100000 was dead weight.
+#
+# normalize: false recovers the literal MAP form, where the weight *is* the
+# scan's noise variance in squared model units. Statistically exact but
+# impossible to guess: with eigenvalues at 5.3e-7 .. 7.0e-4 (one standard
+# deviation per mode: 7.3e-4 .. 0.0265), a workable value sits near 3e-6 and
+# ~30 freezes the fit at the mean.
+#
+# !! Those numbers moved by a factor of n_vertices = 31027 when the .mat's
+# eigenvalues were put into the same inner product as its eigenfunctions
+# (src.model.load.rescale_eigenvalues). Every 'normalize: false' weight in the
+# runs below was tuned against the old spectrum and is therefore now 31027x
+# weaker than it was; multiply by 31027 to reproduce the earlier fits, or
+# re-tune - the weight now genuinely is a noise variance, so it has a
+# principled anchor for the first time. 'normalize: true' runs are unaffected:
+# they divide by lambda_max, so a uniform rescaling cancels.
+#
+# None of this transfers to a mean-reduced data term, which is ~1e4 smaller, or
+# to the CPD log-likelihood, which is a different quantity altogether. For those
+# read the 'data' and 'prior' split the solver now logs each iteration and pick
+# a weight that makes the prior a fraction of the data, not a multiple.
+#
+# Distances are absolute in model units: 0.0026 here is what 0.4 is in template
+# space, and the model spans about +/-0.01.
+# ---------------------------------------------------------------------------
+
+# Inherited by every run; each run below overrides only what it changes.
+#
+# Note the merge rule: a block that keeps the same 'name' inherits the defaults'
+# kwargs and overrides only the keys it lists. A block that changes 'name'
+# replaces the whole block - kwargs belong to the implementation, so switching
+# from normal_equations to gradient must not inherit the former's settings.
+defaults:
+  correspondence:
+    name: constrained
+    kwargs:
+      max_dist: 0.0026        # reject pairs further apart than this (model units)
+      normal_thresh_deg: 90.0 # reject pairs whose normals disagree by more
+      trim_ratio: 0.0         # additionally drop the worst fraction by distance
+      k: 5                    # candidates examined per model vertex
+      use_target_normals: true
+  loss:
+    name: matched_l2
+    # 'sum' is the convention the pipeline's gamma values were tuned in: the
+    # data term grows with the match count, and a prior weight is measured
+    # against that total. Switching to 'mean' divides the data term by the
+    # number of matches (~13000 here), so the same weight becomes ~13000x
+    # stronger and the fit freezes.
+    kwargs: {reduction: sum}
+  prior:
+    name: isotropic
+    kwargs: {weight: 0.0}
+  solver:
+    name: normal_equations
+    kwargs: {iterations: 1, learning_rate: 1.0}
+  projection:
+    name: none
+  refresh_every: 0          # 0 = match once; n > 0 = re-match every n iterations (ICP)
+
+runs:
+  # -- correspondence-based ---------------------------------------------------
+
+  # The pipeline's step 2 at gamma 0: one closed-form step on a fixed match set,
+  # no regularisation, no rejection beyond the distance and normal thresholds.
+  # Spelled out in full rather than inherited, so the reference run is readable
+  # on its own.
+  - name: baseline
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.0,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: isotropic, kwargs: {weight: 0.0}}
+    solver: {name: normal_equations, kwargs: {iterations: 1, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 0
+
+  # The same objective iterated with the pairing re-estimated each time - what
+  # NICP is normally understood to mean. trim_ratio 0.05 discards the worst 5%
+  # of surviving pairs each round, which is where a partial scan's bad matches
+  # concentrate; max_dist is the absolute cut, trim_ratio the relative one.
+  # A decade sweep of the mahalanobis prior in its raw MAP units, where the
+  # weight is the scan's noise variance in squared model units. normalize: false
+  # is required for that reading - with the default it would be multiplied by
+  # lambda_max (7.0e-4) and these three would all be indistinguishable from no
+  # prior at all. These three weights predate the eigenvalue rescaling noted
+  # above, so they now sit 31027x below where they were tuned; their normalized
+  # equivalents (weight / lambda_max) are 1.4e-8, 1.4e-7 and 1.4e-6.
+  - name: icp_maha_1e-11_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-11, normalize: false}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  - name: icp_maha_1e-10_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-10, normalize: false}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  - name: icp_maha_1e-9_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-9, normalize: false}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  # The same prior on the normalized scale, where weight 1 restrains the
+  # dominant mode exactly as isotropic 1 does - directly comparable with the
+  # isotropic runs below.
+  - name: icp_maha_norm_01_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 0.1, normalize: true}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  - name: icp_w_01_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: isotropic, kwargs: {weight: 0.1}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  - name: icp_w_1_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: isotropic, kwargs: {weight: 1.0}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  - name: icp_w_10_i10
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: isotropic, kwargs: {weight: 10.0}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  # Same again, held inside the plausible range of the model. Mind the bound:
+  # chi2(0.99999, 163) caps the Mahalanobis distance at ~16, while these fits
+  # reach ~114 (it was ~2e4 before the eigenvalue rescaling, which divides every
+  # such distance by sqrt(31027)), so this projection does not restrain the fit
+  # - it collapses it
+  # towards the mean. It only becomes a sensible rail once the prior is strong
+  # enough to keep the fit near the model in the first place.
+  - name: icp_w_1_i10_clamped
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 0.0026, normal_thresh_deg: 90.0, trim_ratio: 0.05,
+               k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: isotropic, kwargs: {weight: 1.0}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: mahalanobis_clamp, kwargs: {p: 0.99999}}
+    refresh_every: 1
+
+  # -- bidirectional pairing --------------------------------------------------
+
+  # Chamfer expressed as a pairing rather than a loss: nearest neighbours in both
+  # directions, each direction weighted, with the same rejection rules as any
+  # other matcher. Because it emits ordinary weighted pairs, the closed-form
+  # solver applies - one linear solve per re-pairing instead of a few hundred
+  # gradient steps, which is what the 'chamfer' loss below needs.
+  - name: symmetric_i10
+    correspondence:
+      name: symmetric
+      kwargs:
+        forward_weight: 1.0     # model -> target, unreliable on a partial scan
+        backward_weight: 5.0    # target -> model, every scan point explained
+        max_dist: 0.0026
+        trim_ratio: 0.05
+        normal_thresh_deg: null # null = no normal rejection
+        source_ratio: 0.0       # compute only, 0 = use every model vertex
+        target_ratio: 0.0       # compute only, 0 = use every scan point
+        seed: 0
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs:  {weight: 1.0e-10, normalize: false}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1
+
+  # -- optimal transport pairing ----------------------------------------------
+
+  # Unbalanced Sinkhorn. Nearest-neighbour matching gives every model vertex a
+  # partner whether it deserves one or not; OT instead asks how to move mass
+  # between the clouds at least total cost, and the *unbalanced* form lets mass
+  # be destroyed rather than transported when nothing plausible is within
+  # 'reach'. So neither side has to be fully explained by the other - which is
+  # the actual situation: the scan covers part of the face, the model all of it.
+  #
+  # The result is a soft coupling, emitted as weighted correspondences. Nothing
+  # downstream needs to know it came from OT: minimising sum_e w_e ||x_i-y_j||^2
+  # over those edges is exactly the transport cost, so matched_l2 and the
+  # closed-form solver take it unchanged.
+  - name: sinkhorn_ot
+    correspondence:
+      name: sinkhorn
+      kwargs:
+        blur: 5.0e-2        # entropic smoothing width, as a distance
+        reach: 2.6e-3       # past this, mass is dropped instead of moved
+        k: 8                # neighbours per point, each direction, forming the support
+        max_dist: 0.0026    # hard cutoff on the support
+        iterations: 50
+        min_weight: 1.0e-3  # drop edges below this fraction of the heaviest
+        normalize: true     # weights average 1, so prior weights keep their meaning
+        device: auto
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs:  {weight: 1.0e8, normalize: false}}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1        # re-solve the transport plan each iteration
+
+  # -- gradient-driven --------------------------------------------------------
+
+  # The same bidirectional pairing as symmetric_i10, but optimised by gradient
+  # descent instead of solved. Useful when the objective is not quadratic - a
+  # composite with a non-quadratic term, say - and as a check that the closed
+  # form and the gradient path agree when it is.
+  #
+  # With normalize: true the weight is on the shared scale, so 0.1 here means
+  # what 0.1 means for an isotropic prior: a fraction of the data term on the
+  # dominant mode, rising to ~1330x that on the rarest.
+  - name: chamfer_grad
+    correspondence:
+      name: symmetric
+      kwargs:
+        forward_weight: 1.0
+        backward_weight: 5.0
+        max_dist: 0.0026
+        trim_ratio: 0.05
+        normal_thresh_deg: null
+        source_ratio: 0.25      # compute only: a quarter of the model vertices
+        target_ratio: 0.33      # and a third of the scan, redrawn each re-pairing
+        seed: 0
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 1e-11, normalize: false}}
+    solver:
+      name: gradient
+      kwargs: {optimizer: adam, lr: 1.0e-5, iterations: 200, tolerance: 1.0e-8,
+               patience: 3, log_every: 25}
+    projection: {name: none}
+    refresh_every: 1
+
+  # -- correspondence-free ----------------------------------------------------
+
+  # The raw Chamfer loss: it forms its own pairs on every evaluation and applies
+  # no rejection at all - that is what 'symmetric' above is for. Kept as the
+  # untruncated reference, i.e. the setting that drags the whole model onto the
+  # scanned patch, and as a term to drop into a composite.
+  - name: chamfer_unfiltered
+    correspondence: {name: none}
+    loss:
+      name: chamfer
+      kwargs:
+        forward_weight: 1.0
+        backward_weight: 1.0
+        p: 2
+        reduction: mean
+        source_ratio: 0.25
+        target_ratio: 0.33
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-11, normalize: false}}
+    solver:
+      name: gradient
+      kwargs: {optimizer: adam, lr: 1.0e-5, iterations: 200, tolerance: 1.0e-8,
+               patience: 3, log_every: 25}
+    projection: {name: none}
+    refresh_every: 0            # no effect: this loss re-pairs on every evaluation
+
+  # CPD: the model vertices are Gaussian mixture centroids and the target points
+  # are samples. Nothing is ever assigned to a single partner. sigma is the
+  # capture radius - annealing it from coarse to fine is the standard schedule,
+  # and outlier_weight buys tolerance to scan noise. sigma: null starts it from
+  # the data.
+  - name: cpd_annealed
+    correspondence: {name: none}
+    loss:
+      name: cpd
+      kwargs:
+        sigma: null             # null = from the data on the first call
+        sigma_end: 5.0e-4       # geometric anneal, coarse -> fine, over the run
+        outlier_weight: 0.1     # fraction of the scan treated as uniform noise
+        knn: 16                 # centroids per target point kept in the mixture
+        reduction: mean
+        source_ratio: 0.25
+        target_ratio: 0.33
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-11, normalize: false }}
+    solver:
+      name: gradient
+      kwargs: {optimizer: adam, lr: 1.0e-5, iterations: 200, tolerance: 0.0,
+               patience: 3, log_every: 25}
+    projection: {name: none}
+    refresh_every: 0
+
+  # Point-to-point and point-to-plane on the same pairing. The perpendicular
+  # term lets the model slide tangentially over the scan instead of being pulled
+  # at whichever point it happened to be paired with, which converges faster on
+  # smooth regions; the point-to-point term keeps it from sliding indefinitely.
+  # Both consume the pairing, so the rejection rules are set once, above them.
+  - name: symmetric_p2plane
+    correspondence:
+      name: symmetric
+      kwargs:
+        forward_weight: 1.0
+        backward_weight: 5.0
+        max_dist: 0.0026
+        trim_ratio: 0.05
+        normal_thresh_deg: 60.0
+        source_ratio: 0.0
+        target_ratio: 0.0
+        seed: 0
+    loss:
+      name: composite
+      kwargs:
+        terms:
+          - {name: matched_l2, weight: 1.0, kwargs: {reduction: sum}}
+          - {name: point_to_plane, weight: 0.5, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-11, normalize: false }}
+    solver:
+      name: gradient
+      kwargs: {optimizer: adam, lr: 1.0e-5, iterations: 200, tolerance: 1.0e-8,
+               patience: 3, log_every: 25}
+    projection: {name: none}
+    refresh_every: 1
+
+verbose: true

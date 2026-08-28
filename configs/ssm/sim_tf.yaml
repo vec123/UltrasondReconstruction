@@ -1,0 +1,26 @@
+# Configuration for scripts/sim_tf.py  ->  src.runners.SimTransformRunner
+#
+#   python scripts/sim_tf.py --config configs/sim_tf.yaml
+#
+# Applies a saved similarity transform (or its inverse) to whole .vtp meshes:
+# topology and data arrays are preserved, only the geometry moves.
+
+# .npz holding R (3,3), t (3,) and s. Written by scripts/pipeline.py when
+# steps.gmm_2_template is on, and by scripts/align_landmarks.py (key 'T').
+transform: ${PROJECT_ROOT}/outputs/gmm_2_template.npz
+
+# The saved transform maps template space -> GMM space (direction: to_model).
+# Set inverse: true to go back the other way.
+inverse: true
+
+inputs:
+  dir: ${PROJECT_ROOT}/outputs/model_space
+  pattern: "*.vtp"
+  exclude:
+    - template.vtp        # already in correspondence, that is what defined the transform
+  # files:                # explicit list, as an alternative to dir
+  #   - ${PROJECT_ROOT}/data/processed_ultrasound/merged_targets.vtp
+
+output_dir: ${PROJECT_ROOT}/outputs/world
+suffix: null              # appended to each stem; null keeps the original name
+verbose: true

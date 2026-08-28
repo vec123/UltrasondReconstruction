@@ -1,0 +1,45 @@
+# Stage 1d: sample per-vertex "echotexture" (local intensity/gradient
+# statistics from the ORIGINAL nrrd volume, not the extracted surface) at each
+# nrrd_to_vtp vertex. Must run before any alignment stage: those rescale/
+# rotate/translate the mesh, after which vertex world coordinates no longer
+# line up with the source nrrd's voxel grid.
+stage: echotexture
+
+vtp_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd
+nrrd_dir: ${PROJECT_ROOT}/US_samples/US_samples_fetusnet/prepared/1/NRRD
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/echotexture
+
+# Must equal nrrd_to_vtp's own volume.crop / crop_threshold / crop_margin for
+# this same run - cropping shifts the volume's origin, and vtp_dir's vertices
+# already reflect that shifted frame if nrrd_to_vtp cropped.
+crop: false
+crop_threshold: 0
+crop_margin: 0
+
+# denoise / normalize control only what signal gets measured, not the
+# coordinate frame - free to differ from nrrd_to_vtp's own choice. Left at
+# their defaults this samples untouched ("raw") intensity.
+denoise: null  # "median" | "curvature" | null
+denoise_radius: 5
+normalize: false
+clip_percentiles: [1.0, 99.0]
+norm_out_max: 255.0
+
+neighborhood_radius_mm: 1.5  # half-width of the sampled voxel neighborhood
+interp_order: 1  # 0 = nearest voxel, 1 = trilinear
+
+# Integration-scale radius (mm) for the structure-tensor orientation-coherence
+# fields (echo_linearity/planarity/sphericity/energy) - whether nearby edges
+# point the same way (sheet-like/tubular) or every-which-way (isotropic
+# speckle/noise); a different question from neighborhood_radius_mm above.
+structure_tensor_radius_mm: 1.5
+
+# Radius (mm, on the mesh's own un-aligned surface) each echo_* field's
+# *_variability companion is measured over - how much that field's value
+# varies among nearby vertices, not the field's own magnitude.
+variability_radius_mm: 10.0
+# Caps the neighbor search to each vertex's nearest N vertices, so a dense
+# mesh can't turn variability_radius_mm into an unbounded neighbor count.
+variability_max_neighbors: 64
+
+field_prefix: echo_

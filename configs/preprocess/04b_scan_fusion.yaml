@@ -1,0 +1,27 @@
+# Stage 4b: fuse every subject's aligned mesh into one consensus scan - a
+# Gaussian-weighted, normal-aware average onto a fixed reference mesh's
+# topology, instead of scan_consistency's raw union-of-points merge (which
+# reads noisier than any one subject's own scan, since overlapping regions
+# get several slightly-offset copies of the same patch layered on top of
+# each other whenever alignment isn't pixel-perfect).
+stage: scan_fusion
+
+# input_aligned_dir reads align_to_template's own output directly - NOT
+# through scan_consistency. scan_fusion does its own cross-subject weighting
+# internally (see min_support / normal_power below), so scan_consistency's
+# slow per-sweep nearest-neighbor scoring is redundant overhead here, and its
+# min_consistency_threshold was ALSO erasing genuine low-agreement anatomy
+# (e.g. a cleft), not just noise.
+input_aligned_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/aligned_to_template/shapes_vtp
+reference_vtp: ${PROJECT_ROOT}/scripts/US/mean_shape/model_space/mean_shape.vtp
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/fused_scan
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/aligned_to_template/transforms
+
+sigma_mm: 1.0  # spatial tolerance in mm; subject points within sigma_mm pull a reference vertex toward them
+min_support: 2.0  # reference vertices with total kernel weight below this are dropped (too little cross-subject agreement)
+# Distance alone still blends a real gap/discontinuity across sweeps that
+# aren't sub-mm aligned there - normal_power also down-weights contributing
+# points whose surface normal disagrees with the reference vertex's, since
+# the two sides of a real gap face different directions. Set to 0 to go back
+# to plain distance-only averaging.
+normal_power: 2.0

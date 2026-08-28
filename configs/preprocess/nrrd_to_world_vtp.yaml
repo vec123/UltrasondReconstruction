@@ -1,0 +1,10 @@
+# Standalone: NRRD label volumes -> surface meshes in physical RAS world space.
+# Alternate entry point for the Casos_Mar/Segmentations source (not part of
+# the default pipeline.yaml chain).
+stage: nrrd_to_world_vtp
+
+input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/1/20_semanas/US_transformed
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/Segmentations/1/20_semanas/US_transformed_world
+
+contour_value: 1  # label index/threshold for surface extraction
+reduction_factor: 0.3  # quadric decimation factor (0 = none, 0.5 = 50% reduction)

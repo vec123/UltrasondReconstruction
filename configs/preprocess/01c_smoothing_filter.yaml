@@ -1,0 +1,12 @@
+# Stage 1c: smooth mesh geometry with a non-shrinking windowed-sinc filter,
+# to reduce staircase/speckle noise left over from volume-to-surface
+# extraction. Same "vtp dir in, vtp dir out" shape as roughness_filter.
+stage: smoothing_filter
+
+input_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/roughness_filtered
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/smoothed
+
+iterations: 30  # higher = smoother
+pass_band: 0.1  # lower = smoother/blurrier, higher = keeps finer detail (try 0.05-0.2)
+boundary_smoothing: true
+feature_edge_smoothing: false

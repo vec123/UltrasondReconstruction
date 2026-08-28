@@ -1,0 +1,27 @@
+# Configuration for scripts/align_landmarks.py  ->  src.runners.AlignLandmarksRunner
+#
+#   python scripts/align_landmarks.py --config configs/align_landmarks.yaml
+#
+# Aligns the mean shape of the .mat model onto a set of target landmarks and
+# writes the similarity transform plus the original and aligned meshes.
+
+shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+
+output:
+  dir: ${PROJECT_ROOT}/output
+  transform: rigid_transform.npz
+  original_mesh: original_mean_mesh.vtp
+  aligned_mesh: aligned_mean_mesh.vtp
+
+# Target landmark positions, keyed by the model's landmark names.
+# At least 3 are needed. Use target_landmarks_json instead to read them from a
+# file - exactly one of the two must be set.
+target_landmarks:
+  prn: [41.9958, 32.4715, 6.01142]
+  n:   [43.7176, 42.9437, 8.73412]
+  enR: [49.6570, 41.5853, 7.10400]
+
+# target_landmarks_json: ${PROJECT_ROOT}/data/processed_ultrasound/landmarks.json
+
+allow_scale: true   # false gives a rigid (scale-free) transform
+verbose: true

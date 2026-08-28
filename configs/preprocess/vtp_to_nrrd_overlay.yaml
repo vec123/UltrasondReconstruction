@@ -1,0 +1,20 @@
+# Standalone: paint a VTP point cloud onto its reference NRRD volume as an
+# RGB overlay, for visual QC. Not part of the default pipeline.yaml chain.
+stage: vtp_to_nrrd_overlay
+
+nrrd_path: ${PROJECT_ROOT}/US_samples/US_samples_fetusnet/prepared/1/NRRD/1-01.nrrd
+output_path: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/1-01_isoline_red.nrrd
+
+thickness: 1.0  # default line thickness / sphere radius, in mm; a layer may override
+
+layers:
+  - vtp_path: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/1-01.vtp
+    line_color: [255, 0, 0]
+
+    # To overlay a fully aligned/denoised result back onto the ORIGINAL scan:
+    # set vtp_path to that result, and fill these in to apply the inverse of
+    # its saved pipeline transform before rasterizing.
+    transform:
+      manifest_dir: null  # e.g. .../aligned_to_template/transforms
+      subject_id: null  # e.g. "1-01"
+      apply_inverse: false

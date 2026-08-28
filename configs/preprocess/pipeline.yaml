@@ -1,0 +1,253 @@
+
+stages:
+  - name: nrrd_to_vtp
+    enabled: false
+  - name: echotexture
+    enabled: false
+  - name: align_to_reference
+    enabled: false
+  - name: align_to_template
+    enabled: false
+  - name: roughness_filter
+    enabled: false
+  - name: landmark_bbox_cut
+    enabled: true
+  - name: landmark_distance_cut
+    enabled: false
+  - name: scan_consistency
+    enabled: true
+  - name: scan_fusion
+    enabled: false
+  - name: roughness_filter
+    id: roughness_filter_final
+    enabled: false
+  - name: smoothing_filter
+    id: smoothing_filter_final
+    enabled: false
+  - name: landmark_geodesics
+    enabled: false
+
+paths:
+
+  nrrd_to_vtp:
+    #input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/14/20_semanas
+    input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/${SUBJECT_ID}/20_semanas
+    #output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/14/20_semanas
+    output_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/${SUBJECT_ID}/20_semanas
+    #output_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/PLY
+    #cache_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/14/20_semanas/Cache
+    cache_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/${SUBJECT_ID}/20_semanas/Cache
+
+  echotexture:
+    vtp_dir: nrrd_to_vtp.output_dir
+    nrrd_dir: nrrd_to_vtp.input_dir
+    output_dir: nrrd_to_vtp.output_dir + /echotexture
+
+  align_to_reference:
+    landmarks_csv_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/Lmks_Antonia
+    #landmarks_csv_dir:  C:/Users/vic-b/Documents/Victors/Projects/fetusnet/inference/results/landmarks/Casos_Mar/${SUBJECT_ID}
+    vtp_shapes_dir: nrrd_to_vtp.output_dir
+   #vtp_shapes_dir:  ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/PLY
+    output_dir: nrrd_to_vtp.output_dir + /aligned
+    raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
+    transforms_dir: nrrd_to_vtp.output_dir + /aligned/transforms
+    previous_transforms_dir: null
+    aligned_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned/aligned_shapes_vtp
+    aligned_landmarks_dir: nrrd_to_vtp.output_dir + /aligned/aligned_landmarks
+
+  align_to_template:
+    template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+    vtp_shapes_dir: align_to_reference.aligned_shapes_vtp_dir
+    landmarks_csv_dir: align_to_reference.aligned_landmarks_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
+    out_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/shapes_vtp
+    out_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_vtp
+    transforms_dir: nrrd_to_vtp.output_dir + /aligned_to_template/transforms
+    previous_transforms_dir: align_to_reference.transforms_dir
+
+  roughness_filter:
+    input_dir: align_to_template.out_shapes_vtp_dir
+    output_dir: align_to_template.output_dir + /roughness_filtered
+    unfiltered_dir: align_to_template.output_dir + /roughness_unfiltered
+    transforms_dir: align_to_template.transforms_dir
+
+  landmark_bbox_cut:
+    shapes_dir: align_to_template.out_shapes_vtp_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmark_bbox_cut
+    transforms_dir: align_to_template.transforms_dir
+
+  landmark_distance_cut:
+    shapes_dir: align_to_template.out_shapes_vtp_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmark_distance_cut
+    transforms_dir: align_to_template.transforms_dir
+
+  scan_consistency:
+    #input_aligned_dir: roughness_filter.shapes_dir
+    input_aligned_dir: landmark_bbox_cut.output_dir
+    output_consistency_dir: nrrd_to_vtp.output_dir + /consistency_shapes_vtp
+    output_denoised_dir: nrrd_to_vtp.output_dir + /denoised_shapes_vtp
+    output_merged_dir: nrrd_to_vtp.output_dir + /merged_high_confidence_scan
+    transforms_dir: align_to_template.transforms_dir
+
+  scan_fusion:
+    input_aligned_dir: align_to_template.out_shapes_vtp_dir
+    reference_vtp: align_to_template.template_vtp
+    output_dir: nrrd_to_vtp.output_dir + /fused_scan
+    transforms_dir: align_to_template.transforms_dir
+
+  roughness_filter_final:
+    input_dir: scan_consistency.output_merged_dir
+    output_dir: scan_consistency.output_merged_dir + /roughness_filtered
+
+  smoothing_filter_final:
+    input_dir: scan_fusion.output_dir
+    output_dir: scan_fusion.output_dir + /smoothed
+
+  landmark_geodesics:
+    shapes_dir: scan_consistency.output_consistency_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /geodesic_shapes_vtp
+
+hyperparameters:
+
+  nrrd_to_vtp:
+    contour_value: 70  # fallback only - ignored while auto_contour is true
+    auto_contour: false  # pick contour_value per volume via Otsu's method, so it adapts to each NRRD source's own intensity scale instead of a hand-tuned absolute number
+    reduction_factor: 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
+    min_bridge_width: 1.0  # bridges narrower than this do not connect regions; 0 disables
+    min_bridge_relative: false
+    compute_curvedness: false
+    curvedness_n_rings: 5
+    curvedness_scale_invariant: false
+    operators: false  # compute Laplace-Beltrami operators (k_eig eigenpairs); slow
+    k_eig: 200
+    flat:
+      enabled: false  # remove large flat/planar patches
+      n_rings: 5
+      thresh: 0.1
+      max_area: 0.05  # drop flat patches covering more than this fraction of total area
+    volume:
+      denoise: null  # "median" | "curvature" | null
+      denoise_radius: 5
+      normalize: false
+      clip_percentiles: [1.0, 99.0]
+      norm_out_max: 255.0
+      crop: false
+      crop_threshold: 0
+      crop_margin: 0
+
+  echotexture:
+    # crop / crop_threshold / crop_margin MUST equal nrrd_to_vtp.volume's own
+    # values above - cropping shifts the volume's origin, and nrrd_to_vtp's
+    # output vertices already reflect that shifted frame if it cropped.
+    crop: false
+    crop_threshold: 0
+    crop_margin: 0
+    # denoise / normalize control only what signal gets measured, not the
+    # coordinate frame, so they're free to differ from nrrd_to_vtp.volume's
+    # own choice - left at their defaults this samples untouched ("raw")
+    # intensity, independent of whatever nrrd_to_vtp denoised/normalized for
+    # contouring.
+    denoise: null  # "median" | "curvature" | null
+    denoise_radius: 5
+    normalize: false
+    clip_percentiles: [1.0, 99.0]
+    norm_out_max: 255.0
+    neighborhood_radius_mm: 1.5  # half-width of the sampled voxel neighborhood
+    interp_order: 1  # 0 = nearest voxel, 1 = trilinear
+    # Integration-scale radius (mm) for the structure-tensor orientation-
+    # coherence fields (echo_linearity/planarity/sphericity/energy) - whether
+    # nearby edges point the same way (sheet-like/tubular) or every-which-way
+    # (isotropic speckle/noise); a different question from the intensity/
+    # gradient-magnitude stats neighborhood_radius_mm controls above.
+    structure_tensor_radius_mm: 1.5
+    # Radius (mm, on the mesh's own un-aligned surface) each echo_* field's
+    # *_variability companion is measured over - how much that field's value
+    # varies among nearby vertices, not the field's own magnitude. Must stay
+    # here (pre-alignment) so this radius keeps meaning an actual physical
+    # distance; a later alignment stage's isotropic scale would otherwise
+    # silently distort it (the way roughness_filter's min_bridge_width needs
+    # transforms_dir to correct for, above).
+    variability_radius_mm: 10.0
+    # Caps the neighbor search to each vertex's nearest N: an unbounded radius
+    # query on a dense, lightly-decimated mesh can turn variability_radius_mm
+    # into hundreds of millions of neighbor pairs (a real crash we hit - see
+    # compute_field_variability's docstring for the bounded-cost tradeoff).
+    variability_max_neighbors: 64
+    field_prefix: echo_
+
+  roughness_filter:
+    n_rings: 5
+    scale_invariant: false
+    method: quadric  # "plane" | "quadric"
+    threshold: 0.9  # keep vertices with roughness below this fraction of the field's range - scale-invariant, unaffected by align_to_reference/align_to_template's scale
+    neighbors: knn  # "knn" | "rings"
+    max_neighbors: 32
+    min_bridge_width: 1.0  # mm, original nrrd/ply space - converted into this stage's scaled units via paths.roughness_filter.transforms_dir; 0 disables
+    min_bridge_relative: false
+
+  align_to_reference:
+    reference_subject_id: null  # defaults to the first common subject id
+    with_scale: true
+    lps_to_ras: true  # Slicer CSV landmarks are in LPS space, meshes in RAS
+
+  align_to_template:
+    heatmap_prefix: heatmap_
+    with_scale: true
+    lps_to_ras: false  # set true if the landmark CSVs need LPS -> RAS conversion
+
+  landmark_bbox_cut:
+    # Padding added to each face of the landmarks' bounding box (mm, original
+    # nrrd/ply space). x = Right(+)/Left(-), y = Anterior(+)/Posterior(-),
+    # z = Superior(+, above eyes)/Inferior(-, toward chin).
+    x_min_offset_mm: 10.0
+    x_max_offset_mm: 10.0
+    y_min_offset_mm: 3.0
+    y_max_offset_mm: 35.0
+    z_min_offset_mm: 20.0 
+    z_max_offset_mm: 5.0   
+    keep_largest_component: false  # re-extract the largest component after the distance cut instead (below)
+    min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+    min_bridge_relative: false
+
+  landmark_distance_cut:
+    max_distance_mm: 15.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
+    keep_largest_component: false  # re-extract the largest component after the distance cut
+    min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+    min_bridge_relative: false
+
+  scan_consistency:
+    sigma_mm: 2.0  # spatial tolerance in mm; points within sigma_mm score highly
+    apply_denoise_threshold: true
+    min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
+    denoise_min_bridge_width: 5.0
+    denoise_min_bridge_relative: true
+
+  scan_fusion:
+    sigma_mm: 1.0  # spatial tolerance in mm; subject points within sigma_mm pull a reference vertex toward them
+    min_support: 0.3  # reference vertices with total kernel weight below this are dropped (too little cross-subject agreement)
+    normal_power: 0
+    surface_fit_n_rings: 5
+    surface_fit_method: quadric  # "plane" | "quadric"
+
+  roughness_filter_final:
+    n_rings: 5
+    scale_invariant: false
+    method: quadric  # "plane" | "quadric"
+    threshold: 0.99  # keep vertices with roughness below this fraction of the field's range
+    neighbors: knn  # "knn" | "rings"
+    max_neighbors: 32
+    keep_largest_component: false
+    min_bridge_width: 1.0  # unused while keep_largest_component is false
+    min_bridge_relative: false
+
+  smoothing_filter_final:
+    iterations: 30  # higher = smoother
+    pass_band: 0.01  # lower = smoother/blurrier, higher = keeps finer detail (try 0.05-0.2)
+    boundary_smoothing: true
+    feature_edge_smoothing: false
+
+  landmark_geodesics:
+    heatmap_sigma: 0.0014  # Gaussian width of the heatmaps, in mesh units of geodesic distance

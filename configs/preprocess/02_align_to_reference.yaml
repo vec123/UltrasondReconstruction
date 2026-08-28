@@ -1,0 +1,17 @@
+# Stage 2: align every subject's mesh + landmarks onto one reference subject.
+# First alignment stage in the chain -> previous_transforms_dir is null; the
+# transform saved here IS the cumulative (original-frame -> this stage) one.
+stage: align_to_reference
+
+landmarks_csv_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/1/20_semanas/Lmks_Antonia/renamed
+vtp_shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd
+
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned
+raw_landmarks_vtp_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/raw_landmarks_vtp
+
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned/transforms
+previous_transforms_dir: null
+
+reference_subject_id: null  # defaults to the first common subject id
+with_scale: true
+lps_to_ras: true  # Slicer CSV landmarks are in LPS space, meshes in RAS

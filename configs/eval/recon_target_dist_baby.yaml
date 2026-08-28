@@ -1,0 +1,25 @@
+# Eval/QC tool, not part of the pipeline.yaml chain: nearest-neighbor (L2)
+# point-to-point distance between a reconstruction and its registration
+# target, in both directions. Doesn't move geometry, so it saves no transform.
+#
+# Usage: python scripts/US/run_stage.py --config configs/eval/recon_target_dist_baby.yaml
+stage: recon_target_distance
+
+target_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/rigid_alignment.vtp
+recon_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/nicp_refined_vertices_gamma_2_iter_0008.vtp
+
+# align_to_template's saved transforms for subject 1 (one per sweep) - the
+# median scale over them converts distances from template units back to the
+# original data's physical scale, comparable against other SSM/template
+# runs. subject_id below picks one specific sweep's transform to fully
+# invert (rotation+translation+scale), placing the saved meshes back in the
+# ORIGINAL scan's own frame - not just rescaled - so this and
+# recon_target_dist_fetus.yaml's outputs (same raw isosurface, different
+# template) actually overlap when viewed together.
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTK_4/1/20_semanas/aligned_to_template/transforms
+subject_id: 1-20s-01
+
+# target_w_distance.vtp / recon_w_distance.vtp are saved here. Left unset,
+# saves next to target_path / recon_path instead.
+output_dir: ${PROJECT_ROOT}/Eval/baby_ssm_outputs/1/baby_ssm_eval/high_conf_target_threshold_0.8
+

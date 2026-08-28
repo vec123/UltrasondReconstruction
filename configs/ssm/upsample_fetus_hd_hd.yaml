@@ -1,0 +1,21 @@
+# Configuration for scripts/upsample_atlas.py  ->  src.runners.UpsampleAtlasRunner
+#
+#   python scripts/upsample_atlas.py --config configs/upsample_fetus_hd_hd.yaml
+#
+# Chains the same resampling again, this time on src/FetusModel_x2 rather than
+# the original - so the result ('fetus_hd_hd' in sample_shapes.yaml) sits at
+# roughly 4x the original fetus model's vertex count (1416 -> ~2847 -> ~5700).
+# The control points and momenta are still the same 184 subjects' - resampling
+# a resampling changes nothing about which model this is, only how many points
+# it is evaluated at. See configs/upsample_fetus_hd.yaml and the module
+# docstring of src/runners/upsample_atlas.py for the rest.
+
+source: ${PROJECT_ROOT}/src/FetusModel_x2
+output_dir: ${PROJECT_ROOT}/src/FetusModel_x4
+
+scale: 2.0
+
+warm_cache: true
+warm_cache_time_points: 11
+
+verbose: true

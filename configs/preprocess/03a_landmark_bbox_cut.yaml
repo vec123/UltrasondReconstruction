@@ -1,0 +1,28 @@
+# Stage 3a: drop mesh points outside a box built from the landmarks' own
+# bounding box. Coarse pre-filter meant to run before landmark_distance_cut
+# (03b) - cheaper, and shrinks the point count landmark_distance_cut's
+# per-point KD-tree query has to run over.
+stage: landmark_bbox_cut
+
+shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/shapes_vtp
+landmarks_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/landmarks_vtp
+
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/landmark_bbox_cut
+
+# The transforms_dir written by 03_align_to_template.yaml, used to convert
+# the offsets below into the aligned mesh's own (scaled) units.
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/transforms
+
+# Padding added to each face of the landmarks' bounding box (mm, original
+# nrrd/ply space). x = Right(+)/Left(-), y = Anterior(+)/Posterior(-),
+# z = Superior(+, above eyes)/Inferior(-, toward chin).
+x_min_offset_mm: 5.0
+x_max_offset_mm: 5.0
+y_min_offset_mm: 5.0
+y_max_offset_mm: 5.0
+z_min_offset_mm: 25.0  # inferior: generous, keeps more of the chin
+z_max_offset_mm: 5.0   # superior: strict, stays close above the eyes
+
+keep_largest_component: true  # re-extract the largest component after the box cut
+min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+min_bridge_relative: false

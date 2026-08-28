@@ -1,0 +1,10 @@
+# Stage 5: attach geodesic-distance / heatmap fields to each aligned mesh.
+# Doesn't move geometry, so it saves no transform.
+stage: landmark_geodesics
+
+shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/consistency_shapes_vtp
+landmarks_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/landmarks_vtp
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/geodesic_shapes_vtp
+
+# Gaussian width of the heatmaps, in mesh units of geodesic distance along the surface.
+heatmap_sigma: 0.0014

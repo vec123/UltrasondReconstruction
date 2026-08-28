@@ -1,0 +1,97 @@
+# Configuration for scripts/align_meshes.py  ->  src.runners.AlignMeshesRunner
+#
+#   python scripts/align_meshes.py --config configs/align_fetus_to_baby.yaml
+#
+# Puts the fetus template into the baby model's frame with a similarity
+# transform, as the initial guess for an LDDMM registration between the two.
+#
+# The two meshes share nothing to solve against - 1416 points vs 31027, no
+# common landmarks, and a scale ratio near 6000 - so the transform is found
+# from geometry alone: normalise both, enumerate the 24 proper rotations that
+# match their principal frames, refine the best few with a similarity ICP, and
+# score symmetrically so the fit cannot improve itself by shrinking the source
+# into the target. See src/runners/align_meshes.py.
+#
+# What comes out is a placement, not a registration. The residual it reports is
+# the shape difference between a fetal and a neonatal face, and no similarity
+# transform can reduce it - that is the job of the nonrigid step this feeds.
+
+source:
+  # The Deformetrica template, which is also the atlas mean (identical to
+  # DeterministicAtlas__EstimatedParameters__Template_face.vtk to 0.0 mm).
+  mesh_vtp: ${PROJECT_ROOT}/src/FetusModel/shape model/shape model/fetus_mean.vtp
+
+target:
+  # The baby model's mean shape, given twice over, because the two sources
+  # carry different things:
+  #
+  #   mesh_vtp     the geometry *and its 33 point fields* - total_std, the
+  #                per-mode heatmaps, curvature, the landmark heatmaps. Point
+  #                data travels through the transform with the points, so the
+  #                copy written to outputs keeps all of it and can be coloured
+  #                by any of those fields next to the aligned fetus.
+  #   shape_model  the 23 landmarks, which is what the alignment is checked
+  #                against: an upside-down or mirrored fit shows up as the nose
+  #                and chin landing far from the surface.
+  #
+  # Here mesh_vtp is the mean *cropped* to the region the fetus template
+  # actually covers, which is what keeps the symmetric residual honest: the
+  # full mean includes ears and a skull the fetus patch has nothing to match,
+  # and every unmatched target point pushed the fit. The runner checks the crop
+  # lies on the model's surface rather than demanding equal vertex counts, and
+  # takes the landmarks as positions so the crop's own numbering does not
+  # matter. Landmarks outside the crop are reported but excluded from the
+  # summary.
+  #
+  # Regenerate the uncropped mean first if the model ever changes - mean_shape
+  # output goes stale silently:
+  #
+  #   python scripts/mean_shape.py --config configs/mean_shape.yaml
+  mesh_vtp: ${PROJECT_ROOT}/outputs/align_fetus_to_baby/baby_mean_cropped.vtp
+  shape_model: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+  normalize: false
+  triangulate: true        # the ParaView clip leaves mixed-size cells behind
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/align_fetus_to_baby
+  transform: similarity_transform.npz   # R, t, s - replayable with scripts/sim_tf.py
+  aligned: fetus_mean_in_baby_space.vtp
+  # The target as the runner consumed it: cropped, triangulated, fields intact.
+  # A second name so the input it came from is never overwritten.
+  target: baby_mean_cropped_2.vtp
+  write_target: true       # both meshes, one frame, one folder, ready for the next step
+
+allow_scale: true          # false solves a rigid transform instead
+
+# Where the fit should spend its accuracy. An unweighted ICP minimises the
+# average distance over the whole patch, so it has no reason to line the noses
+# up - it spreads the fetal-vs-neonatal shape difference evenly and the nose
+# ends up as wrong as the cheeks. Weighting the correspondences around the nose
+# anchors the feature a nonrigid step most needs anchored, while the rest of
+# the surface still holds the orientation down.
+#
+# The report ends with an apex-to-apex distance, which is the number to watch:
+# the landmark distances above it are point-to-*surface*, and a nose can pass
+# those while sitting beside the target's nose rather than on it.
+focus:
+  landmark: prn            # pronasale - the nose tip, from the target model
+  radius: 0.003            # Gaussian falloff in target units (~23% of the face)
+  weight: 8.0              # weight at the nose relative to the far field; 1 = off
+  # Instead of a Euclidean radius, use a point field of the target as the
+  # weight - 'heatmap_prn' from mean_shape.py follows the surface, so it does
+  # not leak onto whatever happens to be nearby in space.
+  field: null
+
+# The principal axes of a face mesh are only weakly ordered - the fetus and
+# baby meshes do not even cover the same part of the face - so every orientation
+# is screened and the leading ones are refined. 8 is generous; the winner has
+# come from the top few in practice.
+refine_count: 8
+iterations: 100
+# Drop the worst-matched tenth of the source each iteration: the fetus patch
+# and the cropped baby do not cover quite the same region, and an unmatched rim
+# pulls the transform outward if every point has to be explained.
+trim_ratio: 0.1
+tolerance: 1.0e-12
+
+verbose: true

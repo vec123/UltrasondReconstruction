@@ -1,0 +1,75 @@
+# Configuration for scripts/mean_shape.py  ->  src.runners.MeanShapeRunner
+#
+#   python scripts/mean_shape.py --config configs/mean_shape_fetus.yaml
+#
+# The same export as configs/mean_shape.yaml, run against the fetus model
+# instead of BabyFM. That model is not a .mat: it is a Deformetrica
+# deterministic atlas (template mesh + control points + one momentum per
+# subject), so shape_model_mat points at the *directory* and the loader shoots
+# the 184 geodesics and PCAs the result into the usual mean/eigenfunctions/
+# eigenvalues form. See src/model/deformetrica.py.
+#
+# Two things differ from the BabyFM config as a consequence:
+#   * the atlas ships with no landmark annotation of its own - model.atlas.landmarks
+#     below points at the name -> vertex-index JSON scripts/place_landmarks.py
+#     writes (configs/place_landmarks.yaml), which fills that gap by hand. Every
+#     landmark-derived field stays off automatically until that file has entries
+#     in it - run the picker first, then flip fields.landmark_* to true;
+#   * the atlas is in millimetres (the face spans ~56 x 80 x 23 mm) while the
+#     .mat model spans ~0.013, so any length below is ~4000x larger than its
+#     counterpart there.
+
+shape_model_mat: ${PROJECT_ROOT}/src/FetusModel
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/mean_shape_fetus
+  files:
+    mean_shape: mean_shape.vtp
+    landmarks_csv: landmark_coordinates.csv   # only written once model.atlas.landmarks has entries
+    landmarks_vtp: landmarks.vtp
+
+model:
+  normalize: false          # rescale the SSM to unit RMS radius when loading
+
+  # Deformetrica atlas -> linear SSM. Only read because shape_model_mat is an
+  # atlas directory; ignored for a .mat model.
+  atlas:
+    # null reads 'kwd' from the atlas params.json (7.0 here).
+    kernel_width: null
+    # Geodesic shooting resolution. 11 is Deformetrica's own default and is
+    # converged to ~0.03 mm against a 201-point reference, on subject
+    # displacements reaching 17.6 mm. 2 degenerates to a plain linear
+    # approximation and is 5.5 mm off there, so do not lower it to save time -
+    # the cache below already removes that cost.
+    time_points: 11
+    # Mode truncation, applied after the decomposition. null/1.0 keeps all 183
+    # non-degenerate modes (184 subjects, so the centred data has rank 183).
+    # For reference: 10 modes carry 84% of the variance, 30 carry 96%.
+    n_components: null
+    variance_threshold: 1.0
+    # Shooting the population takes ~90 s; the decomposition is cached beside
+    # the atlas as ssm_shot_sigma7_tp11.npz and reloads in well under a second.
+    # Truncation and normalisation are applied after the cache is read, so
+    # changing them costs nothing.
+    cache: true
+    # name -> vertex-index JSON from scripts/place_landmarks.py. Every field
+    # below that needs landmarks quietly stays off (0 landmarks -> nothing to
+    # compute) until this file has entries in it, so there is nothing to
+    # re-enable by hand once the picker has been used.
+    landmarks: ${PROJECT_ROOT}/src/FetusModel/landmarks.json
+
+fields:
+  total_std: true           # per-vertex sd under the model, in mm here
+  mode_count: 5
+  mode_vectors: false
+
+  curvature: true
+  # These read model.atlas.landmarks above; see the note there.
+  landmark_distance: true
+  landmark_heatmaps: true
+  combined_heatmap: true
+  combined_mode: max
+  heat_sigma: null          # null = ten times the mean edge length
+  heat_normalize: true
+
+verbose: true

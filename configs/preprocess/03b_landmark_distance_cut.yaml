@@ -1,0 +1,20 @@
+# Stage 3b: drop mesh points that aren't close to any landmark.
+# Doesn't move geometry, so it saves no transform - it only reads stage 3's
+# transforms to convert max_distance_mm (defined in the original nrrd/ply
+# space) into the aligned mesh's own (scaled) units.
+stage: landmark_distance_cut
+
+shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/shapes_vtp
+landmarks_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/landmarks_vtp
+
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/landmark_distance_cut
+
+# The transforms_dir written by 03_align_to_template.yaml, used to convert
+# max_distance_mm into the aligned mesh's own (scaled) units.
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/transforms
+
+max_distance_mm: 15.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
+
+keep_largest_component: true  # re-extract the largest component after the distance cut
+min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+min_bridge_relative: false

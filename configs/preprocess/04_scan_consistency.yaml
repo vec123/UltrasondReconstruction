@@ -1,0 +1,19 @@
+# Stage 4: score and denoise aligned meshes by cross-subject consistency.
+# Doesn't move geometry, so it saves no transform - it only reads stage 3's
+# transforms to convert sigma_mm into the aligned mesh's own units.
+stage: scan_consistency
+
+input_aligned_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/shapes_vtp
+
+output_consistency_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/consistency_shapes_vtp
+output_denoised_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/denoised_shapes_vtp
+output_merged_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/merged_high_confidence_scan
+
+transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/transforms
+
+sigma_mm: 2.0  # spatial tolerance in mm; points within sigma_mm score highly
+
+apply_denoise_threshold: true
+min_consistency_threshold: 0.55
+denoise_min_bridge_width: 0.8
+denoise_min_bridge_relative: true

@@ -1,0 +1,66 @@
+# Configuration for scripts/mean_shape.py  ->  src.runners.MeanShapeRunner
+#
+#   python scripts/mean_shape.py --config configs/mean_shape.yaml
+#
+# Exports the mean shape as a surface with per-vertex heatmaps, plus the
+# landmark coordinates as a CSV. Everything written is a property of the shape
+# model itself, not of any fit, so it is the reference picture of what the SSM
+# can do and where it is confident.
+
+shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/mean_shape
+  files:
+    mean_shape: mean_shape.vtp            # the surface, carrying every field below
+    landmarks_csv: landmark_coordinates.csv
+    landmarks_vtp: landmarks.vtp          # the same points, to open next to the surface
+
+model:
+  normalize: false          # rescale the SSM to unit RMS radius when loading
+
+# Point fields attached to mean_shape.vtp. In ParaView, colour by any of them.
+fields:
+  # sqrt(sum_k lambda_k * ||phi_k(v)||^2): the standard deviation of each
+  # vertex's position under the model. This is the heatmap worth looking at -
+  # it says where the training population actually varies, and it is a length
+  # in model units, so it compares directly against the distance thresholds
+  # used for matching. Regions where it is small cannot be fitted by the model
+  # no matter what the data asks for.
+  total_std: true
+
+  # One field per leading mode: sqrt(lambda_k) * ||phi_k(v)||, the 1-sigma
+  # displacement that mode produces at each vertex. Shows what each mode moves
+  # and how far. 0 disables.
+  mode_count: 5
+  # The same modes as 3-vectors rather than magnitudes, for glyphs / warp-by-
+  # vector in ParaView. Off by default: it multiplies the file size.
+  mode_vectors: false
+
+  curvature: true           # mean curvature of the mean surface
+  landmark_distance: true   # distance to the nearest landmark, and which one it is
+
+  # One field per landmark, named heatmap_<landmark>: heat released at that
+  # landmark and diffused over the surface, by one backward Euler step of the
+  # heat equation (M + tL)u = M*delta with the cotangent Laplacian. It spreads
+  # *along* the surface, so unlike a Euclidean radius it will not leak across a
+  # fold - which makes it the better way to pick a region around a landmark.
+  landmark_heatmaps: true
+  # heatmap_landmarks: a single field for the whole landmark set. Reads as a
+  # coverage map - where it is near zero, no landmark constrains the surface.
+  combined_heatmap: true
+  #   max  element-wise maximum of the per-landmark maps, each scaled to peak 1
+  #        first. Every landmark reads exactly 1 at its own vertex, whether it
+  #        sits alone or in a cluster.
+  #   sum  heat from a sum of Dirac deltas: the physical field of all landmarks
+  #        releasing at once. Overlapping bumps add, so the three landmarks
+  #        around each eye outweigh an isolated one.
+  combined_mode: max
+  # Spread of the bump, as a length in model units - the diffusion time is
+  # sigma^2. Directly comparable with the matching thresholds: the model spans
+  # about 0.013, so this covers roughly 7% of it. null derives it as ten times
+  # the mean edge length, which is where this value came from.
+  heat_sigma: 9.65e-4
+  heat_normalize: true      # rescale each heatmap to peak at 1
+
+verbose: true

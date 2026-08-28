@@ -1,0 +1,37 @@
+# Stage 1: raw NRRD ultrasound volumes -> cleaned surface meshes (VTP).
+# This stage's output mesh is the pipeline's "original frame" - every later
+# alignment stage's saved transform maps back to this coordinate space.
+stage: nrrd_to_vtp
+
+input_dir: ${PROJECT_ROOT}/US_samples/US_samples_fetusnet/prepared/1/NRRD
+output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd
+cache_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/Segmentations/filtered/1/Cache
+
+contour_value: 70  # level relative to volume.norm_out_max after normalization; ignored if auto_contour
+auto_contour: false  # pick contour_value per volume via Otsu's method - set true when mixing NRRD sources with different intensity scales
+reduction_factor: 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
+
+min_bridge_width: 1.0  # bridges narrower than this do not connect regions; 0 disables
+min_bridge_relative: false
+
+compute_curvedness: false
+curvedness_n_rings: 5
+curvedness_scale_invariant: false
+operators: false  # compute Laplace-Beltrami operators (k_eig eigenpairs); slow
+k_eig: 200
+
+flat:
+  enabled: false  # remove large flat/planar patches
+  n_rings: 5
+  thresh: 0.1
+  max_area: 0.05  # drop flat patches covering more than this fraction of total area
+
+volume:
+  denoise: null  # "median" | "curvature" | null
+  denoise_radius: 5
+  normalize: false
+  clip_percentiles: [1.0, 99.0]
+  norm_out_max: 255.0
+  crop: false
+  crop_threshold: 0
+  crop_margin: 0

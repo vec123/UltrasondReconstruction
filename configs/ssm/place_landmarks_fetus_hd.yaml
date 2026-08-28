@@ -1,0 +1,70 @@
+# Configuration for scripts/place_landmarks.py  ->  src.runners.PlaceLandmarksRunner
+#
+#   python scripts/place_landmarks.py --config configs/place_landmarks_fetus_hd.yaml
+#
+# Same tool as configs/place_landmarks.yaml, pointed at src/FetusModel_x2 - the
+# ~2x-vertex resampling scripts/upsample_atlas.py wrote (configs/upsample_fetus_hd.yaml).
+#
+# landmarks_json is its own file, deliberately not src/FetusModel/landmarks.json:
+# a landmark is a vertex *index*, and the HD mesh does not share indices with
+# the original 1416-vertex one - the same integer means a different point on
+# each. Pointing both configs at one shared file would silently mix the two
+# topologies together the moment either one saved.
+#
+# See configs/place_landmarks.yaml for the full control reference; unchanged
+# here.
+
+shape_model: ${PROJECT_ROOT}/src/FetusModel_x2
+landmarks_json: ${PROJECT_ROOT}/src/FetusModel_x2/landmarks.json
+
+model:
+  normalize: false        # keep millimetres, matching mean_shape_fetus.yaml
+  atlas:
+    kernel_width: null    # null reads 'kwd' from the atlas's own params.json
+    time_points: 11
+    cache: true            # reuses the shooting cache scripts/upsample_atlas.py warmed
+
+# The BabyFM's 23 anatomical landmarks - see src/config/schema.py's
+# DEFAULT_LANDMARK_NAMES for the R/L convention. Press 'a' to add more.
+landmark_names:
+  - exR
+  - enR
+  - n
+  - enL
+  - exL
+  - acR
+  - aR
+  - prn
+  - aL
+  - acL
+  - sn
+  - chR
+  - cphR
+  - ls
+  - cphL
+  - chL
+  - li
+  - sl
+  - pg
+  - tR
+  - oiR
+  - tL
+  - oiL
+
+sliders:
+  mode_count: null     # null exposes every mode; scroll the panel to reach them
+  visible_rows: 10
+  sigma_range: 3.0
+
+camera_axis: "+z"
+view_up: "+y"
+window_size: [1400, 900]
+theme: light
+
+color_by: curvature       # curvature | none - curvature makes the nose/eyes/chin easy to find
+marker_radius: null       # null = 0.6% of the mesh's bounding radius
+pick_tolerance: 0.01      # vtkPointPicker tolerance, fraction of the render window's diagonal
+point_size: 4.0           # vertex size in the 'v'-toggled point-cloud view
+lddmm_time_points: 6      # shooting resolution for the 'l'-toggled LDDMM sliders
+
+verbose: true
