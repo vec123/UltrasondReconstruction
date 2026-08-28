@@ -13,8 +13,9 @@ import os
 from dataclasses import dataclass, field as dataclass_field, replace as dataclass_replace
 from typing import Optional, Tuple
 
+from src.core.config import load_yaml, reject_unknown_keys
 from src.resnet_lddmm.checkpoint import CheckpointRef
-from src.resnet_lddmm.config import ExperimentCfg, load_yaml_mapping, reject_unknown_keys
+from src.resnet_lddmm.config import ExperimentCfg
 
 # The coordinate frames an export can be written in.
 #
@@ -179,9 +180,9 @@ def load_apply_config(path) -> ApplyCfg:
         config is loaded)
 
     Raises:
-        FileNotFoundError, ValueError, yaml.YAMLError: as load_yaml_mapping
+        FileNotFoundError, ValueError, yaml.YAMLError: as load_yaml
     """
-    return ApplyCfg.from_dict(load_yaml_mapping(path))
+    return ApplyCfg.from_dict(load_yaml(path))
 
 
 def load_training_config(apply_cfg: ApplyCfg) -> ExperimentCfg:
@@ -193,4 +194,4 @@ def load_training_config(apply_cfg: ApplyCfg) -> ExperimentCfg:
     Returns:
         ExperimentCfg
     """
-    return ExperimentCfg.from_dict(load_yaml_mapping(apply_cfg.train_config))
+    return ExperimentCfg.from_dict(load_yaml(apply_cfg.train_config))

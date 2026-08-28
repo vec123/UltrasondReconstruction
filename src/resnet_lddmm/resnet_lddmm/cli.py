@@ -9,7 +9,8 @@ import sys
 
 import yaml
 
-from src.resnet_lddmm.config import ExperimentCfg, load_yaml_mapping
+from src.core.config import load_yaml
+from src.resnet_lddmm.config import ExperimentCfg
 from src.resnet_lddmm.runner import run
 
 
@@ -27,7 +28,7 @@ def load_config(config_path: str) -> ExperimentCfg:
         ValueError: if config is invalid (missing required keys, unknown keys)
         yaml.YAMLError: if YAML parsing fails
     """
-    return ExperimentCfg.from_dict(load_yaml_mapping(config_path))
+    return ExperimentCfg.from_dict(load_yaml(config_path))
 
 
 def main():
