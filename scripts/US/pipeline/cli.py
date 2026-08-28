@@ -8,10 +8,7 @@ from .registry import STAGE_REGISTRY
 
 def _bind_stage_config(stage_name, raw):
     """Binds an already-interpolated raw dict to its registered stage Config."""
-    if stage_name not in STAGE_REGISTRY:
-        raise ValueError(f"Unknown stage '{stage_name}'. Known stages: {sorted(STAGE_REGISTRY)}")
-
-    spec = STAGE_REGISTRY[stage_name]
+    spec = STAGE_REGISTRY.get(stage_name)
     return spec, from_dict(spec.config_cls, raw)
 
 

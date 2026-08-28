@@ -1,8 +1,19 @@
 """Maps a stage name (as used in YAML `stage:` fields and pipeline.yaml
-`stages[].name` entries) to its Config dataclass and run() function."""
+`stages[].name` entries) to its Config dataclass and run() function.
+
+Lookup itself (name -> registered item, with a friendly "unknown X -
+available: [...]" error on a typo) is shared with every other pipeline's
+component registries via `src.core.registry.TypedRegistry` - only the
+per-stage YAML -> Config binding stays local to this pipeline (see
+`_bind_stage_config` in `cli.py`), since it needs `from_dict`'s nested-
+dataclass and cross-stage-reference support, not `TypedRegistry.build()`'s
+flat kwargs-to-constructor call.
+"""
 
 import dataclasses
-from typing import Callable, NamedTuple, Type
+from typing import Callable, Type
+
+from src.core.registry import TypedRegistry
 
 from .stages import (
     align_to_reference,
@@ -23,12 +34,14 @@ from .stages import (
 )
 
 
-class StageSpec(NamedTuple):
+@dataclasses.dataclass
+class StageSpec:
     config_cls: Type
     run: Callable[[object], object]
 
 
-STAGE_REGISTRY = {
+STAGE_REGISTRY = TypedRegistry("stage")
+for _name, _spec in {
     "nrrd_to_vtp": StageSpec(nrrd_to_vtp.Config, nrrd_to_vtp.run),
     "echotexture": StageSpec(echotexture.Config, echotexture.run),
     "point_classify": StageSpec(point_classify.Config, point_classify.run),
@@ -44,7 +57,8 @@ STAGE_REGISTRY = {
     "landmark_geodesics": StageSpec(landmark_geodesics.Config, landmark_geodesics.run),
     "vtp_to_nrrd_overlay": StageSpec(vtp_to_nrrd_overlay.Config, vtp_to_nrrd_overlay.run),
     "recon_target_distance": StageSpec(recon_target_distance.Config, recon_target_distance.run),
-}
+}.items():
+    STAGE_REGISTRY.register(_name)(_spec)
 
 
 def stage_fields(config_cls):
