@@ -12,9 +12,8 @@ from typing import Callable, Dict, Optional
 
 import numpy as np
 
-from src.geometry.geometry_np import compute_mean_curvature
+from src.geometry import add_point_field, compute_mean_curvature, create_polydata
 from src.geometry.heatmap import landmark_heatmaps
-from src.geometry.vtk import add_point_field, create_polydata
 
 # Matches fields.mode_count's default in MeanShapeFields (src/config/schema.py).
 DEFAULT_MODE_COUNT = 5

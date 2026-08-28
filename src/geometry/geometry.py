@@ -1503,6 +1503,13 @@ def get_vtp_vertices(polydata):
 
     return vertices
 
+def get_vtp_faces(polydata):
+    """Triangle connectivity ``[F, 3]`` from a vtkPolyData. Does not triangulate
+    non-triangular polys first - see ``extract_arrays_from_polydata`` /
+    ``src.vtk.extract.extract_vtp_points_cells`` for that."""
+    connectivity = numpy_support.vtk_to_numpy(polydata.GetPolys().GetConnectivityArray())
+    return connectivity.reshape(-1, 3)
+
 def load_vtu(filename):
     if not os.path.exists(filename):
         raise FileNotFoundError(f"File not found: {filename}")

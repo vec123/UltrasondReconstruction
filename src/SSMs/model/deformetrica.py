@@ -149,7 +149,7 @@ def _read_template(path: Path) -> Tuple[np.ndarray, Optional[np.ndarray]]:
     """Vertices and triangles of the legacy-format template .vtk."""
     import vtk
 
-    from src.geometry.vtk import get_vtp_faces, get_vtp_vertices
+    from src.geometry import get_vtp_faces, get_vtp_vertices
 
     reader = vtk.vtkPolyDataReader()
     reader.SetFileName(str(path))
