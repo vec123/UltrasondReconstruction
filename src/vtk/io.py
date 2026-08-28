@@ -1,3 +1,4 @@
+import glob as _glob
 import os
 import vtk
 
@@ -47,3 +48,36 @@ def save_vtp(polydata, vtk_path, binary=True, verbose = False):
     if writer.Write() != 1:
         raise IOError(f"vtkXMLPolyDataWriter failed to write {vtk_path}")
     return True
+
+
+_MESH_LOADERS_BY_EXT = {".vtp": load_vtp, ".obj": load_obj, ".vtu": load_vtu}
+
+
+def load_mesh(path):
+    """Loads a mesh file, dispatching on its extension (.vtp/.ply/.obj/.vtu/.vtk)."""
+    path = str(path)
+    ext = os.path.splitext(path)[1].lower()
+
+    loader = _MESH_LOADERS_BY_EXT.get(ext)
+    if loader is not None:
+        return loader(path)
+
+    if ext == ".ply":
+        reader = vtk.vtkPLYReader()
+        reader.SetFileName(path)
+        reader.Update()
+        return reader.GetOutput()
+
+    if ext == ".vtk":
+        from src.vtk.convert import _read_legacy_vtk  # deferred: convert imports this module
+        return _read_legacy_vtk(path)
+
+    raise ValueError(f"Unsupported mesh file extension {ext!r} for {path}")
+
+
+def glob_meshes(directory, extensions=(".vtp", ".ply", ".obj", ".vtk")):
+    """Lists mesh files (by extension) directly inside `directory`, sorted."""
+    files = []
+    for ext in extensions:
+        files.extend(_glob.glob(os.path.join(directory, f"*{ext}")))
+    return sorted(files)

@@ -45,6 +45,46 @@ def extract_vtp_point_fields(poly_data, field_names):
     return result
 
 
+def threshold_vtp_by_point_field(poly_data, field_name, value, relative=False, keep="below"):
+    """Keeps only the points whose `field_name` value satisfies a threshold.
+
+    Drops every face that references a removed point and reindexes what's
+    left (see ``src.vtk.process.extract_polydata_vertex_subset``).
+
+    Args:
+        field_name: point-data array to threshold on
+        value: absolute field value, or (if ``relative=True``) a fraction in
+            ``[0, 1]`` of the field's own ``[min, max]`` range
+        relative: interpret `value` relative to the field's own range instead
+            of as an absolute value
+        keep: ``"below"`` keeps points with field <= threshold; ``"above"``
+            keeps field >= threshold
+
+    Raises:
+        ValueError: if `field_name` is absent, or `keep` is not recognized
+    """
+    from src.vtk.process import extract_polydata_vertex_subset  # deferred: process imports this module
+
+    fields = extract_vtp_point_fields(poly_data, [field_name])
+    values = fields[field_name]
+    if values is None:
+        raise ValueError(f"point field {field_name!r} not found on this mesh.")
+
+    threshold = value
+    if relative:
+        lo, hi = float(values.min()), float(values.max())
+        threshold = lo + value * (hi - lo)
+
+    if keep == "below":
+        mask = values <= threshold
+    elif keep == "above":
+        mask = values >= threshold
+    else:
+        raise ValueError(f"keep must be 'below' or 'above', got {keep!r}")
+
+    return extract_polydata_vertex_subset(poly_data, mask)
+
+
 def extract_all_vtp_point_fields(poly_data):
     """Read EVERY numeric point-data array from a vtkPolyData, as ``{name: array}``.
 
