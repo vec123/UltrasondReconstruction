@@ -53,7 +53,7 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.geometry import load_and_preprocess_volume
-from src.vtk.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
+from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 
