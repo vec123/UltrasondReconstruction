@@ -7,7 +7,6 @@ transforms it through the volume's spacing/origin/direction matrix and an
 LPS -> RAS flip into physical world coordinates.
 """
 
-import dataclasses
 import glob
 import os
 
@@ -16,14 +15,7 @@ import SimpleITK as sitk
 import vtk
 from vtk.util import numpy_support
 
-
-@dataclasses.dataclass
-class Config:
-    input_dir: str = ""
-    output_dir: str = ""
-
-    contour_value: float = 1.0  # label index/threshold for surface extraction
-    reduction_factor: float = 0.3  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
+from src.config.US import NrrdToWorldVtpConfig as Config
 
 
 def sitk_to_vtk_image(sitk_img):

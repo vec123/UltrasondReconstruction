@@ -12,45 +12,21 @@ always maps directly from the very first mesh frame into template space -
 see pipeline/transforms.py.
 """
 
-import dataclasses
 import glob
 import os
 import shutil
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
+from src.config.US import AlignToTemplateConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
 from ..landmarks import points_to_labeled_polydata
 from ..matching import match_by_subject_id
 from ..transforms import RigidTransform, compose_with_previous, save_subject_transform
-
-
-@dataclasses.dataclass
-class Config:
-    template_vtp: str = ""
-
-    vtp_shapes_dir: str = ""
-    landmarks_csv_dir: str = ""
-
-    output_dir: str = ""
-
-    # The following default to subdirectories of output_dir when left blank;
-    # they're real fields (rather than being hardcoded inside run()) so other
-    # stages can reference them, e.g. `align_to_template.out_shapes_vtp_dir`.
-    out_shapes_vtp_dir: str = ""  # defaults to <output_dir>/shapes_vtp
-    out_landmarks_csv_dir: str = ""  # defaults to <output_dir>/landmarks_csv
-    out_landmarks_vtp_dir: str = ""  # defaults to <output_dir>/landmarks_vtp
-    transforms_dir: str = ""  # defaults to <output_dir>/transforms
-    previous_transforms_dir: Optional[str] = None  # align_to_reference's transforms_dir
-
-    heatmap_prefix: str = "heatmap_"
-    with_scale: bool = True
-    lps_to_ras: bool = False  # set True if the landmark CSVs need LPS -> RAS conversion
 
 
 def extract_landmarks_from_heatmap_vtp(target_vtp_path, heatmap_prefix=""):

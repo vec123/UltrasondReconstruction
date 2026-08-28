@@ -13,13 +13,13 @@ This is the first stage in the pipeline: its output mesh defines the
 back to.
 """
 
-import dataclasses
 import glob
 import os
-from typing import List, Optional, Tuple
+from typing import List
 
 import torch
 
+from src.config.US import NrrdToVtpConfig as Config
 from src.geometry import (
     add_point_field,
     compute_mean_curvature,
@@ -32,51 +32,8 @@ from src.geometry import (
     to_basis,
 )
 from src.vtk.extract import threshold_vtp_by_point_field
-from src.vtk.measures import compute_flat_region_area, compute_vertex_curvedness
+from src.vtk.surface_measures import compute_flat_region_area, compute_vertex_curvedness
 from src.vtk.process import clean_vtp, filter_largest_component, reduce_vtp
-
-
-@dataclasses.dataclass
-class FlatRegionConfig:
-    enabled: bool = False
-    n_rings: int = 5
-    thresh: float = 0.1
-    max_area: float = 0.05  # drop flat patches covering > this fraction of total area
-
-
-@dataclasses.dataclass
-class VolumeConfig:
-    denoise: Optional[str] = None  # "median" | "curvature" | None
-    denoise_radius: int = 5
-    normalize: bool = False
-    clip_percentiles: Tuple[float, float] = (1.0, 99.0)
-    norm_out_max: float = 255.0
-    crop: bool = False
-    crop_threshold: int = 0
-    crop_margin: float = 0
-
-
-@dataclasses.dataclass
-class Config:
-    input_dir: str = ""
-    output_dir: str = ""
-    cache_dir: str = ""
-
-    contour_value: float = 70.0  # level relative to norm_out_max after normalization; ignored if auto_contour
-    auto_contour: bool = False  # pick contour_value per volume via Otsu's method (consistent across NRRD sources)
-    reduction_factor: float = 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
-
-    min_bridge_width: float = 1.0  # bridges narrower than this do not connect regions; 0 disables
-    min_bridge_relative: bool = False  # interpret min_bridge_width as a multiple of the mean edge length
-
-    compute_curvedness: bool = False
-    curvedness_n_rings: int = 5
-    curvedness_scale_invariant: bool = False
-    operators: bool = False  # compute Laplace-Beltrami operators (k_eig eigenpairs)
-    k_eig: int = 200
-
-    flat: FlatRegionConfig = dataclasses.field(default_factory=FlatRegionConfig)
-    volume: VolumeConfig = dataclasses.field(default_factory=VolumeConfig)
 
 
 def process_one(nrrd_path, cfg: Config):

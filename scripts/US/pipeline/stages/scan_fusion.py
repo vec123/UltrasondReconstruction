@@ -57,7 +57,6 @@ onto a copy of the reference mesh saved alongside the fused output
 join key for downstream point-to-point lookups.
 """
 
-import dataclasses
 import glob
 import os
 
@@ -65,31 +64,16 @@ import numpy as np
 from scipy.spatial import cKDTree
 from vtk.util import numpy_support
 
+from src.config.US import ScanFusionConfig as Config
 from src.geometry import mesh_vertex_normals
 from src.vtk.create import create_polydata
 from src.vtk.extract import extract_vtp_points_cells
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
-from src.vtk.measures import compute_vertex_roughness
+from src.vtk.surface_measures import compute_vertex_roughness
 from src.vtk.process import extract_polydata_vertex_subset
 
 from ..transforms import median_scale
-
-
-@dataclasses.dataclass
-class Config:
-    input_aligned_dir: str = ""  # per-subject aligned meshes to fuse (e.g. align_to_template's own output - scan_consistency is not required)
-    reference_vtp: str = ""  # mesh providing the output topology (e.g. the align_to_template template)
-    output_dir: str = ""
-
-    transforms_dir: str = ""  # align_to_template's transforms_dir, used to scale sigma_mm
-
-    sigma_mm: float = 2.0  # spatial tolerance in mm; points within sigma_mm pull a reference vertex toward them
-    min_support: float = 2.0  # reference vertices with total kernel weight below this are dropped (too little cross-subject agreement)
-    normal_power: float = 2.0  # down-weight contributors whose normal disagrees with the reference vertex's, by cos(angle)**normal_power; 0 disables (distance-only weighting)
-
-    surface_fit_n_rings: int = 5  # neighborhood size for the post-fusion "roughness" field
-    surface_fit_method: str = "quadric"  # "plane" | "quadric" - see compute_vertex_roughness
 
 
 def fuse_reference_points(ref_points, ref_normals, subject_data, sigma, max_dist_sigma=3.0, normal_power=2.0):

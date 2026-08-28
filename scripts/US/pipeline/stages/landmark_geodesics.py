@@ -10,7 +10,6 @@ space (paired by subject id); this stage does not move geometry, so it saves
 no transform.
 """
 
-import dataclasses
 import glob
 import os
 
@@ -20,20 +19,11 @@ import vtk
 from scipy.sparse.csgraph import dijkstra
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
+from src.config.US import LandmarkGeodesicsConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
 from ..landmarks import points_to_labeled_polydata
 from ..matching import subject_id_from_path
-
-
-@dataclasses.dataclass
-class Config:
-    shapes_dir: str = ""
-    landmarks_dir: str = ""
-    output_dir: str = ""
-
-    # Gaussian width of the heatmaps, in mesh units of geodesic distance along the surface.
-    heatmap_sigma: float = 0.0014
 
 
 def build_mesh_graph(polydata):

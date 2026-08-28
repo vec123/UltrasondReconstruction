@@ -28,45 +28,18 @@ the single largest connected piece of the cut mesh is kept.
 Doesn't move geometry (only drops points), so it saves no transform.
 """
 
-import dataclasses
 import glob
 import os
 
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
+from src.config.US import LandmarkBboxCutConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import extract_polydata_vertex_subset, filter_largest_component
 
 from ..matching import match_by_subject_id
 from ..transforms import load_subject_transform
-
-
-@dataclasses.dataclass
-class Config:
-    shapes_dir: str = ""
-    landmarks_dir: str = ""
-    output_dir: str = ""
-
-    # align_to_template's transforms_dir, used to convert the offsets below
-    # (defined in the original nrrd/ply space) into each subject's own
-    # scaled template-space units. Leave blank if shapes_dir is already in
-    # the original, unscaled mm space.
-    transforms_dir: str = ""
-
-    # Padding added to each face of the landmarks' bounding box (mm, original
-    # nrrd/ply space). x = Right(+)/Left(-), y = Anterior(+)/Posterior(-),
-    # z = Superior(+, above eyes)/Inferior(-, toward chin).
-    x_min_offset_mm: float = 5.0
-    x_max_offset_mm: float = 5.0
-    y_min_offset_mm: float = 5.0
-    y_max_offset_mm: float = 5.0
-    z_min_offset_mm: float = 25.0  # inferior: generous, keeps more of the chin
-    z_max_offset_mm: float = 5.0   # superior: strict, stays close above the eyes
-
-    keep_largest_component: bool = True  # re-extract the largest component after the box cut
-    min_bridge_width: float = 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
-    min_bridge_relative: bool = False  # interpret min_bridge_width as a multiple of the mean edge length
 
 
 def offsets_mm(cfg: Config):

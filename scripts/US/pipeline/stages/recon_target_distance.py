@@ -28,41 +28,16 @@ together, not just share a comparable scale. Left unset, distances and
 geometry stay in the meshes' own template space/units.
 """
 
-import dataclasses
 import os
 
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
+from src.config.US import ReconTargetDistanceConfig as Config
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 
 from ..transforms import load_subject_transform, median_scale
-
-
-@dataclasses.dataclass
-class Config:
-    target_path: str = ""
-    recon_path: str = ""
-
-    # Directory to save target_w_distance.vtp / recon_w_distance.vtp into.
-    # Left unset, saves next to target_path / recon_path respectively.
-    output_dir: str = ""
-
-    # align_to_template's saved-transforms dir for this subject (one .npz per
-    # sweep/scan of that subject). When set, reported distances are divided
-    # by the median similarity scale over those transforms, into the
-    # original (pre-alignment) data's physical scale. Left unset (""),
-    # distances stay in the meshes' own template units.
-    transforms_dir: str = ""
-
-    # Which single transform within transforms_dir (e.g. one sweep's id)
-    # defines the saved geometry's back-transform. When set, the FULL
-    # inverse (rotation+translation+scale) of that one transform is applied
-    # to the saved meshes, placing them back in that subject's original
-    # frame - not just rescaled. Left unset (""), geometry is only rescaled
-    # (if transforms_dir is set) or left untouched (if it isn't).
-    subject_id: str = ""
 
 
 def nearest_neighbor_distances(query_points, reference_points):

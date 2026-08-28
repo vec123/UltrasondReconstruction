@@ -20,45 +20,20 @@ saved by the align_to_template stage, to convert `sigma_mm` (a physical
 distance) into the aligned mesh's own units.
 """
 
-import dataclasses
 import glob
 import os
-from typing import List, Union
 
 import numpy as np
 import vtk
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
+from src.config.US import ScanConsistencyConfig as Config
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import filter_largest_component
 
 from ..transforms import median_scale
-
-
-@dataclasses.dataclass
-class Config:
-    input_aligned_dir: str = ""
-
-    output_consistency_dir: str = ""  # meshes with the 'consistency_score' field added
-    output_denoised_dir: str = ""  # thresholded/denoised meshes
-    output_merged_dir: str = ""  # single .vtp combining all denoised meshes
-
-    transforms_dir: str = ""  # align_to_template's transforms_dir, used to scale sigma_mm
-
-    sigma_mm: float = 2.0  # spatial tolerance in mm; points within sigma_mm score highly
-
-    apply_denoise_threshold: bool = True
-    # A single value denoises/merges once, saving "merged_high_confidence_scan.vtp"
-    # (unchanged behavior). A list sweeps every value instead - one denoise +
-    # merge pass per threshold - saving "merged_high_confidence_scan_threshold_
-    # {value}.vtp" per pass into the same output_merged_dir (and, correspondingly,
-    # a "threshold_{value}/" subdirectory per pass under output_denoised_dir), so
-    # every threshold's result can be compared side by side.
-    min_consistency_threshold: Union[float, List[float]] = 0.55
-    denoise_min_bridge_width: float = 0.8
-    denoise_min_bridge_relative: bool = True
 
 
 def build_point_trees(meshes):

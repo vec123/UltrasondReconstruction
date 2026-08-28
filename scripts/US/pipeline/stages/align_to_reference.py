@@ -9,37 +9,15 @@ can be composed with later stages and, ultimately, inverted to map a
 processed result back onto the subject's original mesh frame.
 """
 
-import dataclasses
 import glob
 import os
-from typing import Optional
 
+from src.config.US import AlignToReferenceConfig as Config
 from src.vtk.io import glob_meshes, load_mesh, save_vtp
 
 from ..landmarks import landmarks_csv_to_polydata
 from ..matching import match_by_subject_id
 from ..transforms import RigidTransform, compose_with_previous, save_subject_transform
-
-
-@dataclasses.dataclass
-class Config:
-    landmarks_csv_dir: str = ""
-    vtp_shapes_dir: str = ""
-
-    output_dir: str = ""
-    raw_landmarks_vtp_dir: str = ""
-
-    # The following default to subdirectories of output_dir when left blank;
-    # they're real fields (rather than being hardcoded inside run()) so other
-    # stages can reference them, e.g. `align_to_reference.aligned_shapes_vtp_dir`.
-    aligned_landmarks_dir: str = ""  # defaults to <output_dir>/aligned_landmarks
-    aligned_shapes_vtp_dir: str = ""  # defaults to <output_dir>/aligned_shapes_vtp
-    transforms_dir: str = ""  # defaults to <output_dir>/transforms
-    previous_transforms_dir: Optional[str] = None  # first alignment stage: no previous
-
-    reference_subject_id: Optional[str] = None  # defaults to the first common subject id
-    with_scale: bool = True
-    lps_to_ras: bool = True  # Slicer CSV landmarks are in LPS space, meshes in RAS
 
 
 def run(cfg: Config):

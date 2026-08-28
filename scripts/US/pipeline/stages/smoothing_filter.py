@@ -13,23 +13,12 @@ nrrd_to_vtp's "True vertices" / "True normals" fields) will no longer match
 the smoothed geometry.
 """
 
-import dataclasses
 import glob
 import os
 
+from src.config.US import SmoothingFilterConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import smooth_vtp
-
-
-@dataclasses.dataclass
-class Config:
-    input_dir: str = ""
-    output_dir: str = ""
-
-    iterations: int = 30  # higher = smoother
-    pass_band: float = 0.1  # lower = smoother/blurrier, higher = keeps finer detail (try 0.05-0.2)
-    boundary_smoothing: bool = True
-    feature_edge_smoothing: bool = False
 
 
 def process_one(vtp_path, cfg: Config):

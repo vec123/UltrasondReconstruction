@@ -28,9 +28,7 @@ module's Import/Export tab, one Import per pair) to get independently
 toggleable segments that can freely overlap - see `_write_layer_label_map`.
 """
 
-import dataclasses
 import os
-from typing import List, Optional
 
 import numpy as np
 import SimpleITK as sitk
@@ -38,55 +36,10 @@ import vtk
 from scipy.ndimage import binary_dilation
 from vtk.util import numpy_support
 
+from src.config.US import VtpToNrrdOverlayConfig as Config
+
 from ..landmarks import landmarks_csv_to_polydata
 from ..transforms import RigidTransform, load_subject_transform
-
-
-@dataclasses.dataclass
-class TransformConfig:
-    manifest_dir: Optional[str] = None  # a stage's transforms_dir, e.g. align_to_template's
-    subject_id: Optional[str] = None
-    apply_inverse: bool = False  # map vtp_path's points back to the manifest's source frame
-
-
-@dataclasses.dataclass
-class LandmarkAlignConfig:
-    landmark_path: str = ""  # subject's own landmark CSV (Slicer fiducial export), in the nrrd's world frame
-    # VTP carrying `heatmap_{label}` point fields (e.g. Templates/baby_mean.vtp,
-    # Templates/fetus_mean.vtp) - the argmax vertex of each field gives that
-    # label's vertex index into vtp_path's own point ordering, valid whenever
-    # vtp_path preserves this template mesh's topology (as NICP-fitted
-    # reconstructions do).
-    template_vtp: str = ""
-    heatmap_prefix: str = "heatmap_"
-    lps_to_ras: bool = True  # Slicer fiducial CSVs export in LPS; flip x, y to match the nrrd's world frame
-    with_scale: bool = True
-
-
-@dataclasses.dataclass
-class OverlayLayer:
-    vtp_path: str = ""
-    line_color: tuple = (0, 255, 0)  # RGB
-    thickness: Optional[float] = None  # None: use the stage's own `thickness`
-    name: Optional[str] = None  # segment name in color_table_path; defaults to vtp_path's basename
-
-    transform: TransformConfig = dataclasses.field(default_factory=TransformConfig)
-    landmark_align: LandmarkAlignConfig = dataclasses.field(default_factory=LandmarkAlignConfig)
-
-
-@dataclasses.dataclass
-class Config:
-    nrrd_path: str = ""
-    output_path: str = ""
-
-    thickness: float = 1.0  # default line thickness / sphere radius, in mm; a layer may override
-
-    layers: List[OverlayLayer] = dataclasses.field(default_factory=list)
-
-    # Optional: one binary label-map NRRD + matching 2-entry color table (.ctbl)
-    # per layer, written into this directory - see module docstring. Left
-    # unset, only output_path (the fixed, flattened RGB volume) is written.
-    label_maps_dir: str = ""
 
 
 def _load_vtp_points(vtp_path):

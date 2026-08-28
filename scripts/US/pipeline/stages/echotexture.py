@@ -44,58 +44,19 @@ nrrd_to_vtp's own choice - left at their defaults, the volume sampled here is
 untouched ("raw") intensity.
 """
 
-import dataclasses
 import glob
 import os
-from typing import Optional, Tuple
 
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
+from src.config.US import EchotextureConfig as Config
 from src.geometry import load_and_preprocess_volume
 from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 
 from ..matching import match_by_subject_id
-
-
-@dataclasses.dataclass
-class Config:
-    vtp_dir: str = ""  # nrrd_to_vtp's output_dir (pre-alignment meshes)
-    nrrd_dir: str = ""  # the SAME source directory as nrrd_to_vtp.input_dir
-    output_dir: str = ""
-
-    # Must mirror nrrd_to_vtp's own volume.crop* settings - see module docstring.
-    crop: bool = False
-    crop_threshold: int = 0
-    crop_margin: float = 0
-
-    # What signal to measure; independent of the coordinate frame above.
-    denoise: Optional[str] = None  # "median" | "curvature" | None
-    denoise_radius: int = 5
-    normalize: bool = False
-    clip_percentiles: Tuple[float, float] = (1.0, 99.0)
-    norm_out_max: float = 255.0
-
-    neighborhood_radius_mm: float = 1.5  # half-width of the sampled voxel neighborhood
-    interp_order: int = 1  # 0 = nearest voxel, 1 = trilinear
-
-    # Integration-scale radius (mm) for the structure-tensor orientation-
-    # coherence fields (echo_linearity/planarity/sphericity/energy) - see
-    # module docstring and src.vtk.echotexture.sample_structure_tensor.
-    structure_tensor_radius_mm: float = 1.5
-
-    # Radius (mm, on the mesh's own un-aligned surface) each field's *_variability
-    # companion is measured over - see module docstring. Must run before any
-    # alignment stage rescales the mesh, or this stops meaning a physical distance.
-    variability_radius_mm: float = 10.0
-    # Caps the neighbor search to each vertex's nearest N, so a dense mesh
-    # doesn't turn variability_radius_mm into an unbounded (memory-blowing)
-    # neighbor count - see compute_field_variability's docstring.
-    variability_max_neighbors: int = 64
-
-    field_prefix: str = "echo_"
 
 
 def process_one(vtp, nrrd_path, cfg: Config):

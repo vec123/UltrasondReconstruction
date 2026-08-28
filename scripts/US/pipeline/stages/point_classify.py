@@ -19,42 +19,15 @@ together, so a cluster id means the same thing from one subject to the
 next - see src.vtk.classify.fit_predict_clusters.
 """
 
-import dataclasses
 import os
-from typing import List
 
 import numpy as np
 
+from src.config.US import PointClassifyConfig as Config
 from src.vtk.classify import describe_clusters, fit_predict_clusters
 from src.vtk.extract import extract_vtp_point_fields
 from src.vtk.fields import add_point_field
 from src.vtk.io import glob_meshes, load_mesh, save_vtp
-
-
-@dataclasses.dataclass
-class Config:
-    input_dir: str = ""  # a directory to glob (*.vtp/*.ply), OR a single mesh file path
-    output_dir: str = ""
-
-    # Explicit feature field names to cluster on; if left empty, every point
-    # field whose name starts with feature_prefix (minus exclude_fields) on
-    # the FIRST mesh is used, and every other mesh is required to carry the
-    # same set.
-    feature_fields: List[str] = dataclasses.field(default_factory=list)
-    feature_prefix: str = "echo_"
-    exclude_fields: List[str] = dataclasses.field(default_factory=lambda: ["echo_in_bounds"])
-
-    # Named after the ~5 tissue types called out when this stage was scoped
-    # (face, placenta, hand/limb, noise, other) - a starting guess, not a
-    # constraint; there's no requirement the data actually separates into
-    # exactly this many groups.
-    n_clusters: int = 5
-    algorithm: str = "minibatch_kmeans"  # "minibatch_kmeans" | "kmeans"
-    random_state: int = 0
-    n_init: int = 10
-    batch_size: int = 10_000  # only used by "minibatch_kmeans"
-
-    class_field_name: str = "tissue_cluster"
 
 
 def _resolve_feature_fields(cfg: Config, first_mesh):

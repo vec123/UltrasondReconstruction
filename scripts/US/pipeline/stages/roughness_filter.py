@@ -29,41 +29,17 @@ Was previously folded into the ``nrrd_to_vtp`` stage; split out so roughness
 filtering can run standalone against any directory of .vtp meshes.
 """
 
-import dataclasses
 import glob
 import os
 
+from src.config.US import RoughnessFilterConfig as Config
 from src.vtk.extract import threshold_vtp_by_point_field
 from src.vtk.io import load_vtp, save_vtp
-from src.vtk.measures import compute_vertex_roughness
+from src.vtk.surface_measures import compute_vertex_roughness
 from src.vtk.process import filter_largest_component
 
 from ..matching import subject_id_from_path
 from ..transforms import load_subject_transform
-
-
-@dataclasses.dataclass
-class Config:
-    input_dir: str = ""
-    output_dir: str = ""
-    unfiltered_dir: str = ""  # if set, saves each mesh with the roughness field attached, before thresholding
-
-    n_rings: int = 5
-    scale_invariant: bool = False
-    method: str = "quadric"  # "plane" | "quadric"
-    threshold: float = 0.99  # keep vertices with roughness below this fraction of the field's range
-    neighbors: str = "knn"  # "knn" | "rings"
-    max_neighbors: int = 32
-
-    keep_largest_component: bool = True  # re-extract the largest component after thresholding
-    min_bridge_width: float = 1.0  # bridges narrower than this do not connect regions after thresholding; 0 disables
-    min_bridge_relative: bool = False  # interpret min_bridge_width as a multiple of the mean edge length
-
-    # If set (e.g. align_to_template's transforms_dir), converts min_bridge_width
-    # from the original nrrd/ply mm space into each subject's own aligned/scaled
-    # space using that subject's saved similarity-transform scale. Leave blank
-    # if input_dir is already in the original, unscaled mm space.
-    transforms_dir: str = ""
 
 
 def process_one(vtp, cfg: Config, min_bridge_width):

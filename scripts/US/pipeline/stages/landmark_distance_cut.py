@@ -15,7 +15,6 @@ connected piece of the cut mesh is kept.
 Doesn't move geometry (only drops points), so it saves no transform.
 """
 
-import dataclasses
 import glob
 import os
 
@@ -23,6 +22,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
+from src.config.US import LandmarkDistanceCutConfig as Config
 from src.vtk.extract import threshold_vtp_by_point_field
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
@@ -30,25 +30,6 @@ from src.vtk.process import filter_largest_component
 
 from ..matching import match_by_subject_id
 from ..transforms import load_subject_transform
-
-
-@dataclasses.dataclass
-class Config:
-    shapes_dir: str = ""
-    landmarks_dir: str = ""
-    output_dir: str = ""
-
-    # align_to_template's transforms_dir, used to convert max_distance_mm
-    # (defined in the original nrrd/ply space) into each subject's own
-    # scaled template-space units. Leave blank if shapes_dir is already in
-    # the original, unscaled mm space.
-    transforms_dir: str = ""
-
-    max_distance_mm: float = 10.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
-
-    keep_largest_component: bool = True  # re-extract the largest component after the distance cut
-    min_bridge_width: float = 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
-    min_bridge_relative: bool = False  # interpret min_bridge_width as a multiple of the mean edge length
 
 
 def nearest_landmark_distance(mesh_points, lmk_points):
