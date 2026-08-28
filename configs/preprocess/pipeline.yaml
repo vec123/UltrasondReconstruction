@@ -1,15 +1,15 @@
 
 stages:
   - name: nrrd_to_vtp
-    enabled: false
+    enabled: true
   - name: echotexture
     enabled: false
   - name: align_to_reference
-    enabled: false
+    enabled: true
   - name: align_to_template
-    enabled: false
+    enabled: true
   - name: roughness_filter
-    enabled: false
+    enabled: true
   - name: landmark_bbox_cut
     enabled: true
   - name: landmark_distance_cut
@@ -17,26 +17,22 @@ stages:
   - name: scan_consistency
     enabled: true
   - name: scan_fusion
-    enabled: false
+    enabled: true
   - name: roughness_filter
     id: roughness_filter_final
-    enabled: false
+    enabled: true
   - name: smoothing_filter
     id: smoothing_filter_final
-    enabled: false
+    enabled: true
   - name: landmark_geodesics
-    enabled: false
+    enabled: true
 
 paths:
 
   nrrd_to_vtp:
-    #input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/14/20_semanas
-    input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/${SUBJECT_ID}/20_semanas
-    #output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/14/20_semanas
-    output_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/${SUBJECT_ID}/20_semanas
-    #output_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/PLY
-    #cache_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/14/20_semanas/Cache
-    cache_dir: ${PROJECT_ROOT}/US_samples/VTK_baby_template_4/${SUBJECT_ID}/20_semanas/Cache
+    input_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas
+    output_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas
+    cache_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas/Cache
 
   echotexture:
     vtp_dir: nrrd_to_vtp.output_dir
@@ -44,8 +40,7 @@ paths:
     output_dir: nrrd_to_vtp.output_dir + /echotexture
 
   align_to_reference:
-    landmarks_csv_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/Lmks_Antonia
-    #landmarks_csv_dir:  C:/Users/vic-b/Documents/Victors/Projects/fetusnet/inference/results/landmarks/Casos_Mar/${SUBJECT_ID}
+    landmarks_csv_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/Lmks_Antonia
     vtp_shapes_dir: nrrd_to_vtp.output_dir
    #vtp_shapes_dir:  ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/PLY
     output_dir: nrrd_to_vtp.output_dir + /aligned
@@ -116,7 +111,7 @@ hyperparameters:
     contour_value: 70  # fallback only - ignored while auto_contour is true
     auto_contour: false  # pick contour_value per volume via Otsu's method, so it adapts to each NRRD source's own intensity scale instead of a hand-tuned absolute number
     reduction_factor: 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
-    min_bridge_width: 1.0  # bridges narrower than this do not connect regions; 0 disables
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
     min_bridge_relative: false
     compute_curvedness: false
     curvedness_n_rings: 5
@@ -175,7 +170,12 @@ hyperparameters:
     # query on a dense, lightly-decimated mesh can turn variability_radius_mm
     # into hundreds of millions of neighbor pairs (a real crash we hit - see
     # compute_field_variability's docstring for the bounded-cost tradeoff).
-    variability_max_neighbors: 64
+    # Lowered from 64: even capped, the densest subject mesh here (~1.58M
+    # points) hit ~101M neighbor pairs at k=64, needing several GB of
+    # transient float64 arrays - too much on a 16 GB machine. 16 keeps
+    # memory to a quarter of that at the cost of a coarser variability
+    # estimate in the densest mesh regions.
+    variability_max_neighbors: 16
     field_prefix: echo_
 
   roughness_filter:
@@ -185,7 +185,7 @@ hyperparameters:
     threshold: 0.9  # keep vertices with roughness below this fraction of the field's range - scale-invariant, unaffected by align_to_reference/align_to_template's scale
     neighbors: knn  # "knn" | "rings"
     max_neighbors: 32
-    min_bridge_width: 1.0  # mm, original nrrd/ply space - converted into this stage's scaled units via paths.roughness_filter.transforms_dir; 0 disables
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
     min_bridge_relative: false
 
   align_to_reference:
@@ -209,20 +209,20 @@ hyperparameters:
     z_min_offset_mm: 20.0 
     z_max_offset_mm: 5.0   
     keep_largest_component: false  # re-extract the largest component after the distance cut instead (below)
-    min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
     min_bridge_relative: false
 
   landmark_distance_cut:
     max_distance_mm: 15.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
     keep_largest_component: false  # re-extract the largest component after the distance cut
-    min_bridge_width: 1.0  # bridges narrower than this do not connect regions after the cut; 0 disables
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
     min_bridge_relative: false
 
   scan_consistency:
     sigma_mm: 2.0  # spatial tolerance in mm; points within sigma_mm score highly
     apply_denoise_threshold: true
     min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
-    denoise_min_bridge_width: 5.0
+    denoise_min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
     denoise_min_bridge_relative: true
 
   scan_fusion:
@@ -240,7 +240,7 @@ hyperparameters:
     neighbors: knn  # "knn" | "rings"
     max_neighbors: 32
     keep_largest_component: false
-    min_bridge_width: 1.0  # unused while keep_largest_component is false
+    min_bridge_width: 0  # unused while keep_largest_component is false
     min_bridge_relative: false
 
   smoothing_filter_final:
