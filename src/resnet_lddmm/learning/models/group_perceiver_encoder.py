@@ -35,17 +35,17 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from e3nn import o3
 
-from src.learning.layers.equivariant.Self_Spatial_layer import EquiLayer
-from src.learning.models.encoder_output import EncoderOutput
-from src.learning.modules.equivariant.irreps_utils import scalar_features
-from src.learning.modules.latent_vae import LatentVAEHead
-from src.learning.modules.transformers.perceiver_encoder import (
+from src.resnet_lddmm.learning.layers.equivariant.Self_Spatial_layer import EquiLayer
+from src.resnet_lddmm.learning.models.encoder_output import EncoderOutput
+from src.resnet_lddmm.learning.modules.equivariant.irreps_utils import scalar_features
+from src.resnet_lddmm.learning.modules.latent_vae import LatentVAEHead
+from src.resnet_lddmm.learning.modules.transformers.perceiver_encoder import (
     PerceiverEncoder,
     PerceiverReducer,
 )
-from src.learning.modules.transformers.self_attention import SelfAttentionBlock
-from src.learning.modules.equivariant.interaction import BipartiteSpatialConvolution
-from src.learning.modules.equivariant.transformer import build_equivariant_transformer
+from src.resnet_lddmm.learning.modules.transformers.self_attention import SelfAttentionBlock
+from src.resnet_lddmm.learning.modules.equivariant.interaction import BipartiteSpatialConvolution
+from src.resnet_lddmm.learning.modules.equivariant.transformer import build_equivariant_transformer
 
 class GroupPerceiverEncoder(nn.Module):
     def __init__(

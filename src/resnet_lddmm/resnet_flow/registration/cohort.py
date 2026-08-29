@@ -2,9 +2,9 @@
 
 import torch
 import torch.nn as nn
-from src.learning.losses.composer import LossComposer
-from src.resnet_lddmm.losses.terms import LossContext
-from src.resnet_lddmm.losses import BidirectionalMappingError
+from src.resnet_lddmm.learning.losses.composer import LossComposer
+from src.resnet_lddmm.resnet_flow.losses.terms import LossContext
+from src.resnet_lddmm.resnet_flow.losses import BidirectionalMappingError
 
 
 class CohortRegistration:
@@ -43,7 +43,7 @@ class CohortRegistration:
         self.use_encoder_pose = use_encoder_pose
         self.loss_terms = loss_terms or {}
         if self.augmentation is None:
-            from src.resnet_lddmm.augmentation.none import NoAugmentation
+            from src.resnet_lddmm.resnet_flow.augmentation.none import NoAugmentation
             self.augmentation = NoAugmentation()
         self.is_bidirectional = isinstance(mapping_error, BidirectionalMappingError)
         self.backward_traj = None
@@ -296,7 +296,7 @@ class CohortRegistration:
         encoder prediction (semi-amortised); otherwise initializes from N(0, 2/N_z·I).
         Asserts flow is bit-identical before/after (frozen-decoder guarantee).
         """
-        from src.learning.loader.loaders import CohortBatch
+        from src.resnet_lddmm.learning.loader.loaders import CohortBatch
 
         # Snapshot flow state to verify it stays frozen
         flow_state_before = {
@@ -321,7 +321,7 @@ class CohortRegistration:
 
         # Check if code_source is EncoderCodes and can provide amortised init
         try:
-            from src.resnet_lddmm.codes.encoder import EncoderCodes
+            from src.resnet_lddmm.resnet_flow.codes.encoder import EncoderCodes
             if isinstance(self.code_source, EncoderCodes):
                 # Use encoder to get initial code from new shape (semi-amortised)
                 z_init = self.code_source(source_batch)  # [1, n_z]

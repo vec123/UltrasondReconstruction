@@ -8,7 +8,7 @@ it doesn't know a validation set exists -- while MetricsRecorder, MetricsPlotter
 and GeometryVisualizer all react to validation exactly as they react to a step.
 """
 
-from src.learning.callbacks.base import Callback
+from src.resnet_lddmm.learning.callbacks.base import Callback
 
 
 class ValidationRunner(Callback):

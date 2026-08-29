@@ -4,7 +4,7 @@ Each task adds its component's line here when created.
 The registry resolves (category, name) pairs to lazy-loaded classes.
 """
 
-from src.learning.registry import Registry
+from src.resnet_lddmm.learning.registry import Registry
 
 # Each implemented component goes here.
 # Format: Registry.register("category", "name", "module.path:ClassName")

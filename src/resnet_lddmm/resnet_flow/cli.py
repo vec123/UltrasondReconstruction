@@ -10,8 +10,8 @@ import sys
 import yaml
 
 from src.core.config import load_yaml
-from src.resnet_lddmm.config import ExperimentCfg
-from src.resnet_lddmm.runner import run
+from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
+from src.resnet_lddmm.resnet_flow.runner import run
 
 
 def load_config(config_path: str) -> ExperimentCfg:

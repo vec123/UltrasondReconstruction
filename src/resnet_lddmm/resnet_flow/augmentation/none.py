@@ -1,7 +1,7 @@
 """NoAugmentation: identity transformation (Null Object pattern)."""
 
 from torch import Tensor
-from src.resnet_lddmm.augmentation.base import Augmentation
+from src.resnet_lddmm.resnet_flow.augmentation.base import Augmentation
 
 
 class NoAugmentation(Augmentation):

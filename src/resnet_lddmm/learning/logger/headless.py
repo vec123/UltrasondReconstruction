@@ -7,7 +7,7 @@ when ``stdout`` is not a TTY (SLURM, ``nohup``, pipes); override explicitly via 
 
 Usage (near the start of a script, once ``log_dir`` is known)::
 
-    from src.learning.logger.headless import enable_headless
+    from src.resnet_lddmm.learning.logger.headless import enable_headless
     enable_headless(OUTPUT_DIR, remote=REMOTE, name="my_script")
 
 ``matplotlib`` is already pinned to the ``Agg`` backend where these scripts plot, so no

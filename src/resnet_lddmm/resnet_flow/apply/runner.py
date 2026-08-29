@@ -23,20 +23,20 @@ from typing import Optional, Tuple
 
 import torch
 
-from src.resnet_lddmm.checkpoint import (
+from src.resnet_lddmm.resnet_flow.checkpoint import (
     CheckpointRef,
     checkpoint_step,
     load_checkpoint,
     resolve_checkpoint,
 )
-from src.resnet_lddmm.apply.client import Deformation, DeformationClient
-from src.resnet_lddmm.apply.config import (
+from src.resnet_lddmm.resnet_flow.apply.client import Deformation, DeformationClient
+from src.resnet_lddmm.resnet_flow.apply.config import (
     ApplyCfg,
     load_apply_config,
     load_training_config,
 )
-from src.resnet_lddmm.config import ExperimentCfg
-from src.resnet_lddmm.io import (
+from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
+from src.resnet_lddmm.resnet_flow.io import (
     FrameTransform,
     Shape,
     export_reference_shapes,
@@ -44,8 +44,8 @@ from src.resnet_lddmm.io import (
     export_trajectory,
     load_shape,
 )
-from src.resnet_lddmm import registrations  # Side effect: registers all components
-from src.resnet_lddmm.runner import build_code_source, load_pair, set_default_dtype
+from src.resnet_lddmm.resnet_flow import registrations  # Side effect: registers all components
+from src.resnet_lddmm.resnet_flow.runner import build_code_source, load_pair, set_default_dtype
 
 DEFORMED_NAME = "deformed.vtp"
 MANIFEST_NAME = "apply.json"

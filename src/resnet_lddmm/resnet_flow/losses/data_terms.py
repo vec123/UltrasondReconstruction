@@ -6,9 +6,9 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.learning.losses.losses import chamfer_loss
-from src.resnet_lddmm.trajectory import Trajectory
-from src.resnet_lddmm.fields.base import VelocityField
+from src.resnet_lddmm.learning.losses.losses import chamfer_loss
+from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
 
 
 class RegistrationLoss(nn.Module, abc.ABC):
@@ -569,7 +569,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         # (see DTYPES's docstring there), so importing it eagerly at module
         # scope here would pull torch into every caller of config.py that
         # never touches this data term.
-        from src.resnet_lddmm.config import ChamferSideCfg
+        from src.resnet_lddmm.resnet_flow.config import ChamferSideCfg
 
         st = ChamferSideCfg.from_dict(source_to_target or {})
         ts = ChamferSideCfg.from_dict(target_to_source or {})

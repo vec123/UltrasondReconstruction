@@ -15,7 +15,7 @@ The litmus test for a component: "could I use this class in
 a different project without copying the config package?"
 """
 
-from src.learning.registry import Registry
+from src.resnet_lddmm.learning.registry import Registry
 
 
 def build_encoder(cfg):

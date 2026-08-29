@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.conditioning.base import Conditioning
+from src.resnet_lddmm.resnet_flow.conditioning.base import Conditioning
 
 
 class ConcatConditioning(Conditioning):

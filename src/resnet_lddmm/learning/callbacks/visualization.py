@@ -12,8 +12,8 @@ Its metrics/checkpoint halves are superseded by MetricsRecorder and
 CheckpointWriter and are no longer driven by the orchestrator.
 """
 
-from src.learning.callbacks.base import Callback
-from src.learning.logger.train_logs import TrainingLogger
+from src.resnet_lddmm.learning.callbacks.base import Callback
+from src.resnet_lddmm.learning.logger.train_logs import TrainingLogger
 
 
 class GeometryVisualizer(Callback):

@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use("Agg")  # headless backend: save PNGs without a display / GUI event loop
 import matplotlib.pyplot as plt
 
-from src.learning.callbacks.base import Callback
+from src.resnet_lddmm.learning.callbacks.base import Callback
 
 
 class MetricsRecorder(Callback):

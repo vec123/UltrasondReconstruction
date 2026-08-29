@@ -5,10 +5,10 @@ import json
 import torch
 import numpy as np
 
-from src.learning.callbacks.base import Callback
-from src.resnet_lddmm.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound
-from src.resnet_lddmm.flow import IdentityFlowWrapper
-from src.resnet_lddmm.io import export_trajectory, export_reference_shapes, export_shape, Shape, FrameTransform
+from src.resnet_lddmm.learning.callbacks.base import Callback
+from src.resnet_lddmm.resnet_flow.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound
+from src.resnet_lddmm.resnet_flow.flow import IdentityFlowWrapper
+from src.resnet_lddmm.resnet_flow.io import export_trajectory, export_reference_shapes, export_shape, Shape, FrameTransform
 
 
 class TrajectoryExporter(Callback):
@@ -1293,7 +1293,7 @@ class PoseShapeExporter(Callback):
         if rotation is None and translation is None:
             return  # no pose was applied; before and after would be identical
 
-        from src.resnet_lddmm.losses.terms import apply_pose
+        from src.resnet_lddmm.resnet_flow.losses.terms import apply_pose
         from src.vtk.create import create_polydata
         from src.vtk.fields import add_point_field
         from src.vtk.io import save_vtp
@@ -1348,7 +1348,7 @@ class PoseShapeExporter(Callback):
             transform: the space's FrameTransform, applied via invert()
             rotation, translation: the pose that was actually applied
         """
-        from src.resnet_lddmm.losses.terms import apply_pose
+        from src.resnet_lddmm.resnet_flow.losses.terms import apply_pose
 
         template, sample = batch
         before = self._full_endpoint(stepper, mapping_error, template)

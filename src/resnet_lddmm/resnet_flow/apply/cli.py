@@ -10,8 +10,8 @@ from dataclasses import replace
 
 import yaml
 
-from src.resnet_lddmm.apply.config import load_apply_config
-from src.resnet_lddmm.apply.runner import run
+from src.resnet_lddmm.resnet_flow.apply.config import load_apply_config
+from src.resnet_lddmm.resnet_flow.apply.runner import run
 
 
 def main(argv=None):

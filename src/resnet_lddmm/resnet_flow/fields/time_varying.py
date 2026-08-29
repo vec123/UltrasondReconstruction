@@ -5,9 +5,9 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.fields.base import VelocityField
-from src.resnet_lddmm.fields.blocks import VelocityBlock, FourierFeatures, mlp, last_linear
-from src.resnet_lddmm.conditioning.base import Conditioning, NoConditioning
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
+from src.resnet_lddmm.resnet_flow.fields.blocks import VelocityBlock, FourierFeatures, mlp, last_linear
+from src.resnet_lddmm.resnet_flow.conditioning.base import Conditioning, NoConditioning
 
 
 class TimeVaryingField(VelocityField):

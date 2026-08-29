@@ -5,7 +5,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from src.learning.modules.transformers.heads import MultiHeadAttention
+from src.resnet_lddmm.learning.modules.transformers.heads import MultiHeadAttention
 
 
 

@@ -20,8 +20,8 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_add_pool
 
-from src.learning.models.encoder_output import EncoderOutput
-from src.learning.modules.transformers.perceiver_encoder import PerceiverReducer
+from src.resnet_lddmm.learning.models.encoder_output import EncoderOutput
+from src.resnet_lddmm.learning.modules.transformers.perceiver_encoder import PerceiverReducer
 
 
 class LatentHead(nn.Module, ABC):

@@ -28,12 +28,12 @@ import torch
 import torch.nn as nn
 from e3nn import o3
 
-from src.learning.modules.equivariant.transformer import within_shape_edges
-from src.learning.modules.equivariant.equiformer_v3.transformer_block import TransBlockV3
-from src.learning.modules.equivariant.equiformer_v3.so3 import SO3Rotation
-from src.learning.modules.equivariant.equiformer_v3.edge_rot_mat import init_edge_rot_mat
-from src.learning.modules.equivariant.equiformer_v3.radial_function import GaussianSmearing
-from src.learning.modules.equivariant.equiformer_v3.layer_norm import get_normalization_layer
+from src.resnet_lddmm.learning.modules.equivariant.transformer import within_shape_edges
+from src.resnet_lddmm.learning.modules.equivariant.equiformer_v3.transformer_block import TransBlockV3
+from src.resnet_lddmm.learning.modules.equivariant.equiformer_v3.so3 import SO3Rotation
+from src.resnet_lddmm.learning.modules.equivariant.equiformer_v3.edge_rot_mat import init_edge_rot_mat
+from src.resnet_lddmm.learning.modules.equivariant.equiformer_v3.radial_function import GaussianSmearing
+from src.resnet_lddmm.learning.modules.equivariant.equiformer_v3.layer_norm import get_normalization_layer
 
 
 def _uniform_irreps(lmax, channels):

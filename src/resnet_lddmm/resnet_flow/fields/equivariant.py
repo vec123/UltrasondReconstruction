@@ -7,9 +7,9 @@ from torch import Tensor
 
 from e3nn import o3
 
-from src.resnet_lddmm.fields.base import VelocityField
-from src.resnet_lddmm.conditioning.base import Conditioning, NoConditioning
-from src.learning.modules.equivariant.interaction import SelfInteraction
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
+from src.resnet_lddmm.resnet_flow.conditioning.base import Conditioning, NoConditioning
+from src.resnet_lddmm.learning.modules.equivariant.interaction import SelfInteraction
 
 
 class EquivariantStationaryField(VelocityField):

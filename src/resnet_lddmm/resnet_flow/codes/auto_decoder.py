@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.codes.base import ShapeCode
+from src.resnet_lddmm.resnet_flow.codes.base import ShapeCode
 
 
 class AutoDecoderCodes(ShapeCode):

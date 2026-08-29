@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 from e3nn import o3
-from src.learning.modules.equivariant.interaction import (
+from src.resnet_lddmm.learning.modules.equivariant.interaction import (
     SelfInteraction,
     SpatialConvolution,
 )
-from src.learning.modules.equivariant.layer_norm import (
+from src.resnet_lddmm.learning.modules.equivariant.layer_norm import (
     EquivariantLayerNorm
 )
 

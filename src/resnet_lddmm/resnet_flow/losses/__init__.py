@@ -1,12 +1,12 @@
 """Loss term modules for registration."""
 
-from src.resnet_lddmm.losses.data_terms import (
+from src.resnet_lddmm.resnet_flow.losses.data_terms import (
     DataTerm,
     TwoSidedDataTerm,
     CDData,
     L2Data,
 )
-from src.resnet_lddmm.losses.mapping_error import (
+from src.resnet_lddmm.resnet_flow.losses.mapping_error import (
     UnidirectionalMappingError,
     BidirectionalMappingError,
 )

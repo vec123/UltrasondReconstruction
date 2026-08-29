@@ -1,8 +1,8 @@
 """Shape code modules for per-shape learned embeddings."""
 
-from src.resnet_lddmm.codes.base import ShapeCode
-from src.resnet_lddmm.codes.none import NoCode
-from src.resnet_lddmm.codes.auto_decoder import AutoDecoderCodes
+from src.resnet_lddmm.resnet_flow.codes.base import ShapeCode
+from src.resnet_lddmm.resnet_flow.codes.none import NoCode
+from src.resnet_lddmm.resnet_flow.codes.auto_decoder import AutoDecoderCodes
 
 # Code kinds that PREDICT their own pose instead of holding an injected one, and so
 # satisfy `use_pose` without a `code.pose` block. Every other kind needs one --

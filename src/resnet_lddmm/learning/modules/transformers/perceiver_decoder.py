@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from src.learning.modules.transformers.layers import PerceiverLayer
+from src.resnet_lddmm.learning.modules.transformers.layers import PerceiverLayer
 
 class PerceiverDecoder(nn.Module):
     def __init__(

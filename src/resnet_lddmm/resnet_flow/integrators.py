@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.fields.base import VelocityField
-from src.resnet_lddmm.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
+from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
 
 
 class Integrator(abc.ABC):

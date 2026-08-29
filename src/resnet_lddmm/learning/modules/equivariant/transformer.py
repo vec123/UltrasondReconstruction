@@ -35,8 +35,8 @@ from e3nn import o3
 from torch_geometric.utils import softmax as edge_softmax
 from torch_scatter import scatter
 
-from src.learning.modules.equivariant.layer_norm import EquivariantLayerNorm
-from src.learning.modules.pos_encodings.radial_fourier import RadialFourier
+from src.resnet_lddmm.learning.modules.equivariant.layer_norm import EquivariantLayerNorm
+from src.resnet_lddmm.learning.modules.pos_encodings.radial_fourier import RadialFourier
 
 
 def _distinct_irreps(irreps):
@@ -265,7 +265,7 @@ def build_equivariant_transformer(transformer_type, irreps, cfg=None, verbose=Fa
         return SE3Transformer(irreps, verbose=verbose, **cfg)
     if transformer_type == 'equiformer':
         # Lazy import to avoid a circular import (equiformer imports from this module).
-        from src.learning.modules.equivariant.equiformer import EquiformerTransformer
+        from src.resnet_lddmm.learning.modules.equivariant.equiformer import EquiformerTransformer
         return EquiformerTransformer(irreps, verbose=verbose, **cfg)
     raise ValueError(
         f"unknown transformer_type {transformer_type!r} (expected None | 'se3' | 'equiformer')")

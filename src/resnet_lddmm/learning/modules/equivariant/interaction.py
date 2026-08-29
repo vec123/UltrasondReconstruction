@@ -8,11 +8,11 @@ import torch
 from torch_geometric.utils import degree
 from typing import Tuple  
 
-from src.learning.modules.equivariant.irreps_utils import (
+from src.resnet_lddmm.learning.modules.equivariant.irreps_utils import (
     scalar_features,
     expand_per_irrep_gate,
 )
-from src.learning.modules.pos_encodings.radial_fourier import RadialFourier
+from src.resnet_lddmm.learning.modules.pos_encodings.radial_fourier import RadialFourier
 
 class GatingBlock(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int, out_dim: int):

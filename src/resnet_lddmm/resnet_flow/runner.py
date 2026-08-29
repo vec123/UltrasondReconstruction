@@ -15,26 +15,26 @@ import dataclasses
 import numpy as np
 import torch
 
-from src.resnet_lddmm.checkpoint import checkpoint_step, load_checkpoint, resolve_checkpoint
-from src.resnet_lddmm.codes import SELF_POSING_KINDS
-from src.resnet_lddmm.config import ExperimentCfg, CENTERING_DOMAINS
-from src.resnet_lddmm.poses import TRANSLATING_KINDS
-from src.resnet_lddmm.io import load_shape, joint_normalize, export_trajectory, export_shape
-from src.resnet_lddmm.landmarks import build_landmark_term_kwargs
-from src.resnet_lddmm.field_weights import resolve_point_weight_field
-from src.resnet_lddmm.registration.pair import PairRegistration
-from src.resnet_lddmm.registration.cohort import CohortRegistration
-from src.resnet_lddmm.flow import NeuralODEFlow, IdentityFlowWrapper
-from src.resnet_lddmm.integrators import ForwardEuler, ModifiedEuler
-from src.resnet_lddmm.losses import UnidirectionalMappingError, BidirectionalMappingError
-from src.resnet_lddmm import registrations  #  Side effect: registers all component Load component registrations
-from src.learning.registry import Registry
-from src.learning.losses.composer import LossComposer, LossTerm
-from src.learning.loader.loaders import OneBatchLoader, CohortBatchLoader
-from src.learning.trainers.E3_end2end import TrainingOrchestrator
-from src.learning.callbacks.base import Callback
-from src.learning.callbacks.checkpointing import CheckpointWriter
-from src.resnet_lddmm.callbacks import TrajectoryExporter, DiagnosticsCallback, EncoderGraphLogger, GradientLogger, NetworkStructureInspector, RequiresGradMonitor, PoseLogger, PoseShapeExporter, LossLogger
+from src.resnet_lddmm.resnet_flow.checkpoint import checkpoint_step, load_checkpoint, resolve_checkpoint
+from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
+from src.resnet_lddmm.resnet_flow.config import ExperimentCfg, CENTERING_DOMAINS
+from src.resnet_lddmm.resnet_flow.poses import TRANSLATING_KINDS
+from src.resnet_lddmm.resnet_flow.io import load_shape, joint_normalize, export_trajectory, export_shape
+from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs
+from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field
+from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
+from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
+from src.resnet_lddmm.resnet_flow.flow import NeuralODEFlow, IdentityFlowWrapper
+from src.resnet_lddmm.resnet_flow.integrators import ForwardEuler, ModifiedEuler
+from src.resnet_lddmm.resnet_flow.losses import UnidirectionalMappingError, BidirectionalMappingError
+from src.resnet_lddmm.resnet_flow import registrations  #  Side effect: registers all component Load component registrations
+from src.resnet_lddmm.learning.registry import Registry
+from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm
+from src.resnet_lddmm.learning.loader.loaders import OneBatchLoader, CohortBatchLoader
+from src.resnet_lddmm.learning.trainers.E3_end2end import TrainingOrchestrator
+from src.resnet_lddmm.learning.callbacks.base import Callback
+from src.resnet_lddmm.learning.callbacks.checkpointing import CheckpointWriter
+from src.resnet_lddmm.resnet_flow.callbacks import TrajectoryExporter, DiagnosticsCallback, EncoderGraphLogger, GradientLogger, NetworkStructureInspector, RequiresGradMonitor, PoseLogger, PoseShapeExporter, LossLogger
 
 
 def _encoder_layers_to_list_of_dicts(encoder_config):

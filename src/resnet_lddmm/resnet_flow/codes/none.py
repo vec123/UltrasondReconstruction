@@ -1,6 +1,6 @@
 """Null object code implementation."""
 
-from src.resnet_lddmm.codes.base import ShapeCode
+from src.resnet_lddmm.resnet_flow.codes.base import ShapeCode
 
 
 class NoCode(ShapeCode):

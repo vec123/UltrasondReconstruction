@@ -6,7 +6,7 @@ these dependencies installed.
 """
 
 import torch
-from src.resnet_lddmm.codes.base import ShapeCode
+from src.resnet_lddmm.resnet_flow.codes.base import ShapeCode
 
 
 class EncoderCodes(ShapeCode):
@@ -168,7 +168,7 @@ class EncoderCodes(ShapeCode):
         if rotation is None and translation is None:
             return base_transform
 
-        from src.resnet_lddmm.io import FrameTransform
+        from src.resnet_lddmm.resnet_flow.io import FrameTransform
         return FrameTransform(
             center=base_transform.center,
             scale=base_transform.scale,

@@ -3,7 +3,7 @@
 from typing import Tuple, Optional
 import torch
 from torch import Tensor
-from src.transforms.group_transforms import SE3_transform
+from src.resnet_lddmm.transforms.group_transforms import SE3_transform
 import logging
 from pathlib import Path
 from src.vtk.create import create_polydata

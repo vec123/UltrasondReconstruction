@@ -5,14 +5,14 @@ import torch.nn as nn
 from torch_geometric.nn import global_mean_pool, global_add_pool
 from torch_geometric.utils import softmax as scatter_softmax
 from e3nn import o3
-from src.learning.layers.equivariant.Self_Spatial_layer import EquiLayer
-from src.learning.modules.equivariant.interaction import (
+from src.resnet_lddmm.learning.layers.equivariant.Self_Spatial_layer import EquiLayer
+from src.resnet_lddmm.learning.modules.equivariant.interaction import (
     BipartiteSpatialConvolution, MonteCarloBipartiteSpatialConvolution)
 
-from src.learning.modules.equivariant.transformer import build_equivariant_transformer
-from src.learning.modules.equivariant.irreps_utils import scalar_features, vector_features
+from src.resnet_lddmm.learning.modules.equivariant.transformer import build_equivariant_transformer
+from src.resnet_lddmm.learning.modules.equivariant.irreps_utils import scalar_features, vector_features
 
-from src.learning.registry import Registry
+from src.resnet_lddmm.learning.registry import Registry
 
 class GroupEncoder(nn.Module):
     def __init__(self, layers_cfg,

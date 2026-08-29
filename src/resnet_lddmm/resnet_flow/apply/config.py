@@ -14,8 +14,8 @@ from dataclasses import dataclass, field as dataclass_field, replace as dataclas
 from typing import Optional, Tuple
 
 from src.core.config import load_yaml, reject_unknown_keys
-from src.resnet_lddmm.checkpoint import CheckpointRef
-from src.resnet_lddmm.config import ExperimentCfg
+from src.resnet_lddmm.resnet_flow.checkpoint import CheckpointRef
+from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
 
 # The coordinate frames an export can be written in.
 #

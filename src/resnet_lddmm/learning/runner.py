@@ -16,16 +16,16 @@ import numpy as np
 import torch
 
 from src.paths import get_project_root
-from src.learning.factories import build_encoder, build_decoder
-from src.learning.registry import Registry
-from src.learning.data.loading import load_dataset, split_dataset
-from src.learning.loader.loaders import OneBatchLoader, ResamplingGraphLoader
-from src.learning.losses.composer import LossComposer, LossTerm
-from src.learning.trainers.E3_end2end import TrainingStepper, TrainingOrchestrator
-from src.learning.callbacks.metrics import MetricsRecorder, MetricsPlotter
-from src.learning.callbacks.checkpointing import CheckpointWriter
-from src.learning.callbacks.visualization import GeometryVisualizer
-from src.learning.callbacks.validation import ValidationRunner
+from src.resnet_lddmm.learning.factories import build_encoder, build_decoder
+from src.resnet_lddmm.learning.registry import Registry
+from src.resnet_lddmm.learning.data.loading import load_dataset, split_dataset
+from src.resnet_lddmm.learning.loader.loaders import OneBatchLoader, ResamplingGraphLoader
+from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm
+from src.resnet_lddmm.learning.trainers.E3_end2end import TrainingStepper, TrainingOrchestrator
+from src.resnet_lddmm.learning.callbacks.metrics import MetricsRecorder, MetricsPlotter
+from src.resnet_lddmm.learning.callbacks.checkpointing import CheckpointWriter
+from src.resnet_lddmm.learning.callbacks.visualization import GeometryVisualizer
+from src.resnet_lddmm.learning.callbacks.validation import ValidationRunner
 
 
 def resolve_path(path):

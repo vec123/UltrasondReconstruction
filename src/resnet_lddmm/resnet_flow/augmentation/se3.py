@@ -3,8 +3,8 @@
 from typing import Optional
 import torch
 from torch import Tensor
-from src.resnet_lddmm.augmentation.base import Augmentation
-from src.transforms.group_transforms import SE3_transform
+from src.resnet_lddmm.resnet_flow.augmentation.base import Augmentation
+from src.resnet_lddmm.transforms.group_transforms import SE3_transform
 
 
 class SE3Augmentation(Augmentation):

@@ -17,7 +17,7 @@ Modes (how mu/logvar are derived from the tokens):
 import torch
 import torch.nn as nn
 
-from src.learning.losses.losses import kl_divergence_loss
+from src.resnet_lddmm.learning.losses.losses import kl_divergence_loss
 
 
 class LatentVAEHead(nn.Module):

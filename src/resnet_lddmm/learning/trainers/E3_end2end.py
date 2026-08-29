@@ -1,14 +1,14 @@
 import torch
 import torch.optim as optim
 
-from src.learning.losses.losses import (
+from src.resnet_lddmm.learning.losses.losses import (
     combined_surface_loss,
     contrastive_alignment_loss,
     frobenius_latent_loss,
 )
-from src.learning.losses.composer import LossComposer, LossTerm
-from src.learning.models.encoder_output import EncoderOutput
-from src.learning.callbacks.base import TrainingContext
+from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm
+from src.resnet_lddmm.learning.models.encoder_output import EncoderOutput
+from src.resnet_lddmm.learning.callbacks.base import TrainingContext
 
 
 def _resolve_device(device):

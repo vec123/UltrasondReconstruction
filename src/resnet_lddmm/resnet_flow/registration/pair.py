@@ -1,10 +1,10 @@
 """Pair registration stepper for Milestone A (per-pair training)."""
 
 import torch
-from src.learning.losses.composer import LossComposer
-from src.resnet_lddmm.losses.terms import LossContext
-from src.resnet_lddmm.losses import BidirectionalMappingError
-from src.resnet_lddmm.io import Shape
+from src.resnet_lddmm.learning.losses.composer import LossComposer
+from src.resnet_lddmm.resnet_flow.losses.terms import LossContext
+from src.resnet_lddmm.resnet_flow.losses import BidirectionalMappingError
+from src.resnet_lddmm.resnet_flow.io import Shape
 
 
 class PairRegistration:
@@ -42,7 +42,7 @@ class PairRegistration:
         self.use_encoder_pose = use_encoder_pose
         self.loss_terms = loss_terms or {}
         if self.augmentation is None:
-            from src.resnet_lddmm.augmentation.none import NoAugmentation
+            from src.resnet_lddmm.resnet_flow.augmentation.none import NoAugmentation
             self.augmentation = NoAugmentation()
         self.is_bidirectional = isinstance(mapping_error, BidirectionalMappingError)
         self.backward_traj = None  # Stored when bidirectional

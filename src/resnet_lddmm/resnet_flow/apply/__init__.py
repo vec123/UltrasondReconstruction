@@ -19,14 +19,14 @@ Usage::
     python -m src.resnet_lddmm.apply.cli configs/apply/processed_ultrasound.yaml
 """
 
-from src.resnet_lddmm.checkpoint import (
+from src.resnet_lddmm.resnet_flow.checkpoint import (
     CheckpointRef,
     load_checkpoint,
     resolve_checkpoint,
 )
-from src.resnet_lddmm.apply.client import Deformation, DeformationClient
-from src.resnet_lddmm.apply.config import ApplyCfg, ExportCfg, load_apply_config
-from src.resnet_lddmm.apply.runner import run, run_from_path
+from src.resnet_lddmm.resnet_flow.apply.client import Deformation, DeformationClient
+from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg, ExportCfg, load_apply_config
+from src.resnet_lddmm.resnet_flow.apply.runner import run, run_from_path
 
 __all__ = [
     "ApplyCfg",

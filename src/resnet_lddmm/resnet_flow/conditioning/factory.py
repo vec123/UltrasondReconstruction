@@ -1,9 +1,9 @@
 """Factory for creating Conditioning instances from config."""
 
 from typing import Optional, Dict, Any
-from src.resnet_lddmm.conditioning.base import Conditioning, NoConditioning
-from src.resnet_lddmm.conditioning.film import ConcatConditioning, FiLMConditioning
-from src.resnet_lddmm.conditioning.position_aware import PositionAware
+from src.resnet_lddmm.resnet_flow.conditioning.base import Conditioning, NoConditioning
+from src.resnet_lddmm.resnet_flow.conditioning.film import ConcatConditioning, FiLMConditioning
+from src.resnet_lddmm.resnet_flow.conditioning.position_aware import PositionAware
 
 
 def create_conditioning(config: Optional[Dict[str, Any]]) -> Conditioning:

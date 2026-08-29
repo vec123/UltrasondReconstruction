@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.poses.base import PoseSource
+from src.resnet_lddmm.resnet_flow.poses.base import PoseSource
 
 
 def skew(w: Tensor) -> Tensor:

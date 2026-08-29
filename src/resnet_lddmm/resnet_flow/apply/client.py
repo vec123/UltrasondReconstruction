@@ -18,11 +18,11 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 
-from src.resnet_lddmm.config import ExperimentCfg
-from src.resnet_lddmm.io import FrameTransform, Shape
-from src.resnet_lddmm.losses.mapping_error import apply_pose
-from src.resnet_lddmm.runner import build_flow, set_default_dtype
-from src.resnet_lddmm.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
+from src.resnet_lddmm.resnet_flow.io import FrameTransform, Shape
+from src.resnet_lddmm.resnet_flow.losses.mapping_error import apply_pose
+from src.resnet_lddmm.resnet_flow.runner import build_flow, set_default_dtype
+from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,7 @@ import os
 
 import torch
 
-from src.learning.callbacks.base import Callback
+from src.resnet_lddmm.learning.callbacks.base import Callback
 
 
 class CheckpointWriter(Callback):

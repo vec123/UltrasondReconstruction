@@ -21,7 +21,7 @@ from typing import Optional
 
 import torch
 
-from src.resnet_lddmm.io import Shape, load_shape
+from src.resnet_lddmm.resnet_flow.io import Shape, load_shape
 
 
 def resolve_point_weight_field(field_name: Optional[str], field_source: Optional[str],

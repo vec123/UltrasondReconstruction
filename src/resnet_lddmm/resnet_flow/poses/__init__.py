@@ -1,7 +1,7 @@
 """Rigid pose sources, held by a code source rather than being one."""
 
-from src.resnet_lddmm.poses.base import PoseSource
-from src.resnet_lddmm.poses.free import FreeSE3, FreeSO3
+from src.resnet_lddmm.resnet_flow.poses.base import PoseSource
+from src.resnet_lddmm.resnet_flow.poses.free import FreeSE3, FreeSO3
 
 # Pose kinds that require a translation bound to be meaningful. Used to reject
 # `max_translation` under a rotation-only kind, where it would be ignored in
