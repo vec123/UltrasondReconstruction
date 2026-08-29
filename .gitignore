@@ -8,3 +8,10 @@ venv/
 *.egg-info/
 .ipynb_checkpoints/
 .pytest_cache/
+.claude/
+
+# Large data / output directories
+/outputs/
+/Ultrasounds/
+/fetus_ssm_outputs/
+/Templates/

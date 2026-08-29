@@ -23,7 +23,7 @@ import os
 
 import numpy as np
 
-from src.config.US import PointClassifyConfig as Config
+from src.config.US.schema import PointClassifyConfig as Config
 from src.vtk.classify import describe_clusters, fit_predict_clusters
 from src.vtk.extract import extract_vtp_point_fields
 from src.vtk.fields import add_point_field

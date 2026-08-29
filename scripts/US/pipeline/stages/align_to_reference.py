@@ -12,12 +12,12 @@ processed result back onto the subject's original mesh frame.
 import glob
 import os
 
-from src.config.US import AlignToReferenceConfig as Config
+from src.config.US.schema import AlignToReferenceConfig as Config
 from src.vtk.io import glob_meshes, load_mesh, save_vtp
 
-from ..landmarks import landmarks_csv_to_polydata
-from ..matching import match_by_subject_id
-from ..transforms import RigidTransform, compose_with_previous, save_subject_transform
+from src.landmarks.vtk_landmarks import landmarks_csv_to_polydata
+from src.file_name_matching.matching import match_by_subject_id
+from src.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
 
 
 def run(cfg: Config):
@@ -69,7 +69,7 @@ def run(cfg: Config):
 
         # 3. Fit the similarity transform and (if chained) compose it with
         # whatever brought this subject's data into src_pts's frame.
-        local_transform = RigidTransform.from_correspondences(
+        local_transform = SimilarityTransform.from_correspondences(
             src_pts, dst_pts, with_scale=cfg.with_scale, stage="align_to_reference"
         )
         transform = compose_with_previous(local_transform, subject_id, cfg.previous_transforms_dir)

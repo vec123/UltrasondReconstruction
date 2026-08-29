@@ -15,7 +15,7 @@ import SimpleITK as sitk
 import vtk
 from vtk.util import numpy_support
 
-from src.config.US import NrrdToWorldVtpConfig as Config
+from src.config.US.schema import NrrdToWorldVtpConfig as Config
 
 
 def sitk_to_vtk_image(sitk_img):

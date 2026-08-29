@@ -16,7 +16,7 @@ the smoothed geometry.
 import glob
 import os
 
-from src.config.US import SmoothingFilterConfig as Config
+from src.config.US.schema import SmoothingFilterConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import smooth_vtp
 

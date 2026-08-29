@@ -34,12 +34,12 @@ import os
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US import LandmarkBboxCutConfig as Config
+from src.config.US.schema import LandmarkBboxCutConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import extract_polydata_vertex_subset, filter_largest_component
 
-from ..matching import match_by_subject_id
-from ..transforms import load_subject_transform
+from src.file_name_matching.matching import match_by_subject_id
+from src.transforms.similarity import load_subject_transform
 
 
 def offsets_mm(cfg: Config):

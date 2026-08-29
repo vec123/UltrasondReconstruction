@@ -36,10 +36,10 @@ import vtk
 from scipy.ndimage import binary_dilation
 from vtk.util import numpy_support
 
-from src.config.US import VtpToNrrdOverlayConfig as Config
+from src.config.US.schema import VtpToNrrdOverlayConfig as Config
 
-from ..landmarks import landmarks_csv_to_polydata
-from ..transforms import RigidTransform, load_subject_transform
+from src.file_name_matching.matching import match_by_subject_id
+from src.transforms.similarity import SimilarityTransform, load_subject_transform
 
 
 def _load_vtp_points(vtp_path):
@@ -99,7 +99,7 @@ def fit_landmark_alignment(vtp_points, template_vtp, landmark_path, lps_to_ras, 
     src_pts = vtp_points[vertex_indices]
     dst_pts = subject_df.loc[common_labels, ["x", "y", "z"]].values.astype(float)
 
-    return RigidTransform.from_correspondences(
+    return SimilarityTransform.from_correspondences(
         src_pts, dst_pts, with_scale=with_scale, stage="vtp_to_nrrd_overlay_landmark_align"
     )
 

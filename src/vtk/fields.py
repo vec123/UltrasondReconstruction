@@ -24,6 +24,12 @@ def add_point_field(polydata, field_data, field_name="field", verbose = False):
 
     return polydata
 
+def add_cell_field(polydata, field_data, field_name="field"):
+    """Adds a scalar or vector field to the existing PolyData's cell data."""
+    vtk_array = numpy_support.numpy_to_vtk(field_data, deep=True)
+    vtk_array.SetName(field_name)
+    polydata.GetCellData().AddArray(vtk_array)
+    return polydata
 
 def add_point_fields(polydata, fields):
     """Attach many point arrays at once, from a ``{name: array}`` mapping.

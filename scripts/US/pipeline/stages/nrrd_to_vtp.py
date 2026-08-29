@@ -19,19 +19,18 @@ from typing import List
 
 import torch
 
-from src.config.US import NrrdToVtpConfig as Config
+from src.config.US.schema import NrrdToVtpConfig as Config
 from src.geometry import (
-    add_point_field,
     compute_mean_curvature,
-    convert_single_nrrd,
-    extract_arrays_from_polydata,
     from_basis,
     get_operators,
     mesh_vertex_normals,
-    save_vtp_mesh,
     to_basis,
 )
-from src.vtk.extract import threshold_vtp_by_point_field
+from src.nrrd.preprocess import convert_single_nrrd
+from src.vtk.extract import get_vtp_faces, get_vtp_vertices, threshold_vtp_by_point_field
+from src.vtk.fields import add_point_field
+from src.vtk.io import save_vtp
 from src.vtk.surface_measures import compute_flat_region_area, compute_vertex_curvedness
 from src.vtk.process import clean_vtp, filter_largest_component, reduce_vtp
 
@@ -92,7 +91,8 @@ def process_one(nrrd_path, cfg: Config):
         vtp = filter_largest_component(vtp)
 
     # Per-vertex data must match the FILTERED mesh, so extract/compute after filtering.
-    mesh_verts, mesh_faces = extract_arrays_from_polydata(vtp)
+    mesh_verts = get_vtp_vertices(vtp)
+    mesh_faces = get_vtp_faces(vtp)
     normals_np = mesh_vertex_normals(verts=mesh_verts, faces=mesh_faces)
     # Normals are already unit-length; do NOT min-max them, that would destroy
     # their unit-vector meaning.
@@ -138,7 +138,7 @@ def run(cfg: Config) -> List[str]:
         vtp = process_one(nrrd_path, cfg)
 
         output_path = os.path.join(cfg.output_dir, f"{base_name}.vtp")
-        save_vtp_mesh(vtp, output_path)
+        save_vtp(vtp, output_path)
         output_paths.append(output_path)
 
     return output_paths

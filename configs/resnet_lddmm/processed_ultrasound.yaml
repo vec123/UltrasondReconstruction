@@ -1,0 +1,100 @@
+# Proof-of-concept: hand pair registration with isometry constraint
+# Same as hand_pair_poc but with isometry regularization enabled
+
+source: data/processed_ultrasound/baby/baby_mean.vtp
+
+# 0.2 (not a higher threshold) is deliberate: it's the SUPERSET carrying every
+# point down to consistency_score 0.2, so target_to_source.field_name below
+# can weight continuously instead of hard-cutting at some threshold.
+target: data/processed_ultrasound/baby/2/merged_high_confidence_scan_threshold_0.8.vtp
+landmarks: data/processed_ultrasound/baby/2/landmarks
+output_dir: ./outputs/processed_ultrasound_baby_shape_2_6
+
+field:
+  kind: stationary
+  num_steps: 10
+  width: 246
+  activation: relu
+  
+code:
+  kind: none
+  position_aware: true
+  conditioning_method: concat
+  grid: 8
+
+loss:
+  # field_weighted_chamfer: each direction owns its OWN (weight, base_sigma),
+  data_name: field_weighted_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: null
+    target_to_source:
+      # target_weight is indexed by TARGET points, read straight off target:
+      # above -- precomputed by write_target_weight_field.py as
+      # consistency_score * geodesic-proximity-to-nearest-landmark, so it is
+      # already the weight directly (no field_transform, same as
+      # landmark_weight). Regenerate with:
+      #   python scripts/write_target_weight_field.py configs/target_weight_field.yaml
+      weight: 0.0
+      base_sigma: 0.1
+      field_name: null
+    robust_kernel: quadratic
+  kinetic_weight: 10.0
+  code_reg_weight: 0.0
+  isometry_weight: 0.0
+  isometry_type: det
+  landmark_weight: 1
+  landmark_kwargs:
+    # Per-landmark multiplier on top of the annotator-agreement precision
+    # (all 1.0 = identical to no label_weights at all). Raise a label to lean
+    # harder on it, lower one to ease off -- e.g. sn: 0.5 or n: 3.0.
+    label_weights:
+    
+      chL: 1.0
+      chR: 1.0
+      cphL: 1.0
+      cphR: 1.0
+     
+      exL: 1.0
+      exR: 1.0
+      li: 1.0
+      pg: 1.0
+      sl: 1.0
+     
+    # Strict override: REPLACES (not scales) a label's precision, ignoring both
+    # annotator std and label_weights for it -- the closest a quadratic penalty
+    # gets to a hard equality constraint. A label can be in label_weights or
+    # here, never both. Empty = no landmark is hard, current behaviour. Example:
+    # hard_precision:
+    #   prn: 1.0e6
+    hard_precision: {
+      n: 1000000,
+      ls: 1000000,
+      prn: 1000000,
+      sn: 1000000,
+      acR: 1000000,
+      acL: 1000000,
+      aL: 1000000, 
+      aR: 1000000,
+      enL: 1000000,
+      enR: 1000000
+    }
+  subsample_M: 1000
+  save_full: false
+  direction: forward
+
+train:
+  mode: pair
+  steps: 2000
+  batch: 4
+
+  lr: 0.0001
+  seed: 42
+  log_every: 10
+  save_every: 100
+  val_every: 0
+  export_shapes: 2
+  export_strategy: sequential
+

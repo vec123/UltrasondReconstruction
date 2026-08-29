@@ -21,12 +21,12 @@ import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US import AlignToTemplateConfig as Config
+from src.config.US.schema import AlignToTemplateConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
-from ..landmarks import points_to_labeled_polydata
-from ..matching import match_by_subject_id
-from ..transforms import RigidTransform, compose_with_previous, save_subject_transform
+from src.landmarks.vtk_landmarks import points_to_labeled_polydata
+from src.file_name_matching.matching import match_by_subject_id
+from src.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
 
 
 def extract_landmarks_from_heatmap_vtp(target_vtp_path, heatmap_prefix=""):
@@ -117,7 +117,7 @@ def run(cfg: Config):
 
         # Fit this stage's own transform, then compose with align_to_reference's
         # saved transform so the manifest maps all the way back to the first mesh.
-        local_transform = RigidTransform.from_correspondences(
+        local_transform = SimilarityTransform.from_correspondences(
             src_pts, dst_pts, with_scale=cfg.with_scale, stage="align_to_template"
         )
         transform = compose_with_previous(local_transform, subject_id, cfg.previous_transforms_dir)

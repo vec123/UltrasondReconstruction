@@ -33,11 +33,11 @@ import os
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.config.US import ReconTargetDistanceConfig as Config
+from src.config.US.schema import ReconTargetDistanceConfig as Config
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 
-from ..transforms import load_subject_transform, median_scale
+from src.transforms.similarity import load_subject_transform, median_scale
 
 
 def nearest_neighbor_distances(query_points, reference_points):

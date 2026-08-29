@@ -4,6 +4,24 @@ import vtk
 from vtk.util import numpy_support
 
 
+def get_vtp_vertices(polydata):
+
+    points = polydata.GetPoints()
+
+    # Convert vtkPoints to a numpy array
+    # vtk_array_to_numpy provides a direct view or copy of the underlying data
+    vertices = numpy_support.vtk_to_numpy(points.GetData())
+
+    return vertices
+
+def get_vtp_faces(polydata):
+    """Triangle connectivity ``[F, 3]`` from a vtkPolyData. Does not triangulate
+    non-triangular polys first - see ``extract_arrays_from_polydata`` /
+    ``src.vtk.extract.extract_vtp_points_cells`` for that."""
+    connectivity = numpy_support.vtk_to_numpy(polydata.GetPolys().GetConnectivityArray())
+    return connectivity.reshape(-1, 3)
+
+
 def extract_vtp_points_cells(poly_data):
     """Read points ``[N, 3]`` and triangle faces ``[F, 3]`` from a vtkPolyData.
 

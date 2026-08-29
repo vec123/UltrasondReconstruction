@@ -32,14 +32,14 @@ filtering can run standalone against any directory of .vtp meshes.
 import glob
 import os
 
-from src.config.US import RoughnessFilterConfig as Config
+from src.config.US.schema import RoughnessFilterConfig as Config
 from src.vtk.extract import threshold_vtp_by_point_field
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.surface_measures import compute_vertex_roughness
 from src.vtk.process import filter_largest_component
 
-from ..matching import subject_id_from_path
-from ..transforms import load_subject_transform
+from src.file_name_matching.matching import subject_id_from_path
+from src.transforms.similarity import load_subject_transform
 
 
 def process_one(vtp, cfg: Config, min_bridge_width):

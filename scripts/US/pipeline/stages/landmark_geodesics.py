@@ -19,12 +19,11 @@ import vtk
 from scipy.sparse.csgraph import dijkstra
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.config.US import LandmarkGeodesicsConfig as Config
+from src.config.US.schema import LandmarkGeodesicsConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
-from ..landmarks import points_to_labeled_polydata
-from ..matching import subject_id_from_path
-
+from src.landmarks.vtk_landmarks import points_to_labeled_polydata
+from src.file_name_matching.matching import subject_id_from_path
 
 def build_mesh_graph(polydata):
     """

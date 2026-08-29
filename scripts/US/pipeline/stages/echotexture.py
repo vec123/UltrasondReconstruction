@@ -50,13 +50,12 @@ import os
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US import EchotextureConfig as Config
-from src.geometry import load_and_preprocess_volume
+from src.config.US.schema import EchotextureConfig as Config
+from src.nrrd.preprocess import load_and_preprocess_volume
 from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
-
-from ..matching import match_by_subject_id
+from src.file_name_matching.matching import match_by_subject_id
 
 
 def process_one(vtp, nrrd_path, cfg: Config):
