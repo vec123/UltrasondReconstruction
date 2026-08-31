@@ -107,6 +107,15 @@ class PipelineInputs:
     # Target landmark positions, name -> [x, y, z]. Only read by steps.align
     # and steps.landmark_fit; may be omitted when both are off.
     landmarks_json: Optional[Path] = None
+    # The model's own mean-shape mesh (e.g. Templates/baby_mean.vtp), vertex-wise
+    # corresponding with shape_model_mat - same vertex count, same ordering. The
+    # model format (.mat or Deformetrica atlas) carries geometry and landmarks
+    # but no arbitrary point-data fields, so every mesh this pipeline writes is
+    # bare; if this is set, PipelineRunner._save_points copies template_vtp's
+    # point-data arrays (e.g. heatmap_<label>, which resnet_lddmm's landmark
+    # loss reads off the source mesh) onto any output whose point count matches
+    # it. Optional - leave unset if nothing downstream needs those fields.
+    template_vtp: Optional[Path] = None
 
 
 @dataclass

@@ -11,11 +11,17 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field as dataclass_field, replace as dataclass_replace
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from src.core.config import load_yaml, reject_unknown_keys
-from src.resnet_lddmm.resnet_flow.checkpoint import CheckpointRef
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
+
+if TYPE_CHECKING:
+    # Only used as a type annotation below (postponed by `from __future__ import
+    # annotations`), so this stays out of ApplyCfg's own import - which torch-free
+    # callers (e.g. the pipeline registry, which imports config_cls eagerly but
+    # defers the run itself) rely on staying cheap. checkpoint.py pulls in torch.
+    from src.resnet_lddmm.resnet_flow.checkpoint import CheckpointRef
 
 # The coordinate frames an export can be written in.
 #
@@ -194,4 +200,11 @@ def load_training_config(apply_cfg: ApplyCfg) -> ExperimentCfg:
     Returns:
         ExperimentCfg
     """
-    return ExperimentCfg.from_dict(load_yaml(apply_cfg.train_config))
+    data = load_yaml(apply_cfg.train_config)
+    # runner._dump_config stamps a top-level "mode" ("pair"/"cohort") onto every
+    # config.json for human provenance; it duplicates train.mode and was never an
+    # ExperimentCfg field, so ExperimentCfg.from_dict's unknown-key check rejects
+    # it. Strip it here rather than loosen from_dict, since only this file's own
+    # dumps carry it - a hand-written training config never should.
+    data.pop("mode", None)
+    return ExperimentCfg.from_dict(data)

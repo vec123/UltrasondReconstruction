@@ -1,7 +1,7 @@
 """Runs the full pipeline once per subject id, filling in ${SUBJECT_ID} each time.
 
 Usage:
-    python scripts/US/run_pipeline_batch.py --config scripts/US/configs/pipeline.yaml \
+    python scripts/run_pipeline_batch.py --config configs/preprocess/pipeline.yaml \
         --subject-ids 1 2 3 4 5 6 11 13 14
 
 A subject that raises is reported and skipped, so one bad case doesn't abort
@@ -13,9 +13,9 @@ import os
 import sys
 
 # Allow running this script directly from any cwd.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.US.pipeline.cli import pipeline_main  # noqa: E402
+from scripts.pipeline.cli import pipeline_main  # noqa: E402
 
 
 def main():

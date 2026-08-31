@@ -28,6 +28,7 @@ together, not just share a comparable scale. Left unset, distances and
 geometry stay in the meshes' own template space/units.
 """
 
+import json
 import os
 
 from scipy.spatial import cKDTree
@@ -58,6 +59,7 @@ def rescale_points(polydata, factor):
 def run(cfg: Config):
     output_target_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.target_path), "target_w_distance.vtp")
     output_recon_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "recon_w_distance.vtp")
+    output_summary_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "distance_summary.json")
 
     target_mesh = load_vtp(cfg.target_path)
     recon_mesh = load_vtp(cfg.recon_path)
@@ -101,3 +103,20 @@ def run(cfg: Config):
         f"target_dist_2_recon ({units}): mean={target_dist_2_recon.mean():.4f} "
         f"max={target_dist_2_recon.max():.4f} -> {output_target_path}"
     )
+
+    summary = {
+        "units": units,
+        "target_path": cfg.target_path,
+        "recon_path": cfg.recon_path,
+        "recon_dist_2_target": {
+            "mean": float(recon_dist_2_target.mean()),
+            "max": float(recon_dist_2_target.max()),
+        },
+        "target_dist_2_recon": {
+            "mean": float(target_dist_2_recon.mean()),
+            "max": float(target_dist_2_recon.max()),
+        },
+    }
+    with open(output_summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"Saved distance summary to: {output_summary_path}")

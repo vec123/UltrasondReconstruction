@@ -5,9 +5,10 @@ per-landmark importance (peak weight), and a floor.
 Distinct from ``field_weights.py``: that module turns an ALREADY-BAKED point
 field into a runtime weight (generic, knows nothing about landmarks). This
 module is the thing that BAKES a landmark-derived field in the first place,
-offline, via ``scripts/write_landmark_weight_field.py``. The two are siblings,
-not layered -- neither imports the other's field-specific logic, only
-``landmarks.resolve_template_points`` for "where is landmark X on the mesh".
+offline, via ``scripts/weight_fields/write_landmark_weight_field.py``. The two
+are siblings, not layered -- neither imports the other's field-specific logic,
+only ``landmarks.resolve_template_points`` for "where is landmark X on the
+mesh".
 
 Why not just filter ``landmark_distance``: that field is "distance to the
 NEAREST of ALL labels", baked in once with every label already mixed together
@@ -34,7 +35,7 @@ import torch
 from src.resnet_lddmm.resnet_flow.config import reject_unknown_keys
 from src.resnet_lddmm.resnet_flow.io import Shape
 from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
-from src.resnet_lddmm.resnet_flow.landmark_fields import (
+from src.weight_field.landmark_fields import (
     DEFAULT_DECAY_SCALE,
     DEFAULT_MAX_WEIGHT,
     LandmarkEntry,
@@ -53,7 +54,7 @@ _ALLOWED_KEYS = {"vtp", "include", "decay_scale", "max_weight", "min_weight",
 
 @dataclass
 class LandmarkWeightFieldCfg:
-    """One run of ``scripts/write_landmark_weight_field.py``.
+    """One run of ``scripts/weight_fields/write_landmark_weight_field.py``.
 
     Attributes:
         vtp: template mesh carrying the ``heatmap_<label>`` fields (and the one

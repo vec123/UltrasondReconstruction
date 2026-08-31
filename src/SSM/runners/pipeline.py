@@ -38,6 +38,7 @@ from src.vtk.io import (
     load_vtp,
     save_vtp
 )
+from src.vtk.fields import copy_point_data
 from src.vtk.extract import (
     get_vtp_faces,
     get_vtp_vertices
@@ -95,6 +96,7 @@ class PipelineRunner:
         self.written_files: list = []
         self.model_faces: Optional[np.ndarray] = None    # model's fixed triangulation
         self.surface_faces: Optional[np.ndarray] = None  # target mesh_vtp's own triangulation
+        self.template_point_data = None  # inputs.template_vtp's PointData, see _save_points
         self._strategy = None   # correspondence method, built on first use
 
     def run(self) -> PipelineResult:
@@ -216,6 +218,20 @@ class PipelineRunner:
             atlas_options=cfg.model.atlas.to_options(), verbose=cfg.verbose,
         )
         self.model_faces = load_shape_model_triangulation(inputs.shape_model_mat)
+
+        if inputs.template_vtp is not None:
+            if not inputs.template_vtp.exists():
+                raise FileNotFoundError(f"inputs.template_vtp does not exist: {inputs.template_vtp}")
+            template_polydata = load_vtp(str(inputs.template_vtp))
+            n_model_vertices = mean.shape[0] // 3
+            if template_polydata.GetNumberOfPoints() != n_model_vertices:
+                raise ValueError(
+                    f"inputs.template_vtp ({inputs.template_vtp}) has "
+                    f"{template_polydata.GetNumberOfPoints()} points, but the model has "
+                    f"{n_model_vertices} vertices - they must match to carry template_vtp's "
+                    f"point-data fields onto the model's reconstructions"
+                )
+            self.template_point_data = template_polydata
 
         self.shape_model = StatisticalShapeModel(
             mean=mean,
@@ -646,6 +662,15 @@ class PipelineRunner:
     def _save_points(self, points, key: str, faces=None, **fmt) -> Path:
         path = self.config.outputs.path(key, **fmt)
         vtp = create_polydata(np.asarray(points).reshape(-1, 3), faces=faces)
+        # Every reconstruction the model produces shares its mean shape's vertex
+        # count and ordering; anything else saved through here (e.g. a subset
+        # like region_vertices) does not, so the count check also acts as the
+        # filter for which outputs this applies to.
+        if (
+            self.template_point_data is not None
+            and vtp.GetNumberOfPoints() == self.template_point_data.GetNumberOfPoints()
+        ):
+            copy_point_data(self.template_point_data, vtp)
         save_vtp(vtp, str(path))
         self.written_files.append(path)
         return path

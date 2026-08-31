@@ -9,7 +9,7 @@
 #     own output_dir, so it reads the distance-augmented recon .vtp, not the
 #     original.
 #
-# Usage: python scripts/US/run_pipeline.py --config configs/eval/recon_target_nrrd.yaml
+# Usage: python scripts/run_pipeline.py --config configs/eval/recon_target_nrrd.yaml
 
 stages:
   - name: recon_target_distance

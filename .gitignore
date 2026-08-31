@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 *.pyo
+*.mat
 .DS_Store
 .env
 .venv/
@@ -15,3 +16,5 @@ venv/
 /Ultrasounds/
 /fetus_ssm_outputs/
 /Templates/
+
+src\SSM\BabyFM\BabyFaceModel.mat

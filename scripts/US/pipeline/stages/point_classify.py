@@ -7,7 +7,7 @@ what a cluster id does/doesn't mean).
 
 Deliberately NOT wired into pipeline.yaml's `stages:`/`paths:`/`hyperparameters:`
 - run it standalone against whatever directory (or single mesh file) you want
-to try it on: `python scripts/US/run_stage.py --config configs/06_point_classify.yaml`.
+to try it on: `python scripts/run_stage.py --config configs/06_point_classify.yaml`.
 It only READS an existing mesh (or directory of meshes) and WRITES its own
 new output_dir + one new point field, so nothing else in the pipeline
 references or depends on it. EASY TO REMOVE entirely: delete this file,

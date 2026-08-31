@@ -40,7 +40,7 @@ from scipy.sparse.csgraph import dijkstra
 from src.resnet_lddmm.resnet_flow.config import reject_unknown_keys
 from src.resnet_lddmm.resnet_flow.io import Shape
 from src.resnet_lddmm.resnet_flow.landmarks import aggregate, load_annotations
-from src.resnet_lddmm.resnet_flow.landmark_fields import (
+from src.weight_field.landmark_fields import (
     AXES,
     DEFAULT_DECAY_SCALE,
     DEFAULT_MAX_WEIGHT,
@@ -60,7 +60,7 @@ _ALLOWED_KEYS = {"vtp", "landmarks", "include", "decay_scale", "max_weight",
 
 @dataclass
 class TargetWeightFieldCfg:
-    """One run of ``scripts/write_target_weight_field.py``.
+    """One run of ``scripts/weight_fields/write_target_weight_field.py``.
 
     Attributes:
         vtp: target scan carrying face connectivity and ``consistency_field``

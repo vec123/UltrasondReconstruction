@@ -7,7 +7,7 @@
 # delete (this stage only reads an existing mesh - directory or single file -
 # and writes its own output_dir + one new point field; nothing else depends
 # on it). Deliberately NOT wired into pipeline.yaml - run standalone:
-#   python scripts/US/run_stage.py --config configs/06_point_classify.yaml
+#   python scripts/run_stage.py --config configs/06_point_classify.yaml
 stage: point_classify
 
 # Single-file target: subject 14's scan_consistency merged scan at the

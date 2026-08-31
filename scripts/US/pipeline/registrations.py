@@ -1,19 +1,14 @@
-"""Maps a stage name (as used in YAML `stage:` fields and pipeline.yaml
-`stages[].name` entries) to its Config dataclass and run() function.
+"""Which stage name (as used in YAML `stage:` fields and pipeline.yaml
+`stages[].name` entries) maps to which preprocess stage's Config dataclass
+and run() function.
 
-Lookup itself (name -> registered item, with a friendly "unknown X -
-available: [...]" error on a typo) is shared with every other pipeline's
-component registries via `src.core.registry.TypedRegistry` - only the
-per-stage YAML -> Config binding stays local to this pipeline (see
-`_bind_stage_config` in `cli.py`), since it needs `from_dict`'s nested-
-dataclass and cross-stage-reference support, not `TypedRegistry.build()`'s
-flat kwargs-to-constructor call.
+The registry engine itself (StageSpec, TypedRegistry-based lookup, YAML <->
+Config binding) is generic across every pipeline in this repo and lives in
+`scripts/pipeline/registry.py`; this module only holds the preprocess-specific
+list of what exists.
 """
 
-import dataclasses
-from typing import Callable, Type
-
-from src.core.registry import TypedRegistry
+from scripts.pipeline.stage_spec import StageSpec
 
 from .stages import (
     align_to_reference,
@@ -29,19 +24,12 @@ from .stages import (
     roughness_filter,
     scan_consistency,
     scan_fusion,
+    similarity_transform,
     smoothing_filter,
     vtp_to_nrrd_overlay,
 )
 
-
-@dataclasses.dataclass
-class StageSpec:
-    config_cls: Type
-    run: Callable[[object], object]
-
-
-STAGE_REGISTRY = TypedRegistry("stage")
-for _name, _spec in {
+STAGE_SPECS = {
     "nrrd_to_vtp": StageSpec(nrrd_to_vtp.Config, nrrd_to_vtp.run),
     "echotexture": StageSpec(echotexture.Config, echotexture.run),
     "point_classify": StageSpec(point_classify.Config, point_classify.run),
@@ -55,11 +43,7 @@ for _name, _spec in {
     "scan_consistency": StageSpec(scan_consistency.Config, scan_consistency.run),
     "scan_fusion": StageSpec(scan_fusion.Config, scan_fusion.run),
     "landmark_geodesics": StageSpec(landmark_geodesics.Config, landmark_geodesics.run),
+    "similarity_transform": StageSpec(similarity_transform.Config, similarity_transform.run),
     "vtp_to_nrrd_overlay": StageSpec(vtp_to_nrrd_overlay.Config, vtp_to_nrrd_overlay.run),
     "recon_target_distance": StageSpec(recon_target_distance.Config, recon_target_distance.run),
-}.items():
-    STAGE_REGISTRY.register(_name)(_spec)
-
-
-def stage_fields(config_cls):
-    return {f.name for f in dataclasses.fields(config_cls)}
+}

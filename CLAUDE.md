@@ -1,0 +1,1 @@
+ don't add a Co-Authored-By trailer to commits

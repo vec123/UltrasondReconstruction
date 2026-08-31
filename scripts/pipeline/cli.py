@@ -7,9 +7,16 @@ from .registry import STAGE_REGISTRY
 
 
 def _bind_stage_config(stage_name, raw):
-    """Binds an already-interpolated raw dict to its registered stage Config."""
+    """Binds an already-interpolated raw dict to its registered stage Config.
+
+    Uses the stage's own binder (`StageSpec.from_dict`) when it has one -
+    SSM and resnet-lddmm each already validate their YAML more strictly than
+    the generic nested-dataclass binder below could (cross-field checks,
+    aliasing, nested unions) - falling back to the generic binder otherwise.
+    """
     spec = STAGE_REGISTRY.get(stage_name)
-    return spec, from_dict(spec.config_cls, raw)
+    binder = spec.from_dict or (lambda d: from_dict(spec.config_cls, d))
+    return spec, binder(raw)
 
 
 def _no_pipeline_context(reference):
@@ -57,7 +64,10 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
     directly, e.g. `vtp_shapes_dir: nrrd_to_vtp.output_dir`, or build a path
     out of one, e.g. `transforms_dir: align_to_reference.output_dir + /transforms`
     - see `pipeline/config.py::interpolate`. References use the target's `id`
-    and may only point at stages listed earlier in `stages:`.
+    and may only point at stages listed earlier in `stages:`. `name` may be
+    any stage registered in `STAGE_REGISTRY`, from any pipeline - a preprocess
+    stage, `ssm_fit`, or `resnet_lddmm_train` - so one file can wire all three
+    together.
     """
     pipeline_config_path = os.path.abspath(pipeline_config_path)
     pipeline_cfg = load_yaml(pipeline_config_path)

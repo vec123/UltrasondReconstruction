@@ -1,8 +1,12 @@
-"""Runs every stage of the US pipeline in order, from a single YAML config.
+"""Runs every stage of a pipeline in order, from a single YAML config.
+
+Not preprocess-only: `stages[].name` may be any stage registered in
+`scripts.pipeline.registry.STAGE_REGISTRY` - a preprocess stage, `ssm_fit`,
+or `resnet_lddmm_train` - so one config can wire all three together.
 
 Usage:
-    python scripts/US/run_pipeline.py --config scripts/US/configs/pipeline.yaml
-    python scripts/US/run_pipeline.py --config scripts/US/configs/pipeline.yaml --set SUBJECT_ID=4
+    python scripts/run_pipeline.py --config configs/preprocess/pipeline.yaml
+    python scripts/run_pipeline.py --config configs/preprocess/pipeline.yaml --set SUBJECT_ID=4
 """
 
 import argparse
@@ -10,9 +14,9 @@ import os
 import sys
 
 # Allow running this script directly from any cwd.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.US.pipeline.cli import pipeline_main  # noqa: E402
+from scripts.pipeline.cli import pipeline_main  # noqa: E402
 
 
 def main():

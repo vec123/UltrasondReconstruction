@@ -188,16 +188,17 @@ def run(cfg: Config):
 
     fused_mesh = extract_polydata_vertex_subset(fused_mesh, keep_mask)
 
-    print("compute post-fusion surface roughness (how naturally each vertex sits among its mesh neighbors)")
-    compute_vertex_roughness(
-        fused_mesh,
-        n_rings=cfg.surface_fit_n_rings,
-        scale_invariant=False,
-        field_name="roughness",
-        method=cfg.surface_fit_method,
-        neighbors="knn",
-        max_neighbors=32,
-    )
+    if cfg.compute_roughness:
+        print("compute post-fusion surface roughness (how naturally each vertex sits among its mesh neighbors)")
+        compute_vertex_roughness(
+            fused_mesh,
+            n_rings=cfg.surface_fit_n_rings,
+            scale_invariant=False,
+            field_name="roughness",
+            method=cfg.surface_fit_method,
+            neighbors="knn",
+            max_neighbors=32,
+        )
 
     output_path = os.path.join(cfg.output_dir, "fused_scan.vtp")
     save_vtp(fused_mesh, output_path)

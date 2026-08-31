@@ -17,31 +17,31 @@ Registry = LazyRegistry()
 # Each target string is checked against the real file it points to 
 # --------------------------------------------------------------------------- #
 Registry.register("encoder", "group_encoder",
-                   "src.learning.models.group_encoder:GroupEncoder")
+                   "src.resnet_lddmm.learning.models.group_encoder:GroupEncoder")
 
 Registry.register("decoder", "folding",
-                   "src.learning.models.folding_decoder:FoldingDecoder")
+                   "src.resnet_lddmm.learning.models.folding_decoder:FoldingDecoder")
 
 Registry.register("decoder", "sphere_folding",
-                   "src.learning.models.folding_decoder:SphereFoldingDecoder")
+                   "src.resnet_lddmm.learning.models.folding_decoder:SphereFoldingDecoder")
 
 Registry.register("transformer", "se3",
-                   "src.learning.modules.equivariant.transformer:SE3Transformer")
+                   "src.resnet_lddmm.learning.modules.equivariant.transformer:SE3Transformer")
 Registry.register("transformer", "equiformer",
-                   "src.learning.modules.equivariant.equiformer:EquiformerTransformer")
+                   "src.resnet_lddmm.learning.modules.equivariant.equiformer:EquiformerTransformer")
 
 Registry.register("graph_builder", "radius",
-                   "src.learning.data.builders:RadiusGraphBuilder")
+                   "src.resnet_lddmm.learning.data.builders:RadiusGraphBuilder")
 Registry.register("graph_builder", "knn",
-                   "src.learning.data.builders:KNNGraphBuilder")
+                   "src.resnet_lddmm.learning.data.builders:KNNGraphBuilder")
 
 Registry.register("latent_head", "gaussian",
-                   "src.learning.models.latent_heads:GaussianLatentHead")
+                   "src.resnet_lddmm.learning.models.latent_heads:GaussianLatentHead")
 Registry.register("latent_head", "deterministic",
-                   "src.learning.models.latent_heads:DeterministicLatentHead")
+                   "src.resnet_lddmm.learning.models.latent_heads:DeterministicLatentHead")
 
 Registry.register("readout", "attention",
-                   "src.learning.modules.transformers.perceiver_encoder:PerceiverReducer")
+                   "src.resnet_lddmm.learning.modules.transformers.perceiver_encoder:PerceiverReducer")
 # readout="mean" has no class of its own -- the LatentHead base computes it inline
 # as a weighted global_add_pool (latent_heads.py:_reduce), not through a component.
 # Nothing to register until that path is extracted into a Strategy class of its own.

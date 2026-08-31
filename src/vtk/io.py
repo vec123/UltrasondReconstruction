@@ -3,6 +3,9 @@ import os
 import vtk
 
 def load_vtp(vtp_path):
+    if not os.path.exists(vtp_path):
+        raise FileNotFoundError(f"File not found: {vtp_path}")
+
     reader = vtk.vtkXMLPolyDataReader()
     reader.SetFileName(vtp_path)
     reader.Update()

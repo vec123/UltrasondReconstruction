@@ -1,0 +1,87 @@
+# Bakes the `landmark_weight` point field read by
+# configs/processed_ultrasound.yaml's loss.data_kwargs.source_to_target.field_name.
+# Regenerate with:
+#   python scripts/write_landmark_weight_field.py configs/landmark_weight_field.yaml
+
+vtp: data/processed_ultrasound/baby/baby_mean.vtp
+
+# Landmark labels to weight toward -- anything NOT listed here is excluded (a
+# vertex's weight only ever considers the INCLUDED labels). Currently every
+# label the template carries a heatmap for; trim this list to focus the fit
+# on a subset (e.g. just the profile: n, prn, sn, ls, li, pg).
+#
+# A plain label uses the top-level decay_scale/max_weight below. To override
+# either (or both) for just ONE landmark, write it as a mapping, e.g.:
+#   - label: n
+#     decay_scale: 0.0005
+#     max_weight: 1.5
+#
+# decay_scale sets a landmark's HALO SIZE (how far its influence reaches);
+# max_weight sets its IMPORTANCE (the peak value at the landmark itself, and
+# a landmark with a high max_weight can outrank a nearer one with a lower
+# max_weight -- see landmark_weight_field.py). Nose + eyes get a WIDER halo
+# than chin (which stays tightly localized), and nose additionally gets a
+# higher max_weight, since it matters more than the other regions here.
+# Mouth landmarks (chL/chR/cphL/cphR/li/ls) are left as plain labels, using
+# the shared defaults below.
+include:
+  # nose -- wide halo AND higher importance than the rest
+  - label: aL
+    decay_scale: 0.004
+    max_weight: 1.5
+  - label: aR
+    decay_scale: 0.004
+    max_weight: 1.5
+  - label: acL
+    decay_scale: 0.004
+    max_weight: 1.5
+  - label: acR
+    decay_scale: 0.004
+    max_weight: 1.5
+  - label: n
+    decay_scale: 0.004
+    max_weight: 2
+  - label: prn
+    decay_scale: 0.004
+    max_weight: 2
+  - label: sn
+    decay_scale: 0.004
+    max_weight: 1.5
+  # eyes -- wide halo, default importance
+  - label: enL
+    decay_scale: 0.004
+  - label: enR
+    decay_scale: 0.004
+  - label: exL
+    decay_scale: 0.004
+  - label: exR
+    decay_scale: 0.004
+  # mouth (default decay_scale)
+  - chL
+  - chR
+  - cphL
+  - cphR
+  - li
+  - ls
+  # chin: tighter than the default
+  #- label: pg
+  #  decay_scale: 0.001
+  #- label: sl
+  #  decay_scale: 0.001
+  # ear region (otobasion inferius, tragion) -- excluded
+  # - oiL
+  # - oiR
+  # - tL
+  # - tR
+
+# Default decay_scale for any 'include' entry that doesn't set its own:
+# weight = exp(-0.5 * (distance_to_it / decay_scale)^2), in the mesh's own
+# (world) units -- smaller = tighter falloff around that landmark. A vertex's
+# final weight is the MAX over all included landmarks' own gaussians.
+decay_scale: 0.002
+
+# Floor applied after the decay, so a vertex far from every included landmark
+# still gets a non-zero weight instead of being ignored completely.
+min_weight: 0.1
+
+output_field: landmark_weight

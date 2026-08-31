@@ -1,14 +1,14 @@
 # Proof-of-concept: hand pair registration with isometry constraint
 # Same as hand_pair_poc but with isometry regularization enabled
 
-source: data/processed_ultrasound/baby/baby_mean.vtp
+source: Templates/baby_mean.vtp
 
 # 0.2 (not a higher threshold) is deliberate: it's the SUPERSET carrying every
 # point down to consistency_score 0.2, so target_to_source.field_name below
 # can weight continuously instead of hard-cutting at some threshold.
-target: data/processed_ultrasound/baby/2/merged_high_confidence_scan_threshold_0.8.vtp
-landmarks: data/processed_ultrasound/baby/2/landmarks
-output_dir: ./outputs/processed_ultrasound_baby_shape_2_6
+target: outputs/1/20_semanas/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
+landmarks: outputs/1/20_semanas/aligned_to_template/landmarks_csv
+output_dir: ./outputs/processed_ultrasound_baby_shape_test
 
 field:
   kind: stationary

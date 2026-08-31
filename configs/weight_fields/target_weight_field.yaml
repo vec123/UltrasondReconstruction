@@ -1,0 +1,73 @@
+# Bakes the `target_weight` point field read by
+# configs/processed_ultrasound.yaml's loss.data_kwargs.target_to_source.field_name.
+# Regenerate with:
+#   python scripts/write_target_weight_field.py configs/target_weight_field.yaml
+#
+# NOTE: geodesic distance on a ~1M-vertex scan takes a while (minutes, not
+# seconds) -- it builds a sparse mesh graph and runs Dijkstra from every
+# included landmark.
+
+vtp: data/processed_ultrasound/baby/3/merged_high_confidence_scan_threshold_0.2.vtp
+landmarks: data/processed_ultrasound/baby/3/landmarks
+
+# Same syntax as configs/landmark_weight_field.yaml's include: a plain label
+# uses the top-level decay_scale/max_weight below; a {label, decay_scale,
+# max_weight, decay_axes} mapping overrides any of those for just that one
+# landmark. Positions come from the CSVs above (per-label mean), not from any
+# template heatmap.
+#
+# decay_axes makes the halo ANISOTROPIC and DIRECTIONAL: {axis: {neg, pos}},
+# where neg/pos are the scale used for a displacement with a negative/
+# positive component on that axis (either key optional, defaults to this
+# landmark's own decay_scale). +y is UP (verified against the annotated
+# landmarks themselves: y decreases monotonically eyes -> nose -> mouth ->
+# chin), so the eyes below reach further specifically upward, toward the
+# forehead, while every other direction stays at the default 0.008.
+include:
+  - aL
+  - aR
+  - acL
+  - acR
+  - chL
+  - chR
+  - cphL
+  - cphR
+  - label: enL
+    decay_axes:
+      y: {pos: 0.025}
+  - label: enR
+    decay_axes:
+      y: {pos: 0.025}
+  - label: exL
+    decay_axes:
+      y: {pos: 0.025}
+  - label: exR
+    decay_axes:
+      y: {pos: 0.025}
+  - li
+  - ls
+  - n
+  - pg
+  - prn
+  - sl
+  - sn
+
+# Default decay_scale for any 'include' entry that doesn't set its own:
+# proximity = exp(-0.5 * (geodesic_distance_to_it / decay_scale)^2), in the
+# scan's own (world) units. GEODESIC, along the scan's own mesh -- not
+# straight-line -- so proximity can't leak across a gap the surface doesn't
+# actually cross.
+decay_scale: 0.008
+
+# Existing per-point reliability field on `vtp` to multiply the landmark
+# proximity by: "consistent and close is high, consistent and far is lower,
+# inconsistent stays low regardless of proximity" (multiplicative, not
+# additive -- an unreliable point near a landmark does not borrow its
+# importance).
+consistency_field: consistency_score
+
+# Floor applied to the FINAL (consistency_field * proximity) product, so
+# nothing is ever weighted to exactly zero.
+min_weight: 0.05
+
+output_field: target_weight

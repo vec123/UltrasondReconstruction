@@ -2,7 +2,7 @@
 # point-to-point distance between a reconstruction and its registration
 # target, in both directions. Doesn't move geometry, so it saves no transform.
 #
-# Usage: python scripts/US/run_stage.py --config configs/eval/recon_target_dist_fetus.yaml
+# Usage: python scripts/run_stage.py --config configs/eval/recon_target_dist_fetus.yaml
 stage: recon_target_distance
 
 target_path: ${PROJECT_ROOT}/Results/fetus_ssm_outputs/1/high_conf_scan/merged_high_confidence_scan_threshold_0.8/rigid_alignment.vtp

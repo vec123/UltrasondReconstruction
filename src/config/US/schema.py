@@ -244,6 +244,7 @@ class ScanFusionConfig:
 
     surface_fit_n_rings: int = 5  # neighborhood size for the post-fusion "roughness" field
     surface_fit_method: str = "quadric"  # "plane" | "quadric" - see compute_vertex_roughness
+    compute_roughness: bool = True  # set False to skip the post-fusion "roughness" field entirely
 
 
 @dataclasses.dataclass
@@ -324,6 +325,30 @@ class LandmarkAlignConfig:
 
 
 @dataclasses.dataclass
+class SimilarityTransformConfig:
+    """Rigidly (+ scale) moves source_vtp into landmark_path's frame, via
+    shared named landmarks - see src.landmarks.vtk_landmarks.fit_landmark_alignment.
+
+    Typical use: a standalone template (e.g. Templates/baby_mean.vtp, which
+    carries its own heatmap_{label} point fields) needs to land in the same
+    coordinate frame as an align_to_template output - e.g. before pairing it
+    with a fused/consensus scan built in that frame as resnet_lddmm_train's
+    source/target pair.
+    """
+
+    source_vtp: str = ""     # mesh to move; must carry its own heatmap_{label} point fields
+    landmark_path: str = ""  # target frame's own named landmark CSV (x, y, z, label columns)
+    output_path: str = ""    # source_vtp, saved after being moved into landmark_path's frame
+
+    heatmap_prefix: str = "heatmap_"
+    # align_to_template's out_landmarks_csv_dir CSVs are already RAS-aligned
+    # (align_to_template.py applies its own lps_to_ras flip, if any, before
+    # saving them) - only set this True for a raw, unflipped Slicer export.
+    lps_to_ras: bool = False
+    with_scale: bool = True
+
+
+@dataclasses.dataclass
 class OverlayLayer:
     vtp_path: str = ""
     line_color: tuple = (0, 255, 0)  # RGB
@@ -354,8 +379,9 @@ class ReconTargetDistanceConfig:
     target_path: str = ""
     recon_path: str = ""
 
-    # Directory to save target_w_distance.vtp / recon_w_distance.vtp into.
-    # Left unset, saves next to target_path / recon_path respectively.
+    # Directory to save target_w_distance.vtp / recon_w_distance.vtp /
+    # distance_summary.json into. Left unset, saves next to target_path /
+    # recon_path respectively (the .json alongside recon_path).
     output_dir: str = ""
 
     # align_to_template's saved-transforms dir for this subject (one .npz per

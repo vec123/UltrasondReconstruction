@@ -81,3 +81,34 @@ def _attach(polydata, vtk_array, field_name):
 
     polydata.GetPointData().AddArray(vtk_array)
 
+
+def copy_point_data(src_polydata, dst_polydata):
+    """Copies every point-data array from src onto dst, by vertex index.
+
+    There is no correspondence search here, just an index-for-index copy -- src
+    and dst must already share the same point count and ordering. Used to carry
+    fields a reconstruction has no notion of (e.g. a template's heatmap_<label>
+    landmark fields) onto output built from that same template's vertex
+    ordering, such as an SSM fit's reconstructed mesh.
+
+    Args:
+        src_polydata: vtkPolyData to copy point-data arrays from
+        dst_polydata: vtkPolyData to copy them onto, modified in place
+
+    Returns:
+        The same dst_polydata
+
+    Raises:
+        ValueError: src and dst have different point counts
+    """
+    if src_polydata.GetNumberOfPoints() != dst_polydata.GetNumberOfPoints():
+        raise ValueError(
+            f"copy_point_data: src has {src_polydata.GetNumberOfPoints()} points, dst has "
+            f"{dst_polydata.GetNumberOfPoints()} -- they must match to copy by index"
+        )
+
+    src_pd = src_polydata.GetPointData()
+    for i in range(src_pd.GetNumberOfArrays()):
+        _attach(dst_polydata, src_pd.GetArray(i), src_pd.GetArrayName(i))
+    return dst_polydata
+
