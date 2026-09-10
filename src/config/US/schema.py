@@ -245,6 +245,14 @@ class ScanFusionConfig:
     surface_fit_n_rings: int = 5  # neighborhood size for the post-fusion "roughness" field
     surface_fit_method: str = "quadric"  # "plane" | "quadric" - see compute_vertex_roughness
     compute_roughness: bool = True  # set False to skip the post-fusion "roughness" field entirely
+    # Post-fusion per-vertex "normal" field. On by default because it is cheap
+    # (one pass over the faces) and because resnet_lddmm's
+    # data_name: field_weighted_point2plane_chamfer REQUIRES it on its target and
+    # refuses to build without it. Must be computed here rather than upstream:
+    # min_support drops vertices and fusion moves the survivors, so only the
+    # final mesh's own faces describe the surface the normals belong to.
+    compute_normals: bool = True
+    normal_weighting: str = "unit"  # "unit" | "area" - see compute_vertex_normals
 
 
 @dataclasses.dataclass

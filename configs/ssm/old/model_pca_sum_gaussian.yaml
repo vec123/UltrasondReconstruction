@@ -1,0 +1,33 @@
+# Additive GPMM: retain BabyFM PCA variation and add radial-basis
+# deformation directions outside the PCA subspace.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    - name: pca
+    - name: gaussian
+      kwargs:
+        sigma: 0.005
+        # BabyFM's mean per-coordinate PCA variance is about 4.16e-8.
+        scale: 4.0e-7
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+# The shape-space GUI samples the discrete basis on this mesh. Continuous
+# inference is unnecessary here and would require the optional potpourri3d
+# dependency for farthest-point inducing-point selection.
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/outputs/gpmm/pca_sum_gaussian
+  filename: babyfm_pca_sum_gaussian.npz

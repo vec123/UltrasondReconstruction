@@ -60,6 +60,16 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
     pipeline - e.g. two `name: roughness_filter` entries, `id: roughness_filter`
     and `id: roughness_filter_final`, each with their own paths/hyperparameters.
 
+    `paths:` is looked up by `id` only - paths are inherently per-instance
+    (each run needs its own output_dir). `hyperparameters:`, however, falls
+    back to a `name`-keyed block when no `id`-keyed one exists: several ids
+    sharing one implementation (e.g. `resnet_lddmm_apply_fetus_mean` and
+    `resnet_lddmm_apply_fetus_ssm`, both `name: resnet_lddmm_apply`) share the
+    `hyperparameters: resnet_lddmm_apply:` block unless one of them defines
+    its own `hyperparameters: <id>:` block, which then fully replaces the
+    shared one for that id (no merging) - see `baby_ssm_fit` overriding
+    `ssm_fit`'s block below.
+
     A field may reference an earlier stage's own (already-resolved) field
     directly, e.g. `vtp_shapes_dir: nrrd_to_vtp.output_dir`, or build a path
     out of one, e.g. `transforms_dir: align_to_reference.output_dir + /transforms`
@@ -120,7 +130,12 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
         enabled = stage_entry.get("enabled", True)
 
         stage_paths = all_paths.get(stage_id, {})
-        stage_hyperparameters = all_hyperparameters.get(stage_id, {})
+        # Falls back to the base `name`'s block when this id has none of its own,
+        # so ids sharing one implementation share its hyperparameters by default -
+        # see the docstring above.
+        stage_hyperparameters = all_hyperparameters.get(
+            stage_id, all_hyperparameters.get(stage_name, {})
+        )
         overlap = set(stage_paths) & set(stage_hyperparameters)
         if overlap:
             raise ValueError(

@@ -1,0 +1,28 @@
+# Baseline: the FetusModel_x4 PCA point-distribution model.
+# The comparison model every GPMM variant in this folder is measured
+# against.
+#
+# Domain: FetusModel_x4, bounding-box diagonal 101.108, 5743 vertices, 183 PCA modes,
+# mean per-coordinate PCA variance 1.449.
+#   The atlas's own deformation width is a floor on any length scale here:
+#   params.json says kwd 7.0, i.e. 7/sqrt(2) = 4.95 in this codebase's
+#   exp(-d^2/2 sigma^2) convention.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: pca
+truncation:
+  # All 183 modes.
+  n_components: 183
+  variance_threshold: 1.0
+approximation:
+  name: exact_factor
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/fetus
+  filename: fetus_pca.npz

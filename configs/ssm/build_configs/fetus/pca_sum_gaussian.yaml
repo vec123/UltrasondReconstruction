@@ -1,0 +1,43 @@
+# Additive GPMM: pca + gaussian.
+# Keeps the FetusModel_x4 PCA variation and adds deformation directions outside
+# the PCA subspace. Analytic samples - smoother than any real anatomy, and the usual reason a GPMM looks inflated.
+#
+# Domain: FetusModel_x4, bounding-box diagonal 101.108, 5743 vertices, 183 PCA modes,
+# mean per-coordinate PCA variance 1.449.
+#   The atlas's own deformation width is a floor on any length scale here:
+#   params.json says kwd 7.0, i.e. 7/sqrt(2) = 4.95 in this codebase's
+#   exp(-d^2/2 sigma^2) convention.
+#   sigma 25.0 = the smooth length scale (25% of the diagonal), chosen so
+#   this kernel's correlation reaches 0.05 at the same distance as
+#   gaussian(sigma=25.0). That equivalence is what makes the four
+#   pca_sum_* models comparable.
+#   scale 1.449 = 1x the mean per-coordinate PCA variance. In a sum the term
+#   is lifted isotropically and its scale IS a per-coordinate variance.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    - name: pca
+    - name: gaussian
+      kwargs:
+        sigma: 25.0
+        scale: 1.449
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  # 17229 rows is past DENSE_ROW_LIMIT, so dense_eigh is not an option.
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/fetus
+  filename: fetus_pca_sum_gaussian.npz

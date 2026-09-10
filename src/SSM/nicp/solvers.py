@@ -54,9 +54,19 @@ class SolveResult:
 class Solver(ABC):
     name = "?"
 
+    def validate(self, problem: FitProblem) -> None:
+        """Raise if this solver cannot minimise ``problem``. Called by solve(),
+        and separately by callers that want to fail before any fitting starts."""
+
     @abstractmethod
     def solve(self, problem: FitProblem, log=None, on_iteration=None) -> SolveResult:
-        """``on_iteration(index, alpha, terms)`` is called after every step.
+        """``on_iteration(index, alpha, terms)`` is called before every step.
+
+        ``alpha`` is therefore the state the iteration *starts* from, so index
+        ``i`` is the fit after exactly ``i`` updates and index 0 is the initial
+        shape. ``terms`` is the objective at that same alpha, empty at index 0
+        where nothing has been evaluated yet. The final state is not emitted
+        here - it is the solve's return value, which the runner writes anyway.
 
         It is how the runner snapshots the fit without the solver knowing
         anything about files.
@@ -117,7 +127,7 @@ class NormalEquationsSolver(Solver):
     The ``- D alpha`` term vanishes at alpha = 0, so starting from the mean with
     ``iterations: 1``, ``reduction: sum`` and an isotropic prior this reduces to
     ``(Phi_I^T Phi_I + gamma I) dalpha = Phi_I^T r`` - precisely
-    ShapeInstance.fit_to_matching, gamma and all.
+    ShapeInstance.l2_closed_form_step, gamma and all.
     """
 
     iterations: int = 1
@@ -130,27 +140,37 @@ class NormalEquationsSolver(Solver):
         if self.damping < 0:
             raise ValueError(f"damping must be >= 0, got {self.damping}")
 
-    def solve(self, problem: FitProblem, log=None, on_iteration=None) -> SolveResult:
+    def validate(self, problem: FitProblem) -> None:
         if problem.loss.name != "matched_l2":
             raise RegistryError(
                 f"solver 'normal_equations' minimises a matched squared-distance term in "
                 f"closed form and cannot take loss '{problem.loss.name}'. Use solver "
                 f"'gradient' for that loss, or loss 'matched_l2' for this solver."
             )
-        diagonal = problem.prior.quadratic_diagonal(problem.space)
-        if diagonal is None:
+        if problem.prior.quadratic_diagonal(problem.space) is None:
             raise RegistryError(
                 f"solver 'normal_equations' needs a quadratic prior; '{problem.prior.name}' "
                 f"is not expressible as one. Use solver 'gradient'."
             )
 
+    def solve(self, problem: FitProblem, log=None, on_iteration=None) -> SolveResult:
+        self.validate(problem)
+        diagonal = problem.prior.quadratic_diagonal(problem.space)
+
         space = problem.space
         ctx = problem.prepare(self.iterations)
         alpha = problem.alpha0.clone()
         history: List[Dict[str, float]] = []
+        last_terms: Dict[str, float] = {}
 
         for iteration in range(self.iterations):
             ctx.iteration = iteration
+            # Emitted before the step, so the snapshot is the state this
+            # iteration starts from and index 0 is the initial shape. The terms
+            # are the ones evaluated at that alpha at the end of the previous
+            # round; at index 0 nothing has been evaluated yet.
+            if on_iteration:
+                on_iteration(iteration, alpha, dict(last_terms))
             if _should_refresh(problem, iteration):
                 ctx.correspondences = problem.estimate_correspondences(alpha)
 
@@ -195,11 +215,10 @@ class NormalEquationsSolver(Solver):
             terms.update({"iteration": iteration, "matches": len(corr),
                           "step": float(delta.norm() * self.learning_rate)})
             history.append(terms)
+            last_terms = terms
             if log:
                 log(f"    [{iteration + 1}/{self.iterations}] {_format(terms)} "
                     f"matches={len(corr)}")
-            if on_iteration:
-                on_iteration(iteration, alpha, terms)
 
         return SolveResult(alpha=alpha, history=history, iterations=self.iterations,
                            converged=True, message="closed form")
@@ -270,6 +289,11 @@ class GradientSolver(Solver):
                 last_terms.update(terms)
                 return total
 
+            # The closure evaluates at the alpha the step starts from, so this
+            # copy is what `last_terms` actually describes - snapshotting it
+            # keeps shape and objective in step with each other, and makes index
+            # 0 the initial shape.
+            started_from = alpha.detach().clone()
             optimizer.step(closure)
 
             with torch.no_grad():
@@ -284,7 +308,7 @@ class GradientSolver(Solver):
                 log(f"    [{iteration + 1}/{self.iterations}] {_format(terms)} "
                     f"|grad|={terms['grad_norm']:.3e}")
             if on_iteration:
-                on_iteration(iteration, alpha.detach(), terms)
+                on_iteration(iteration, started_from, terms)
 
             current = terms["objective"]
             if self.tolerance > 0 and previous is not None:

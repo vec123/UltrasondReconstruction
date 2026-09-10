@@ -35,6 +35,7 @@ from src.SSM.nicp.losses import (
     LossContext,
     LossValue,
     MatchedL2,
+    P2PlaneChamferLoss,
     PointToPlaneLoss,
     available_losses,
     build_loss,
@@ -51,6 +52,7 @@ from src.SSM.nicp.projections import (
 )
 from src.SSM.nicp.registry import Registry, RegistryError
 from src.SSM.nicp.shape import ShapeSpace
+from src.SSM.nicp.weight_fields import ChamferSide
 from src.SSM.nicp.sinkhorn import SinkhornMatching, unbalanced_sinkhorn
 from src.SSM.nicp.solvers import (
     GradientSolver,
@@ -65,6 +67,7 @@ from src.SSM.nicp.solvers import (
 __all__ = [
     "PointCloud",
     "ShapeSpace",
+    "ChamferSide",
     "FitProblem",
     "Registry",
     "RegistryError",
@@ -89,6 +92,7 @@ __all__ = [
     "LossContext",
     "LossValue",
     "MatchedL2",
+    "P2PlaneChamferLoss",
     "PointToPlaneLoss",
     "available_losses",
     "build_loss",

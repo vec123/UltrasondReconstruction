@@ -1,0 +1,39 @@
+# Localized GPMM: pca * gaussian.
+# The scalar kernel block-scales each 3x3 PCA block, shortening the range
+# of every PCA mode while preserving its within-vertex x/y/z covariance.
+# Analytic samples - smoother than any real anatomy, and the usual reason a GPMM looks inflated.
+#
+# Domain: BabyFM, bounding-box diagonal 0.019914, 31027 vertices, 163 PCA modes,
+# mean per-coordinate PCA variance 4.16e-8.
+#   sigma 0.003 = the local length scale (15% of the diagonal), matched to
+#   gaussian(sigma=0.003) at correlation 0.05.
+#   scale 1.0 is the neutral value for a product child: it modulates
+#   correlation and leaves the per-vertex PCA variance untouched.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: product
+  children:
+    - name: pca
+    - name: gaussian
+      kwargs:
+        sigma: 0.003
+        scale: 1.0
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  # 93081 rows is past DENSE_ROW_LIMIT, so dense_eigh is not an option.
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_pca_times_gaussian.npz

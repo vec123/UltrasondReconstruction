@@ -1,0 +1,33 @@
+# Prior-only GPMM: no empirical PCA term at all.
+# Twice mean-square differentiable - curvature is defined; the usual default for a surface prior.
+#
+# Domain: BabyFM, bounding-box diagonal 0.019914, 31027 vertices, 163 PCA modes,
+# mean per-coordinate PCA variance 4.16e-8.
+#   rho 0.00462 = the smooth length scale (25% of the diagonal).
+#   scale 4.160e-08 = 1x the mean per-coordinate PCA variance, so the prior
+#   carries as much deformation as the population it replaces.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: matern52
+  kwargs:
+    rho: 0.00462
+    scale: 4.160e-08
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  # 93081 rows is past DENSE_ROW_LIMIT, so dense_eigh is not an option.
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_matern52.npz

@@ -648,6 +648,162 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         return self._combine(term1, term2)
 
 
+class FieldWeightedP2PlaneData(FieldWeightedCDData):
+    """FieldWeightedCDData's per-direction (weight, base_sigma, field) scaling, with
+    the residual measured to the target's TANGENT PLANE rather than to its nearest
+    SAMPLE (data_name: field_weighted_point2plane_chamfer).
+
+    Point-to-point chamfer floors at roughly half the target's local sample
+    spacing -- a source point can never score better than the nearest target
+    VERTEX -- and it pins tangentially, so points stick to samples instead of
+    sliding along the surface. Projecting the residual onto the target normal
+    removes both: only OFF-SURFACE displacement is penalised, tangential motion
+    is free, and the achievable residual is set by the surface rather than by how
+    densely it happens to be sampled. The standard ICP point-to-plane argument.
+
+    BOTH directions project onto the TARGET's normal, never the deformed source's:
+
+        source_to_target    ((phi(p) - t*) . n_t*)^2    t* = nearest target to p
+        target_to_source    ((p* - t)      . n_t )^2    p* = nearest source to t
+
+    so the only normals this term ever needs are the target's, which are STATIC --
+    resolved once at load time, never recomputed. The symmetric alternative (the
+    deformed source's own normal for the second direction) would need per-vertex
+    normals rebuilt differentiably from faces at every step, to measure the same
+    surface the target normal already describes.
+
+    Orientation does not matter: the projection is SQUARED, so n and -n score
+    identically. A target with inconsistent winding needs no repair first.
+
+    A ZERO-length normal (a vertex whose incident faces are degenerate or cancel)
+    survives normalisation as zero, so its plane distance is zero and that point
+    falls back to the point-to-point half of ``plane_weight``. Graceful, and rare
+    -- write_surface_normals.py prints the count so a target where it is NOT rare
+    is visible before training rather than after.
+
+    ``plane_weight`` blends against plain point-to-point. Pure point-to-plane
+    (1.0) leaves tangential motion completely unconstrained, which is degenerate
+    wherever the target is locally flat -- the source can slide within the plane
+    at no cost, and nothing pulls it back. The default keeps a point-to-point
+    anchor for exactly that reason.
+
+    NOTE ON SCALE: the projected residual is always <= the point-to-point one (a
+    vector's component along a unit normal never exceeds its length), so at a
+    FIXED base_sigma this term is WEAKER than field_weighted_chamfer. The two are
+    not calibrated against each other -- expect to lower base_sigma when switching,
+    rather than assuming the old value still means the same thing.
+    """
+
+    def __init__(self, source_to_target: Optional[dict] = None,
+                 target_to_source: Optional[dict] = None,
+                 plane_weight: float = 0.8,
+                 robust_kernel: Optional[str] = None,
+                 robust_breakpoint: Optional[float] = None,
+                 robust_slope: Optional[float] = None,
+                 robust_tau: Optional[float] = None):
+        """Initialize from two ChamferSideCfg-shaped dicts, plus the blend.
+
+        Args:
+            source_to_target, target_to_source: see FieldWeightedCDData.
+            plane_weight: 0.0 = plain point-to-point (this term becomes
+                FieldWeightedCDData), 1.0 = pure point-to-plane. In between,
+                the per-point penalty is the convex blend of the two.
+            robust_kernel, robust_breakpoint, robust_slope, robust_tau: see
+                TwoSidedDataTerm. Applied to the BLENDED penalty, so a
+                robust_breakpoint keeps meaning "a distance, squared".
+        """
+        super().__init__(source_to_target=source_to_target,
+                         target_to_source=target_to_source,
+                         robust_kernel=robust_kernel, robust_breakpoint=robust_breakpoint,
+                         robust_slope=robust_slope, robust_tau=robust_tau)
+        if not 0.0 <= plane_weight <= 1.0:
+            raise ValueError(
+                f"plane_weight must be in [0, 1], got {plane_weight}: it is a blend "
+                f"between point-to-point (0) and point-to-plane (1), not a scale."
+            )
+        self.plane_weight = plane_weight
+
+    def forward(
+        self,
+        pred: Tensor,
+        target: Tensor,
+        pred_w: Optional[Tensor] = None,
+        tgt_w: Optional[Tensor] = None,
+        normals: Optional[Tensor] = None,
+        per_point: bool = False,
+    ) -> Tensor:
+        """Compute the field-weighted, per-direction-sigma point-to-plane distance.
+
+        Args:
+            pred: [B, N, 3] predicted (flowed source) positions
+            target: [B, M, 3] target positions
+            pred_w: [B, N] per-source-point precision multiplier, or None
+            tgt_w: [B, M] per-target-point precision multiplier, or None
+            normals: [B, M, 3] or [1, M, 3] TARGET normals, addressing the same
+                M vertices as ``target`` and in the same order. Required -- see
+                the raise below for why this is not silently optional.
+            per_point: if True, return RAW (unweighted, unrobustified, and
+                point-to-POINT) per-point target->source distances [B, M]. Same
+                contract as CDData's, so adaptive-subsampling callers that rank
+                by it are unaffected by the plane projection.
+
+        Returns:
+            Scalar loss if per_point=False, else per-point distances [B, M].
+
+        Raises:
+            ValueError: normals is None, or does not address target's vertices.
+        """
+        if normals is None:
+            raise ValueError(
+                "data_name='field_weighted_point2plane_chamfer' needs the TARGET's "
+                "per-vertex normals, but none reached the data term. Bake a 'normal' "
+                "point array onto the target .vtp with "
+                "scripts/write_surface_normals.py -- io.load_shape picks that array "
+                "up automatically and joint_normalize carries it through. Failing "
+                "loudly rather than falling back to point-to-point on purpose: a "
+                "silent fallback is indistinguishable from the term working."
+            )
+        if normals.shape[1] != target.shape[1]:
+            raise ValueError(
+                f"normals describe {normals.shape[1]} points but target has "
+                f"{target.shape[1]}; they must be the same vertices in the same "
+                f"order, i.e. gathered on the SAME subsample draw."
+            )
+
+        dist_sq = torch.cdist(pred, target, p=2).pow(2)
+
+        if per_point:
+            return dist_sq.min(dim=1)[0]
+
+        # Unit-length defensively: a normal array that was scaled, interpolated or
+        # averaged is no longer unit, and a non-unit n silently rescales the
+        # projection per point -- a weighting nobody configured.
+        n = normals / normals.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        if n.shape[0] != target.shape[0]:
+            n = n.expand(target.shape[0], -1, -1)
+        a = self.plane_weight
+
+        term1 = None
+        if self.scores_source_to_target:
+            d_point, idx = dist_sq.min(dim=2)                     # [B, N]
+            gather_idx = idx.unsqueeze(-1).expand(-1, -1, 3)      # [B, N, 3]
+            offset = pred - target.gather(1, gather_idx)          # [B, N, 3]
+            d_plane = (offset * n.gather(1, gather_idx)).sum(-1).pow(2)
+            d1 = self._robustify((1.0 - a) * d_point + a * d_plane)
+            term1 = self._weighted_mean(d1, pred_w) / (2.0 * self.source_to_target_sigma ** 2)
+
+        term2 = None
+        if self.scores_target_to_source:
+            d_point, idx = dist_sq.min(dim=1)                     # [B, M]
+            gather_idx = idx.unsqueeze(-1).expand(-1, -1, 3)      # [B, M, 3]
+            offset = pred.gather(1, gather_idx) - target          # [B, M, 3]
+            d_plane = (offset * n).sum(-1).pow(2)                 # target's own normal
+            d2 = self._robustify((1.0 - a) * d_point + a * d_plane)
+            term2 = self._weighted_mean(d2, tgt_w) / (2.0 * self.target_to_source_sigma ** 2)
+
+        return self._combine(term1, term2)
+
+
 class NCDData(TwoSidedDataTerm):
     """Normal-aware Chamfer distance: penalizes surfaces with wrong orientation (T33).
 

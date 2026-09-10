@@ -12,7 +12,7 @@
 # Two things differ from the BabyFM config as a consequence:
 #   * the atlas ships with no landmark annotation of its own - model.atlas.landmarks
 #     below points at the name -> vertex-index JSON scripts/place_landmarks.py
-#     writes (configs/place_landmarks.yaml), which fills that gap by hand. Every
+#     writes (configs/ssm_gui/place_landmarks.yaml), which fills that gap by hand. Every
 #     landmark-derived field stays off automatically until that file has entries
 #     in it - run the picker first, then flip fields.landmark_* to true;
 #   * the atlas is in millimetres (the face spans ~56 x 80 x 23 mm) while the

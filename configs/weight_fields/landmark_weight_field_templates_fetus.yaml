@@ -1,0 +1,51 @@
+# Bakes the `landmark_weight` point field onto Templates/fetus_mean.vtp (the
+# copy configs/master/end_to_end.yaml's similarity_transform/*_fetus_ssm/
+# *_fetus_mean stages read), mirroring landmark_weight_field_templates.yaml's
+# weighting for Templates/baby_mean.vtp -- restricted to the 13 labels the
+# fetus template actually carries a heatmap_<label> field for (the mouth and
+# ear landmarks were never placed on the fetal mesh).
+# Regenerate with:
+#   python scripts/weight_fields/write_landmark_weight_field.py configs/weight_fields/landmark_weight_field_templates_fetus.yaml
+
+vtp: Templates/fetus_mean.vtp
+
+include:
+  # nose -- wide halo AND higher importance than the rest
+  - label: aL
+    decay_scale: 0.0004
+    max_weight: 4
+  - label: aR
+    decay_scale: 0.0004
+    max_weight: 4
+  - label: acL
+    decay_scale: 0.0004
+    max_weight: 4
+  - label: acR
+    decay_scale: 0.0004
+    max_weight: 4
+  - label: n
+    decay_scale: 0.004
+    max_weight: 3
+  - label: prn
+    decay_scale: 0.0008
+    max_weight: 50
+  - label: sn
+    decay_scale: 0.004
+    max_weight: 2
+  # eyes -- wide halo, default importance
+  - label: enL
+    decay_scale: 0.004
+  - label: enR
+    decay_scale: 0.004
+  - label: exL
+    decay_scale: 0.004
+  - label: exR
+    decay_scale: 0.004
+  # mouth/chin (default decay_scale) -- the only two of that region the
+  # fetus template has (chL/chR/cphL/cphR/li are baby-only)
+  - ls
+  - pg
+
+decay_scale: 0.002
+min_weight: 0.1
+output_field: landmark_weight

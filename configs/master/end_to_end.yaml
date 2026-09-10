@@ -1,13 +1,5 @@
 # End-to-end example wiring all three pipelines from one file:
 #
-#   preprocess (through scan_consistency's merged scan)
-#     -> ssm_fit (SSM-fits that merged scan)
-#     -> scan_fusion_ssm (preprocess's scan_fusion again, but using the SSM
-#        fit - not the plain template - as the reference shape)
-#     -> resnet_lddmm_train (trains on the SSM-refined fused mesh)
-#     -> recon_target_distance (QC: point-to-point distance between the
-#        trained reconstruction and its training target)
-#
 # Any stage can be switched off with `enabled: false` (its config still binds,
 # so later stages can still reference its fields - see scripts/pipeline/cli.py).
 #
@@ -15,6 +7,8 @@
 #   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1
 
 stages:
+
+#-----------Preprocessing
   - name: nrrd_to_vtp
     enabled: false
   - name: align_to_reference
@@ -27,31 +21,122 @@ stages:
     enabled: false
   - name: scan_consistency
     enabled: false
+
+
+
+#-----------fetus ssm
+  # ONE stage invocation, but it runs every entry of its hyperparameters'
+  # `nicp.fits` list from the same step-1 shape - currently 8 of them:
+  #   gamma_0 .. gamma_5, free, clamped   heuristic correspondences + least squares
+  #   p2plane_chamfer                     correspondence: none, point-to-plane chamfer
+  # Each writes its own nicp_refined_vertices_<name>.vtp; the eval stages below
+  # pick two of them to measure.
   - name: ssm_fit
+    id: fetus_ssm_fit
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_ssm_fit_l2
     enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_ssm_fit_p2plane
+    enabled: false
+
+#-----------scan fusion
   - name: scan_fusion
     id: scan_fusion_ssm
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_scan_fusion_ssm
     enabled: false
- # - name: similarity_transform
- #   id:  similarity_transform_baby_mean
- #   enabled: true
+
+#-----------baby ssm
   - name: ssm_fit
     id: baby_ssm_fit
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_ssm_fit_l2
     enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_ssm_fit_p2plane
+    enabled: false
+
+
+
+#----------------------------LDDMM
+
+#-----------lddmm baby ssm
   - name: similarity_transform
     id: similarity_transform_baby_ssm
     enabled: false
   - name: resnet_lddmm_train
-    enabled: true
+    id: resnet_lddmm_train_baby_ssm
+    enabled: false
   - name: resnet_lddmm_apply
-    enabled: true
+    id: resnet_lddmm_apply_baby_ssm
+    enabled: false
   - name: recon_target_distance
-    enabled: true
+    id: recon_target_distance_baby_ssm_lddmm
+    enabled: false
+
+
+
+#-----------lddmm baby mean
+  - name: similarity_transform
+    id: similarity_transform_baby_mean
+    enabled: false
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_baby_mean
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_baby_mean
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_baby_mean_lddmm
+    enabled: false
+
+#-----------lddmm fetus ssm
+  - name: similarity_transform
+    id: similarity_transform_fetus_ssm
+    enabled: false
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_fetus_ssm
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_fetus_ssm
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_ssm_lddmm
+    enabled: false
+
+#-----------lddmm fetus mean
+  - name: similarity_transform
+    id: similarity_transform_fetus_mean
+    enabled: false 
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_fetus_mean
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_fetus_mean
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_mean_lddmm
+    enabled: false
+
+
+
+#------------eval lines in ultrasound
   - name: vtp_to_nrrd_overlay
     enabled: true
 
+
 paths:
 
+  #---------Preprocessing Step 1
   nrrd_to_vtp:
     input_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas
     output_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas
@@ -74,8 +159,6 @@ paths:
     output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
     out_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/shapes_vtp
     out_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_vtp
-    # Explicit (not left to align_to_template's own default-filling) so
-    # ssm_fit and resnet_lddmm_train below can reference it.
     out_landmarks_csv_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_csv
     transforms_dir: nrrd_to_vtp.output_dir + /aligned_to_template/transforms
     previous_transforms_dir: align_to_reference.transforms_dir
@@ -99,40 +182,46 @@ paths:
     output_merged_dir: nrrd_to_vtp.output_dir + /merged_high_confidence_scan
     transforms_dir: align_to_template.transforms_dir
 
-  # -- SSM: fits scan_consistency's merged scan
-  ssm_fit:
+  #---------Preprocessing Step 1 END
+
+  #---------Processing Step 2
+
+  #---------Fetus SSM: fits fetus SSM as seg mask
+  fetus_ssm_fit:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
-      # Vertex-wise corresponding with FetusModel_x4's mean shape - carries its
-      # heatmap_<label> fields onto every reconstruction this fit writes, since
-      # the model format itself has no notion of point-data fields (see
-      # PipelineInputs.template_vtp). Without this, anything downstream reading
-      # those fields off an ssm_fit output (e.g. resnet_lddmm_train's landmark
-      # loss) fails with "template has no 'heatmap_<label>' point field".
       template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
     outputs:
       dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end
 
-  # -- Re-run scan_fusion with the SSM fit as reference_vtp
+  recon_target_distance_fetus_ssm_fit_l2:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit.outputs.dir + /eval_l2
+
+  recon_target_distance_fetus_ssm_fit_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit.outputs.dir + /eval_p2plane
+
+  #------------------Scan Fusion
   scan_fusion_ssm:
     input_aligned_dir: align_to_template.out_shapes_vtp_dir
-    reference_vtp: ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
-    output_dir: ssm_fit.outputs.dir + /fused_scan_ssm
+    reference_vtp: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
+    output_dir: fetus_ssm_fit.outputs.dir + /fused_scan_ssm
     transforms_dir: align_to_template.transforms_dir
 
-  # -- baby_mean.vtp (resnet_lddmm_train's source template) lives in its own
-  # native frame, unrelated in scale/position to align_to_template's aligned
-  # frame that scan_fusion_ssm's fused_scan.vtp (the target below) is built
-  # in. Move it there via shared named landmarks
-  #similarity_transform_baby_mean:
-  #  source_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
-  #  landmark_path: align_to_template.out_landmarks_csv_dir + /1-20s-01.csv
-  #  output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
+  recon_target_distance_scan_fusion_ssm:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: scan_fusion_ssm.output_dir + /eval
 
-  # -- Baby SSM: fits scan_fusion_ssm's fetus-SSM-refined fused scan, same
-  # idea as ssm_fit above but with the baby model. 
+  #--------- Baby SSM: fits scan_fusion with fetus SSM
   baby_ssm_fit:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
@@ -142,48 +231,221 @@ paths:
     outputs:
       dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end
 
+  recon_target_distance_baby_ssm_fit_l2:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_2.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit.outputs.dir + /eval_l2
+
+  recon_target_distance_baby_ssm_fit_p2plane:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit.outputs.dir + /eval_p2plane
+
+
+#---------------------ResNetLDDMM with from the baby ssm to the scan_fusion from the fetus_ssm
   similarity_transform_baby_ssm:
-    source_vtp: baby_ssm_fit.outputs.dir +  /nicp_refined_vertices_gamma_2.vtp
-    landmark_path: align_to_template.out_landmarks_csv_dir + /2-20s-01.csv
+    source_vtp: baby_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_2.vtp
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
     output_path: align_to_template.output_dir + /baby_ssm_aligned.vtp
 
-  resnet_lddmm_train:
+  resnet_lddmm_train_baby_ssm:
     source: similarity_transform_baby_ssm.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
-    output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm/${SUBJECT_ID}
+    output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_baby_ssm/${SUBJECT_ID}
 
-  resnet_lddmm_apply:
-    train_config: resnet_lddmm_train.output_dir + /config.json
-    checkpoint: resnet_lddmm_train.output_dir + /checkpoints
-    output_dir: resnet_lddmm_train.output_dir + /apply
+  resnet_lddmm_apply_baby_ssm:
+    train_config: resnet_lddmm_train_baby_ssm.output_dir + /config.json
+    checkpoint: resnet_lddmm_train_baby_ssm.output_dir + /checkpoints
+    output_dir: resnet_lddmm_train_baby_ssm.output_dir + /apply
 
-  recon_target_distance:
+  recon_target_distance_baby_ssm_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: resnet_lddmm_apply.output_dir + /world/deformed.vtp
+    recon_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: resnet_lddmm_train.output_dir + /eval
+    output_dir: resnet_lddmm_apply_baby_ssm.output_dir + /eval
 
+
+#---------------------ResNetLDDMM with from the baby mean to the scan_fusion from the fetus_ssm
+  similarity_transform_baby_mean:
+    source_vtp: baby_ssm_fit.outputs.dir +  /init_shape.vtp
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
+
+  resnet_lddmm_train_baby_mean:
+    source: similarity_transform_baby_mean.output_path
+   # source: scan_consistency.output_merged_dir + /merged_high_consistency_scan_0.8.vtp
+    target: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    landmarks: align_to_template.out_landmarks_csv_dir
+    output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_baby_mean/${SUBJECT_ID}
+
+  resnet_lddmm_apply_baby_mean:
+    train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
+    checkpoint: resnet_lddmm_train_baby_mean.output_dir + /checkpoints
+    output_dir: resnet_lddmm_train_baby_mean.output_dir + /apply
+
+  recon_target_distance_baby_mean_lddmm:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: resnet_lddmm_apply_baby_mean.output_dir + /eval
+
+
+#---------------------ResNetLDDMM with from the fetus mean to the scan_fusion from the fetus_ssm
+  similarity_transform_fetus_ssm:
+    #source_vtp: fetus_ssm_fit.outputs.dir +  /init_shape.vtp
+    source_vtp: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
+
+  resnet_lddmm_train_fetus_ssm:
+    source: similarity_transform_fetus_ssm.output_path
+    target: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    landmarks: align_to_template.out_landmarks_csv_dir
+    output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_fetus_ssm/${SUBJECT_ID}
+
+  resnet_lddmm_apply_fetus_ssm:
+    train_config: resnet_lddmm_train_fetus_ssm.output_dir + /config.json
+    checkpoint: resnet_lddmm_train_fetus_ssm.output_dir + /checkpoints
+    output_dir: resnet_lddmm_train_fetus_ssm.output_dir + /apply
+
+  recon_target_distance_fetus_ssm_lddmm:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: resnet_lddmm_apply_fetus_ssm.output_dir + /eval
+
+
+#---------------------ResNetLDDMM with from the fetus mean to the scan_fusion from the fetus_mean
+  similarity_transform_fetus_mean:
+    source_vtp: fetus_ssm_fit.outputs.dir +  /init_shape.vtp
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
+
+  resnet_lddmm_train_fetus_mean:
+    source: similarity_transform_fetus_mean.output_path
+    target: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    landmarks: align_to_template.out_landmarks_csv_dir
+    output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_fetus_mean/${SUBJECT_ID}
+
+  resnet_lddmm_apply_fetus_mean:
+    train_config: resnet_lddmm_train_fetus_mean.output_dir + /config.json
+    checkpoint: resnet_lddmm_train_fetus_mean.output_dir + /checkpoints
+    output_dir: resnet_lddmm_train_fetus_mean.output_dir + /apply
+
+  recon_target_distance_fetus_mean_lddmm:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: resnet_lddmm_apply_fetus_mean.output_dir + /eval
+
+
+#----------------------Ultrasound-----Overlay of all lines
   vtp_to_nrrd_overlay:
     nrrd_path: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/${SUBJECT_ID}-20s-01.nrrd
-    output_path: resnet_lddmm_train.output_dir + /overlay/recon_overlay.nrrd
-    label_maps_dir: resnet_lddmm_train.output_dir + /overlay/recon_overlay_labels
+    output_path: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay.nrrd
+    label_maps_dir: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay_labels
     layers:
-      - vtp_path: resnet_lddmm_apply.output_dir + /world/deformed.vtp
-        name: Reconstruction
+      # Final LDDMM reconstructions -- one per template/model combo trained above.
+      - vtp_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
+        name: Reconstruction (Baby SSM)
         line_color: [255, 255, 0]
         transform:
           manifest_dir: align_to_template.transforms_dir
-          subject_id: 1-20s-01
+          subject_id: ${SUBJECT_ID}-20s-01
           apply_inverse: true
+      - vtp_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
+        name: Reconstruction (Baby Mean)
+        line_color: [255, 165, 0]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      - vtp_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
+        name: Reconstruction (Fetus SSM)
+        line_color: [0, 255, 255]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      - vtp_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
+        name: Reconstruction (Fetus Mean)
+        line_color: [255, 0, 255]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      # Pre-LDDMM SSM fits -- the NICP baseline each LDDMM run started from,
+      # useful to see how much the LDDMM step actually improved on the SSM fit.
+      # Two objectives per model, same colour family so the pair reads as a
+      # comparison: the lighter line is matched least squares, the darker one
+      # the correspondence-free point-to-plane chamfer fitted from the same
+      # starting shape against the same scan.
+      - vtp_path: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
+        name: SSM Fit (Fetus, L2 gamma 5)
+        line_color: [100, 180, 255]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      - vtp_path: fetus_ssm_fit.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Fetus, P2Plane Chamfer)
+        line_color: [0, 90, 200]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      - vtp_path: baby_ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_2.vtp
+        name: SSM Fit (Baby, L2 gamma 2)
+        line_color: [255, 100, 180]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      - vtp_path: baby_ssm_fit.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby, P2Plane Chamfer)
+        line_color: [200, 0, 90]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      # Targets -- the fused cross-subject scan every LDDMM run trains toward,
+      # and the single-subject merged scan it was itself fused from.
       - vtp_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-        name: Target
+        name: Target (Fused Scan)
         line_color: [0, 255, 0]
         transform:
           manifest_dir: align_to_template.transforms_dir
-          subject_id: 1-20s-01
+          subject_id: ${SUBJECT_ID}-20s-01
           apply_inverse: true
+      - vtp_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+        name: Merged Scan (Raw)
+        line_color: [255, 255, 255]
+        transform:
+          manifest_dir: align_to_template.transforms_dir
+          subject_id: ${SUBJECT_ID}-20s-01
+          apply_inverse: true
+      # nrrd_to_vtp's own isosurface -- the very first stage's output, still in
+      # the raw NRRD's own "original frame" (see that stage's module docstring),
+      # so no transform is needed here: it already lines up with nrrd_path below.
+      - vtp_path: nrrd_to_vtp.output_dir + /${SUBJECT_ID}-20s-01.vtp
+        name: Isosurface (Raw NRRD)
+        line_color: [255, 0, 0]
 
+
+
+
+
+
+
+
+
+
+
+
+#---------Hyperparameters:
 hyperparameters:
   nrrd_to_vtp:
     contour_value: 70
@@ -267,26 +529,51 @@ hyperparameters:
       landmark_fit_learning_rate: 1.0
       allow_scale: true
     nicp:
-      iterations: 10
       save_every: 1
-      matching:
-        mode: constrained
-        dist_thresh: 10.0
-        normal_thresh_deg: 60.0
-        k: 50
-        use_target_normals: true
-        one_to_one: true
-      model_optimization:
-        gammas: [0, 0.1, 1, 2, 5]
-        learning_rate: 1.0
-        chi_clamp: null
-        variants:
-          - name: free
-            gamma: 0
-            chi_clamp: null
-          - name: clamped
-            gamma: 0
-            chi_clamp: 0.99
+      # Shared by every fit below
+      defaults:
+        correspondence:
+          name: constrained
+          kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
+                   use_target_normals: true, one_to_one: true}
+        loss:       {name: matched_l2, kwargs: {reduction: sum}}
+        prior:      {name: none}
+        solver:     {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0}}
+        projection: {name: none}
+        refresh_every: 1          # re-match every round: this is the ICP loop
+
+      # Fitting Problem Specifications: each entry in this list is a separate fit, all starting
+      fits:
+        # -- L2 sweep: the behaviour this stage has always had -----------------
+        - {name: gamma_0,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}}
+        - {name: gamma_0.1, solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.1}}}
+        - {name: gamma_1,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 1}}}
+        - {name: gamma_2,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 2}}}
+        - {name: gamma_5,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 5}}}
+        # The two one-off variants: same fit at gamma 0, the second held inside
+        # the model's plausible range instead of left free.
+        - {name: free,    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}}
+        - {name: clamped, solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}},
+           projection: {name: mahalanobis_clamp, kwargs: {p: 0.99}}}
+
+        # -- weighted point-to-plane chamfer: no correspondence ---------------
+        # correspondence 'none' removes the matching step entirely; the loss
+        - name: p2plane_chamfer
+          correspondence: {name: none}
+          loss:
+            name: p2plane_chamfer
+            kwargs:
+              source_to_target: {weight: 1.0, base_sigma: 1.0}
+              target_to_source: {weight: 5.0, base_sigma: 1.0}
+              plane_weight: 0.8
+              p: 2
+              source_ratio: 0.0
+              target_ratio: 0.25   
+          prior:  {name: mahalanobis, kwargs: {weight: 1.0e-5, normalize: true}}
+          solver: {name: gradient,
+                   kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 300,
+                            tolerance: 1.0e-8, patience: 5, log_every: 25}}
+          refresh_every: 0         # no effect: this loss re-pairs every evaluation
     verbose: true
 
   scan_fusion_ssm:
@@ -297,15 +584,6 @@ hyperparameters:
     surface_fit_method: quadric  # "plane" | "quadric"
     compute_roughness: false
 
-  #similarity_transform_baby_mean:
-  #  heatmap_prefix: heatmap_
-    # align_to_template's out_landmarks_csv_dir CSVs are already RAS-aligned
-    # (align_to_template.py applies its own lps_to_ras flip, if any, before
-    # saving them) - flipping again here would be wrong.
-  #  lps_to_ras: false
-  #  with_scale: true
-
-  
   baby_ssm_fit:
     steps:
       gmm_2_template: false
@@ -315,49 +593,71 @@ hyperparameters:
       laplacian: false
     model:
       normalize: false
-      # No atlas.landmarks override here (unlike ssm_fit above): that field
-      # only matters for a Deformetrica atlas directory's own landmark-drop
-      # logic, and is never read for a .mat model - BabyFaceModel.mat's own
-      # embedded landmarks (23 named points, a full superset of the 13 our
-      # subject CSVs carry) are used directly, nothing gets dropped.
+      #atlas:
+        #landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
     rigid:
       iterations: 10
       landmark_fit_learning_rate: 1.0
       allow_scale: true
     nicp:
-      iterations: 10
       save_every: 1
-      matching:
-        mode: constrained
-        dist_thresh: 10.0
-        normal_thresh_deg: 60.0
-        k: 50
-        use_target_normals: true
-        one_to_one: true
-      model_optimization:
-        gammas: [0, 0.1, 1, 2, 5]
-        learning_rate: 1.0
-        chi_clamp: null
-        variants:
-          - name: free
-            gamma: 0
-            chi_clamp: null
-          - name: clamped
-            gamma: 0
-            chi_clamp: 0.99
+      # Shared by every fit below
+      defaults:
+        correspondence:
+          name: constrained
+          kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
+                   use_target_normals: true, one_to_one: true}
+        loss:       {name: matched_l2, kwargs: {reduction: sum}}
+        prior:      {name: none}
+        solver:     {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0}}
+        projection: {name: none}
+        refresh_every: 1          # re-match every round: this is the ICP loop
+      fits:
+        # -- L2 sweep: the behaviour this stage has always had -----------------
+        - {name: gamma_0,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}}
+        - {name: gamma_0.1, solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0.1}}}
+        - {name: gamma_1,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 1}}}
+        - {name: gamma_2,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 2}}}
+        - {name: gamma_5,   solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 5}}}
+        # The two one-off variants: same fit at gamma 0, the second held inside
+        # the model's plausible range instead of left free.
+        - {name: free,    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}}
+        - {name: clamped, solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}},
+           projection: {name: mahalanobis_clamp, kwargs: {p: 0.99}}}
+
+        # -- weighted point-to-plane chamfer: no correspondence ---------------
+        # correspondence 'none' removes the matching step entirely; the loss
+        # re-associates the surfaces on every evaluation instead. It has no
+        # closed form, hence the gradient solver.
+        # plane_weight blends point-to-plane against point-to-point. Pure
+        # point-to-plane leaves tangential motion free, which is degenerate
+        # where the target is locally flat, so an anchor is kept.
+        - name: p2plane_chamfer
+          correspondence: {name: none}
+          loss:
+            name: p2plane_chamfer
+            kwargs:
+              source_to_target: {weight: 1.0, base_sigma: 1.0}
+              target_to_source: {weight: 5.0, base_sigma: 1.0}
+              plane_weight: 0.8
+              p: 2
+              source_ratio: 0.0
+              target_ratio: 0.25   # thin the scan; the search is linear in it
+          prior:  {name: mahalanobis, kwargs: {weight: 1.0e-6, normalize: true}}
+          solver: {name: gradient,
+                   kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 300,
+                            tolerance: 1.0e-8, patience: 5, log_every: 25}}
+          refresh_every: 0    # no effect: this loss re-pairs every evaluation
     verbose: true
 
-  similarity_transform_baby_ssm:
+  similarity_transform:
     heatmap_prefix: heatmap_
-    # align_to_template's out_landmarks_csv_dir CSVs are already RAS-aligned
-    # (align_to_template.py applies its own lps_to_ras flip, if any, before
-    # saving them) - flipping again here would be wrong.
     lps_to_ras: false
     with_scale: true
 
   resnet_lddmm_train:
     field:
-      kind: stationary
+      kind: time_varying
       num_steps: 10
       width: 246
       activation: relu
@@ -367,20 +667,23 @@ hyperparameters:
       conditioning_method: concat
       grid: 16
     loss:
-      data_name: field_weighted_chamfer
+      #data_name: field_weighted_chamfer
+      data_name: field_weighted_point2plane_chamfer
       data_kwargs:
         source_to_target:
           weight: 1
           base_sigma: 0.1
           field_name: landmark_weight
+         # field_name: null
         target_to_source:
           weight: 1.0
           base_sigma: 0.01
           field_name: support
+          #field_name: null
         robust_kernel: quadratic
-      kinetic_weight: 1000.0
+      kinetic_weight: 500.0
       code_reg_weight: 0.0
-      isometry_weight: 10.0
+      isometry_weight: 0.0
       isometry_type: det
       landmark_weight: 1
       landmark_kwargs:
@@ -394,6 +697,71 @@ hyperparameters:
           li: 1.0
           pg: 1.0
           sl: 1.0
+          
+        hard_precision:
+        #n: 1000000
+          n:  1000000000
+          ls:  1000000000
+          prn:  1000000000
+          sn: 1000000000
+          acR:  1000000000
+          acL:  1000000000
+          aL:  1000000000
+          aR:  1000000000
+          enL: 1000000000
+          enR:  1000000000
+
+      subsample_M: 1000
+      save_full: false
+      direction: forward
+    train:
+      mode: pair
+      steps: 2000
+      batch: 4
+      lr: 0.0001
+      seed: 42
+      log_every: 10
+      save_every: 100
+      val_every: 0
+      export_shapes: 2
+      export_strategy: sequential
+
+
+  resnet_lddmm_train_fetus_ssm:
+    field:
+      kind: time_varying
+      num_steps: 10
+      width: 246
+      activation: relu
+    code:
+      kind: none
+      position_aware: true
+      conditioning_method: concat
+      grid: 16
+    loss:
+      #data_name: field_weighted_chamfer
+      data_name: field_weighted_point2plane_chamfer
+      data_kwargs:
+        source_to_target:
+          weight: 1
+          base_sigma: 0.1
+          field_name: landmark_weight
+         # field_name: null
+        target_to_source:
+          weight: 1.0
+          base_sigma: 0.01
+          field_name: support
+          #field_name: null
+        robust_kernel: quadratic
+      kinetic_weight: 10.0
+      code_reg_weight: 0.0
+      isometry_weight: 0.0
+      isometry_type: strain
+      landmark_weight: 1
+      landmark_kwargs:
+        label_weights:
+          exL: 1.0
+          exR: 1.0
           n: 1.0
           ls: 1.0
           prn: 1.0
@@ -404,15 +772,16 @@ hyperparameters:
           aR: 1.0
           enL: 1.0
           enR: 1.0
+          pg: 1.0
         #hard_precision:
         #n: 1000000
-        
+
       subsample_M: 1000
       save_full: false
       direction: forward
     train:
       mode: pair
-      steps: 4000
+      steps: 2000
       batch: 4
       lr: 0.0001
       seed: 42
@@ -421,7 +790,73 @@ hyperparameters:
       val_every: 0
       export_shapes: 2
       export_strategy: sequential
-  
+
+  # See resnet_lddmm_train_fetus_ssm above for why this block's
+  # label_weights differs from the shared resnet_lddmm_train block.
+  resnet_lddmm_train_fetus_mean:
+    field:
+      kind: time_varying
+      num_steps: 10
+      width: 246
+      activation: relu
+    code:
+      kind: none
+      position_aware: true
+      conditioning_method: concat
+      grid: 16
+    loss:
+      #data_name: field_weighted_chamfer
+      data_name: field_weighted_point2plane_chamfer
+      data_kwargs:
+        source_to_target:
+          weight: 1
+          base_sigma: 0.1
+          field_name: landmark_weight
+         # field_name: null
+        target_to_source:
+          weight: 1.0
+          base_sigma: 0.01
+          field_name: support
+          #field_name: null
+        robust_kernel: quadratic
+      kinetic_weight: 10.0
+      code_reg_weight: 0.0
+      isometry_weight: 0.0
+      isometry_type: strain
+      landmark_weight: 1
+      landmark_kwargs:
+        label_weights:
+          exL: 1.0
+          exR: 1.0
+          n: 1.0
+          ls: 1.0
+          prn: 1.0
+          sn: 1.0
+          acR: 1.0
+          acL: 1.0
+          aL: 1.0
+          aR: 1.0
+          enL: 1.0
+          enR: 1.0
+          pg: 1.0
+        #hard_precision:
+        #n: 1000000
+
+      subsample_M: 1000
+      save_full: false
+      direction: forward
+    train:
+      mode: pair
+      steps: 2000
+      batch: 4
+      lr: 0.0001
+      seed: 42
+      log_every: 10
+      save_every: 100
+      val_every: 0
+      export_shapes: 2
+      export_strategy: sequential
+
   resnet_lddmm_apply:
     device: cpu
     chunk_size: 0  # 0 = integrate every point in one batch; raise if this OOMs on a denser template

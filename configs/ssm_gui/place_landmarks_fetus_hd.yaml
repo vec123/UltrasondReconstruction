@@ -1,16 +1,21 @@
 # Configuration for scripts/place_landmarks.py  ->  src.runners.PlaceLandmarksRunner
 #
-#   python scripts/place_landmarks.py --config configs/place_landmarks_fetus_hd_hd.yaml
+#   python scripts/place_landmarks.py --config configs/ssm_gui/place_landmarks_fetus_hd.yaml
 #
-# Same tool again, pointed at src/FetusModel_x4 - the ~4x-vertex resampling
-# (configs/upsample_fetus_hd_hd.yaml, chained off FetusModel_x2).
+# Same tool as configs/ssm_gui/place_landmarks.yaml, pointed at src/FetusModel_x2 - the
+# ~2x-vertex resampling scripts/upsample_atlas.py wrote (configs/upsample_fetus_hd.yaml).
 #
-# landmarks_json is its own file, same reasoning as place_landmarks_fetus_hd.yaml:
-# a landmark is a vertex index, and none of the three fetus meshes (1x, 2x,
-# 4x) share an indexing, so each needs its own landmarks.json.
+# landmarks_json is its own file, deliberately not src/FetusModel/landmarks.json:
+# a landmark is a vertex *index*, and the HD mesh does not share indices with
+# the original 1416-vertex one - the same integer means a different point on
+# each. Pointing both configs at one shared file would silently mix the two
+# topologies together the moment either one saved.
+#
+# See configs/ssm_gui/place_landmarks.yaml for the full control reference; unchanged
+# here.
 
-shape_model: ${PROJECT_ROOT}/src/FetusModel_x4
-landmarks_json: ${PROJECT_ROOT}/src/FetusModel_x4/landmarks.json
+shape_model: ${PROJECT_ROOT}/src/FetusModel_x2
+landmarks_json: ${PROJECT_ROOT}/src/FetusModel_x2/landmarks.json
 
 model:
   normalize: false        # keep millimetres, matching mean_shape_fetus.yaml

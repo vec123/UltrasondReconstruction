@@ -216,7 +216,7 @@ class ChamferSideCfg:
 
 @dataclass
 class LossCfg:
-    data_name: str = "chamfer"              # chamfer | weighted_chamfer | field_weighted_chamfer | pcd | ncd | l2 | sinkhorn | emd | none
+    data_name: str = "chamfer"              # chamfer | weighted_chamfer | field_weighted_chamfer | field_weighted_point2plane_chamfer | pcd | ncd | l2 | sinkhorn | emd | none
     # Constructor kwargs for the data term, passed straight to Registry.create.
     # The chamfer family (chamfer/weighted_chamfer/pcd/ncd) takes per-direction
     # weights -- source_to_target_weight, target_to_source_weight, both 1.0 by
@@ -233,7 +233,8 @@ class LossCfg:
     # robust_breakpoint is in the same normalised length units as sigma below.
     # See data_terms.ROBUST_KINDS / _robust_penalty for exactly what each kind does.
     #
-    # data_name: field_weighted_chamfer takes a DIFFERENT shape: two ChamferSideCfg
+    # data_name: field_weighted_chamfer and field_weighted_point2plane_chamfer take
+    # a DIFFERENT shape: two ChamferSideCfg
     # dicts, {source_to_target: {...}, target_to_source: {...}}, each with its own
     # weight/base_sigma/field_name/field_source instead of one shared
     # source_to_target_weight/target_to_source_weight plus the one shared sigma
@@ -263,10 +264,14 @@ class LossCfg:
     # label_weights, hard_precision) -- NOT constructor kwargs for the module
     # itself (unlike the other *_kwargs fields above), because LandmarkGuidanceLoss's
     # constructor takes already resolved tensors, not raw floats. See runner._build_pair.
-    # label_weights: {label: weight} multiplies that label's precision on top
-    # of its annotator-agreement-derived one -- SOFT, Mahalanobis-style; e.g.
-    # {n: 3.0, sn: 0.5} leans harder on the nasion, eases off subnasale.
-    # Omitted labels default to 1.0.
+    # label_weights: {label: weight} is BOTH the inclusion filter and a SOFT,
+    # Mahalanobis-style multiplier on top of that label's annotator-agreement
+    # -derived precision -- e.g. {n: 3.0, sn: 0.5} leans harder on the
+    # nasion, eases off subnasale. A label the target annotated but that is
+    # missing here, or given weight <= 0, is dropped before the template is
+    # ever asked to resolve it -- the escape hatch for a label some subjects
+    # annotate that a given template has no heatmap_<label> for. Omitted
+    # entirely (None): every annotated label is used, uniformly weighted 1.0.
     # hard_precision: {label: precision} REPLACES that label's precision
     # outright (std and label_weights both discarded for it) -- the strict
     # option, for when a landmark's fit must be enforced hard rather than

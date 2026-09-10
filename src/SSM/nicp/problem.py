@@ -66,6 +66,7 @@ class FitProblem:
 
         self.context = LossContext(
             target=self.target_points,
+            target_cloud=target,
             space=space,
             alpha=self.alpha0,
             generator=generator,
@@ -80,8 +81,8 @@ class FitProblem:
 
     def wants_normals(self) -> bool:
         """Target normals are only worth their cost when a term actually reads them."""
-        names = getattr(self.loss, "losses", [self.loss])
-        return any(getattr(item, "name", "") == "point_to_plane" for item in names)
+        terms = getattr(self.loss, "losses", [self.loss])
+        return any(getattr(item, "needs_target_normals", False) for item in terms)
 
     def prepare(self, n_iterations: int) -> LossContext:
         ctx = self.context
@@ -112,3 +113,29 @@ class FitProblem:
             f"  prior        ={self.prior.describe()}\n"
             f"  projection   ={self.projection.describe()}"
         )
+
+
+def build_problem(spec, space: ShapeSpace, target: PointCloud,
+                  alpha0=None, seed: Optional[int] = None) -> FitProblem:
+    """Resolves a :class:`~src.config.SSM.schema.NicpFitSpec` into a FitProblem.
+
+    The single place the five registries are turned into an assembled fit, so
+    the standalone runner and the pipeline stage build the same problem from
+    the same spec and cannot drift apart.
+    """
+    from src.SSM.nicp.correspondence import build_correspondence
+    from src.SSM.nicp.losses import build_loss
+    from src.SSM.nicp.priors import build_prior
+    from src.SSM.nicp.projections import build_projection
+
+    return FitProblem(
+        space=space,
+        target=target,
+        correspondence=build_correspondence(spec.correspondence.name, spec.correspondence.kwargs),
+        loss=build_loss(spec.loss.name, spec.loss.kwargs),
+        prior=build_prior(spec.prior.name, spec.prior.kwargs),
+        projection=build_projection(spec.projection.name, spec.projection.kwargs),
+        alpha0=alpha0,
+        refresh_every=spec.refresh_every,
+        seed=seed,
+    )

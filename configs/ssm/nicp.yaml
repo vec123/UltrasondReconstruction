@@ -434,10 +434,13 @@ runs:
     loss:
       name: chamfer
       kwargs:
-        forward_weight: 1.0
-        backward_weight: 1.0
+        # Each direction carries its own weight and noise scale, and contributes
+        # weight/(2*base_sigma^2) times the mean of its per-point penalties.
+        # base_sigma is a length in model units, so 5.6e-3 is the model's RMS
+        # radius - a residual that size costs about one unit.
+        source_to_target: {weight: 1.0, base_sigma: 5.6e-3}
+        target_to_source: {weight: 1.0, base_sigma: 5.6e-3}
         p: 2
-        reduction: mean
         source_ratio: 0.25
         target_ratio: 0.33
     prior: {name: mahalanobis, kwargs: {weight: 1.0e-11, normalize: false}}

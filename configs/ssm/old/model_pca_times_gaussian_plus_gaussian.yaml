@@ -1,0 +1,36 @@
+# Nested sum: (pca * g1) + g2.
+# The first term is localized PCA variation; the second adds independent
+# Gaussian deformation directions outside the PCA subspace.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    - name: product
+      children:
+        - name: pca
+        - name: gaussian
+          kwargs:
+            sigma: 0.003
+            scale: 1.0
+    - name: gaussian
+      kwargs:
+        sigma: 0.005
+        scale: 4.0e-8
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/outputs/gpmm/pca_times_gaussian_plus_gaussian
+  filename: babyfm_pca_times_gaussian_plus_gaussian.npz

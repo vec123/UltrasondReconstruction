@@ -36,6 +36,18 @@ from src.resnet_lddmm.learning.callbacks.base import Callback
 from src.resnet_lddmm.learning.callbacks.checkpointing import CheckpointWriter
 from src.resnet_lddmm.resnet_flow.callbacks import TrajectoryExporter, DiagnosticsCallback, EncoderGraphLogger, GradientLogger, NetworkStructureInspector, RequiresGradMonitor, PoseLogger, PoseShapeExporter, LossLogger
 
+# Data terms taking the per-direction ChamferSideCfg config shape
+# ({source_to_target: {...}, target_to_source: {...}} in data_kwargs) and owning
+# their precision internally. Membership here decides three things, and a new
+# member that misses any one of them fails SILENTLY rather than loudly:
+#   * _add_field_weighted_chamfer resolves field_name/field_source at all
+#     (missing -> pred_w/tgt_w stay None, the configured field never applies),
+#   * build() forces the loss.sigma-derived composer weight to 1.0
+#     (missing -> loss.sigma compounds with the per-direction base_sigmas),
+#   * _build_cohort refuses the term (missing -> fields silently ignored there).
+FIELD_WEIGHTED_DATA_NAMES = ("field_weighted_chamfer",
+                             "field_weighted_point2plane_chamfer")
+
 
 def _encoder_layers_to_list_of_dicts(encoder_config):
     """Convert EncoderConfig.layers (dataclass objects) to list of dicts for Registry.create.
@@ -405,7 +417,7 @@ def _add_landmark_term(cfg, template_shape, transform, composer, loss_terms):
 def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mapping_error, data_term):
     """Resolve each direction's point-weight field (if any) and attach it to mapping_error.
 
-    A no-op whenever cfg.loss.data_name is not "field_weighted_chamfer" -- the
+    A no-op whenever cfg.loss.data_name is not in FIELD_WEIGHTED_DATA_NAMES -- the
     field_name/field_source keys only exist in THAT data term's own config shape
     (ChamferSideCfg), so nothing here applies to any other data_name.
 
@@ -431,16 +443,49 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
         ValueError: cfg.loss.direction == "bidirectional" -- BidirectionalMappingError
             has no field-gathering path yet.
     """
-    if cfg.loss.data_name != "field_weighted_chamfer":
+    if cfg.loss.data_name not in FIELD_WEIGHTED_DATA_NAMES:
         return
 
     if cfg.loss.direction == "bidirectional":
         raise ValueError(
-            "data_name='field_weighted_chamfer' is not supported under "
+            f"data_name={cfg.loss.data_name!r} is not supported under "
             "loss.direction='bidirectional' yet -- BidirectionalMappingError has "
-            "no field-gathering path. Use direction='forward' (the default), or "
-            "drop field_name/field_source from both directions."
+            "no field-gathering path (and no normal-gathering path either). Use "
+            "direction='forward' (the default), or drop field_name/field_source "
+            "from both directions."
         )
+
+    # Fail at BUILD time, not at the first training step: the target's normals are
+    # a static input, so "the file has none" is knowable before a single gradient
+    # step has been paid for.
+    if cfg.loss.data_name == "field_weighted_point2plane_chamfer":
+        if target_norm.normals is None:
+            raise ValueError(
+                f"data_name={cfg.loss.data_name!r} needs a 'normal' point array on "
+                f"the target ({cfg.target}), but it carries none. Either re-run "
+                "scan_fusion (it writes the field itself under compute_normals: "
+                "true, on the final post-min_support topology), or bake it onto "
+                "the existing file with:\n"
+                f"    python scripts/write_surface_normals.py {cfg.target}\n"
+                "(the target has faces, so these are exact mesh normals, not "
+                "estimated ones). io.load_shape reads the array back automatically "
+                "and joint_normalize carries it through unchanged -- its single "
+                "uniform scale leaves normal DIRECTIONS untouched."
+            )
+        # A NaN normal is unrecoverable and does not announce itself until the
+        # whole loss goes NaN, some steps in. Both producers guard their own
+        # division, so reaching this means the array was written by something
+        # else -- catch it here rather than after a wasted run.
+        if not torch.isfinite(target_norm.normals).all():
+            n_bad = int((~torch.isfinite(target_norm.normals).all(dim=-1)).sum())
+            raise ValueError(
+                f"the target's 'normal' array has {n_bad} non-finite row(s) "
+                f"({cfg.target}). A NaN normal propagates through the entire data "
+                "term and silently destroys the run. Re-bake it with "
+                "scripts/write_surface_normals.py, which returns degenerate "
+                "vertices as the ZERO vector instead (scored as zero plane-distance, "
+                "falling back to the point-to-point component)."
+            )
 
     template_field = resolve_point_weight_field(
         data_term.source_to_target_field_name, data_term.source_to_target_field_source,
@@ -566,9 +611,9 @@ def build(cfg: ExperimentCfg):
     # ChamferSideCfg.base_sigma / FieldWeightedCDData) -- applying loss.sigma on
     # top here as well would silently compound two independent sigmas into one
     # undocumented product, so it is forced to a no-op (1.0) for that data term.
-    if cfg.loss.data_name == "field_weighted_chamfer":
+    if cfg.loss.data_name in FIELD_WEIGHTED_DATA_NAMES:
         data_weight = 1.0
-        print("[loss] data_name='field_weighted_chamfer' manages its own "
+        print(f"[loss] data_name={cfg.loss.data_name!r} manages its own "
               "per-direction base_sigma; loss.sigma is not applied on top "
               "(data_weight forced to 1.0).")
     else:
@@ -751,6 +796,10 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
             self.points = shape.points  # [1, N, 3]
             self.weights = shape.weights
             self.faces = shape.faces  # [F, 3] for trajectory export
+            # [1, N, 3] or None. Carried so a point-to-plane data term can read
+            # the TARGET's normals; the mapping error gathers them on the same
+            # subsample draw as the points (see _take_normals).
+            self.normals = shape.normals
 
     loader = OneBatchLoader((SimpleBatch(source_norm), SimpleBatch(target_norm)))
 
@@ -788,9 +837,9 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
             "landmark_weight."
         )
 
-    if cfg.loss.data_name == "field_weighted_chamfer":
+    if cfg.loss.data_name in FIELD_WEIGHTED_DATA_NAMES:
         raise NotImplementedError(
-            "data_name='field_weighted_chamfer' is not supported under "
+            f"data_name={cfg.loss.data_name!r} is not supported under "
             "train.mode='cohort' yet: field resolution runs only from _build_pair "
             "(see runner._add_field_weighted_chamfer), so pred_w/tgt_w would "
             "silently stay None here even with field_name configured. Use "

@@ -91,6 +91,45 @@ def _take_vertices(
     return points[:, idx, :], (None if weights is None else weights[:, idx])
 
 
+def _take_normals(normals: Optional[Tensor], idx: Optional[Tensor],
+                  label: str) -> Optional[Tensor]:
+    """One cloud's normals, restricted to the SAME draw its points used.
+
+    Separate from _take_vertices only because normals are [B, N, 3] while weights
+    are [B, N]; the invariant is identical and the two MUST be called with the
+    same ``idx``. Gathering normals on a different draw than their points leaves
+    every shape valid while pairing each point with some other point's normal --
+    correctly shaped and silently wrong, exactly the failure _take_vertices
+    warns about.
+
+    No re-normalisation here: a subsample selects normals, it does not transform
+    them, so a unit input stays unit. The data term unit-lengths defensively
+    anyway, for inputs that were never unit to begin with.
+
+    Args:
+        normals: [B, N, 3] per-vertex normals, or None
+        idx: index draw from _draw_indices, or None to pass through unchanged
+        label: cloud name, used in the shape-mismatch message
+
+    Returns:
+        [B, K, 3] normals restricted to idx, or None whenever normals was None.
+
+    Raises:
+        ValueError: normals does not address the cloud idx was drawn for.
+    """
+    if normals is None or idx is None:
+        return normals
+
+    if normals.shape[1] <= int(idx.max()):
+        raise ValueError(
+            f"{label}: normals has {normals.shape[1]} entries but the subsample "
+            f"draw indexes up to {int(idx.max())}; they must describe the same "
+            f"vertices as the points to be subsampled together."
+        )
+
+    return normals[:, idx, :]
+
+
 def _draw_pair_indices(template_points: Tensor, sample_points: Tensor,
                        n_subsample: Optional[int]) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Index draws for the template and sample clouds of one step.
@@ -186,7 +225,7 @@ class UnidirectionalMappingError:
         # at the SAME subsample indices as template_points/sample_points every
         # call and handed to the data term as pred_w/tgt_w. None by default --
         # only set via set_point_weight_fields, by runner._add_field_weighted_chamfer,
-        # and only when data_name == "field_weighted_chamfer".
+        # and only for the data_names in runner.FIELD_WEIGHTED_DATA_NAMES.
         self.template_field = None
         self.sample_field = None
 
@@ -294,10 +333,16 @@ class UnidirectionalMappingError:
         else:
             self.last_fwd_traj_full = None
 
-        # Points and weights share one draw, so tgt_w[i] stays the weight OF
-        # sample_points[i].
+        # Points, weights and normals share one draw, so tgt_w[i] stays the weight
+        # OF sample_points[i] and sample_normals[i] stays ITS normal.
         sample_points, sample_weights = _take_vertices(
             sample.points, sample.weights, sample_idx, "sample"
+        )
+        # None whenever the target carried no 'normal' array. The point-to-plane
+        # data term raises on that rather than silently degrading to
+        # point-to-point; every other data term ignores the argument.
+        sample_normals = _take_normals(
+            getattr(sample, "normals", None), sample_idx, "sample"
         )
         self.last_sample_points = sample_points  # what configured terms must reuse
 
@@ -310,7 +355,8 @@ class UnidirectionalMappingError:
         else:
             tgt_w = sample_weights
 
-        data = data_term(pred, sample_points, pred_w=pred_w, tgt_w=tgt_w)
+        data = data_term(pred, sample_points, pred_w=pred_w, tgt_w=tgt_w,
+                         normals=sample_normals)
         kinetic = fwd.kinetic_energy()
         return data, kinetic
 

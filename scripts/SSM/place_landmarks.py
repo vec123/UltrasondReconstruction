@@ -18,7 +18,7 @@ from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import PlaceLandmarksConfig
 from src.SSM.runners import PlaceLandmarksRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "place_landmarks.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "place_landmarks.yaml"
 
 
 def main(argv=None) -> int:

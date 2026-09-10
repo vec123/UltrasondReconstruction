@@ -1,0 +1,25 @@
+# Baseline: the BabyFM PCA point-distribution model.
+# The comparison model every GPMM variant in this folder is measured
+# against.
+#
+# Domain: BabyFM, bounding-box diagonal 0.019914, 31027 vertices, 163 PCA modes,
+# mean per-coordinate PCA variance 4.16e-8.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: pca
+truncation:
+  # All 163 modes.
+  n_components: 163
+  variance_threshold: 1.0
+approximation:
+  name: exact_factor
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_pca.npz

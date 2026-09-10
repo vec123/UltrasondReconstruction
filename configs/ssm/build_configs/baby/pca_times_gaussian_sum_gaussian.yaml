@@ -1,0 +1,43 @@
+# Nested, read left to right: (pca * gaussian) + gaussian.
+# Localized PCA variation, plus independent smooth directions on top.
+#
+# Domain: BabyFM, bounding-box diagonal 0.019914, 31027 vertices, 163 PCA modes,
+# mean per-coordinate PCA variance 4.16e-8.
+#   The inner gaussian localizes, so it block-scales and stays neutral:
+#     sigma 0.003 (local, 15% of the diagonal), scale 1.0.
+#   The outer gaussian is a summand, so its scale is a variance:
+#     sigma 0.005 (smooth, 25% of the diagonal), scale 4.160e-08 = 1x PCA variance.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    - name: product
+      children:
+        - name: pca
+        - name: gaussian
+          kwargs:
+            sigma: 0.003
+            scale: 1.0
+    - name: gaussian
+      kwargs:
+        sigma: 0.005
+        scale: 4.160e-08
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  # 93081 rows is past DENSE_ROW_LIMIT, so dense_eigh is not an option.
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_pca_times_gaussian_sum_gaussian.npz

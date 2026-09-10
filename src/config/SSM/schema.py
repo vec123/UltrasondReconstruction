@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 # NOTE: annotations stay in the typing.List / typing.Dict spelling rather than
 # the PEP 585 list[...] / dict[...] one. The config client resolves them with
@@ -151,7 +151,7 @@ class GmmToTemplateConfig:
     #                * clamp_coefficients() hardcodes beta_sq = 10000**2 rather
     #                  than deriving it from the eigenvalues, so chi_clamp
     #                  silently changes meaning;
-    #                * fit_to_matching solves (Phi.T @ Phi + gamma*I), and
+    #                * l2_closed_form_step solves (Phi.T @ Phi + gamma*I), and
     #                  Phi.T @ Phi scales by s^2, so nicp.gammas must be
     #                  rescaled by s^2 to mean the same thing.
     direction: str = "to_model"
@@ -210,6 +210,37 @@ class AtlasConfig:
 class ModelConfig:
     normalize: bool = False      # normalize the SSM to unit RMS scale on load
     atlas: AtlasConfig = field(default_factory=AtlasConfig)
+
+
+@dataclass
+class GpmmModelConfig:
+    """Configuration for building one Gaussian Process Morphable Model.
+
+    The kernel tree is intentionally untyped internally: composite kernels
+    recurse through arbitrary ``children`` and each registered kernel owns its
+    own kwargs validation. ``ConfigClient`` still validates the model-level
+    fields and interpolates paths before ``build_model`` receives the mapping.
+    """
+
+    domain: Dict[str, Any]
+    kernel: Dict[str, Any] = field(default_factory=lambda: {"name": "pca"})
+    approximation: Optional[Dict[str, Any]] = None
+    truncation: Optional[Dict[str, Any]] = None
+    inference: Optional[Dict[str, Any]] = None
+    normalize: bool = True
+    output: "GpmmModelOutputConfig" = field(default_factory=lambda: GpmmModelOutputConfig())
+
+
+@dataclass
+class GpmmModelOutputConfig:
+    """Destination for the serialized model archive."""
+
+    dir: Path = Path("outputs/gpmm")
+    filename: str = "model.npz"
+
+    @property
+    def path(self) -> Path:
+        return self.dir / self.filename
 
 
 # --------------------------------------------------------------------------
@@ -402,6 +433,20 @@ class SlidersConfig:
     # is extrapolation and starts to look like it.
     sigma_range: float = 3.0
 
+    # Keep the slider positions when the window switches model, instead of
+    # dropping back to the mean. What carries over is the reading in *standard
+    # deviations*, not the raw coefficient - lambda differs by orders of
+    # magnitude between models, so alpha is not transferable and sigma is. The
+    # point is to hold one set of slider positions still and watch what a
+    # different kernel does with it.
+    #
+    # Modes are matched by index, and index is all they share: mode 3 of a
+    # Matern model is not mode 3 of a Gaussian one, and across the two domains
+    # they are unrelated. Within one domain the leading modes usually do
+    # correspond, which is where this is worth using. Surplus modes are left at
+    # zero and coefficients past the new model's mode count are dropped.
+    carry_across_models: bool = True
+
     def __post_init__(self):
         if self.visible_rows < 1:
             raise ValueError(f"sliders.visible_rows must be at least 1, got {self.visible_rows}")
@@ -417,11 +462,19 @@ class SampleShapesView:
     # displacement always recedes towards the surface. 't' toggles it live.
     theme: str = "light"
 
-    #   displacement  |x - mean| per vertex, recomputed as the sliders move -
-    #                 shows what the current coefficients are actually doing
-    #   total_std     the model's per-vertex standard deviation, fixed - shows
-    #                 where the population varies at all
-    #   none          a flat surface colour, lit only by shading
+    #   displacement         |x - mean| per vertex, recomputed as the sliders
+    #                        move - what the current coefficients are doing
+    #   signed_displacement  (x - mean) . n, the component along the *mean*
+    #                        shape's outward normal: positive where the sample
+    #                        bulges out of the mean surface, negative where it
+    #                        dents in. Drawn on a diverging ramp centred at 0.
+    #                        Only the normal component - a vertex that slides
+    #                        tangentially reads 0 - so |signed| <= displacement.
+    #   total_std            the model's per-vertex standard deviation, fixed -
+    #                        where the population varies at all
+    #   none                 a flat surface colour, lit only by shading
+    #
+    # This is the *initial* mode; 'c' cycles through them in the window.
     color_by: str = "displacement"
     # Upper end of the colour ramp, in model units. null derives it from the
     # model as sliders.sigma_range * max total_std, which keeps the mapping
@@ -435,7 +488,7 @@ class SampleShapesView:
     show_mean: bool = False
     mean_opacity: float = 0.15
 
-    COLOR_MODES = ("displacement", "total_std", "none")
+    COLOR_MODES = ("displacement", "signed_displacement", "total_std", "none")
     THEMES = ("light", "dark")
 
     def __post_init__(self):
@@ -450,17 +503,111 @@ class SampleShapesView:
 
 
 @dataclass
+class ModelLibraryConfig:
+    """A folder of built models, offered in the window's model dropdown.
+
+    The alternative to declaring every model by hand under 'models': point this
+    at what ``scripts/SSM/build_model.py`` wrote and every archive under it
+    becomes selectable without editing any YAML. The two sources merge, with a
+    hand-written 'models' entry winning on a name collision, so a model that
+    needs its own camera or an LDDMM parametrisation can still be spelled out
+    while the rest are discovered.
+    """
+
+    # Folder to scan. Searched recursively; null disables discovery.
+    root: Optional[Path] = None
+    # Which archives to offer. The default matches build_model.py's output.
+    pattern: str = "*.npz"
+    # Entry names come from the path relative to 'root', without the suffix:
+    # ``baby/baby_pca.npz`` -> ``baby/pca``. The redundant ``<folder>_`` prefix
+    # is dropped because the folder is already in the name; set this false to
+    # keep the filename verbatim.
+    strip_folder_prefix: bool = True
+    # Viewing defaults for every discovered model. Discovery cannot know which
+    # way a mesh faces, and the two domains in this project happen to agree.
+    normalize: bool = False
+    camera_axis: str = "+z"
+    view_up: str = "+y"
+
+    def discover(self) -> Dict[str, "ShapeModelSource"]:
+        """``name -> ShapeModelSource`` for every archive under ``root``."""
+        if self.root is None:
+            return {}
+        if not self.root.is_dir():
+            raise ValueError(f"library.root is not a directory: {self.root}")
+
+        found = {}
+        for path in sorted(self.root.rglob(self.pattern)):
+            relative = path.relative_to(self.root)
+            stem = relative.stem
+            parent = relative.parent.as_posix()
+            if self.strip_folder_prefix and parent != ".":
+                lead = relative.parent.name + "_"
+                if stem.startswith(lead) and len(stem) > len(lead):
+                    stem = stem[len(lead):]
+            name = stem if parent == "." else f"{parent}/{stem}"
+            found[name] = ShapeModelSource(
+                path=path, normalize=self.normalize,
+                camera_axis=self.camera_axis, view_up=self.view_up,
+            )
+        return found
+
+
+@dataclass
+class DropdownConfig:
+    """The model picker in the top-left of the window."""
+
+    # Rows drawn at once. The list scrolls past this with the wheel, so it caps
+    # the height rather than the number of models.
+    visible_rows: int = 14
+    # Width of the closed bar and of the open list, in pixels.
+    width: int = 340
+    # Height of one row, in pixels.
+    row_height: int = 22
+
+    def __post_init__(self):
+        if self.visible_rows < 1:
+            raise ValueError(f"dropdown.visible_rows must be at least 1, got {self.visible_rows}")
+
+
+@dataclass
+class SampleShapesExport:
+    """Where 's' writes the shape currently on screen.
+
+    The export is a real mesh, not a picture: the sample's vertices on the
+    model's own triangulation, carrying every scalar the window can colour by
+    plus the displacement as a vector field, so it opens in ParaView with the
+    same information the window had. The coefficients that produced it travel
+    with it as field data, which is what makes a saved sample reproducible
+    rather than merely viewable.
+    """
+
+    dir: Path = Path("outputs/shape_space")
+    # Appended-binary + zlib. false writes ASCII, which is ~4x larger and only
+    # worth it for diffing a small mesh by eye.
+    binary: bool = True
+    # Attach displacement / signed_displacement / total_std / displacement
+    # vectors as point data. false writes bare geometry.
+    include_fields: bool = True
+
+
+@dataclass
 class SampleShapesConfig:
     """Interactive explorer: one slider per mode, drag to walk the shape space.
 
-    'model' names which entry of 'models' to load, so the same window opens on
-    either model and the two stay described side by side in one file.
+    'model' names which model to open. It may be an entry of 'models' or one
+    discovered under 'library.root'; either way the window's dropdown switches
+    between all of them at runtime, so comparing two kernels is a click rather
+    than an edit and a restart.
     """
 
     model: str
-    models: Dict[str, ShapeModelSource]
+    models: Dict[str, ShapeModelSource] = field(default_factory=dict)
+    library: ModelLibraryConfig = field(default_factory=ModelLibraryConfig)
+    dropdown: DropdownConfig = field(default_factory=DropdownConfig)
     sliders: SlidersConfig = field(default_factory=SlidersConfig)
     view: SampleShapesView = field(default_factory=SampleShapesView)
+    export: SampleShapesExport = field(default_factory=SampleShapesExport)
     # False renders one frame and exits instead of opening a window, which is
     # what makes the viewer usable headlessly - pair it with 'screenshot'.
     interactive: bool = True
@@ -468,17 +615,30 @@ class SampleShapesConfig:
     verbose: bool = True
 
     def __post_init__(self):
+        # Discovered first, hand-written second: an explicit entry overrides a
+        # discovered one of the same name rather than the other way round.
+        merged = self.library.discover()
+        merged.update(self.models)
+        self.models = merged
+
         if not self.models:
-            raise ValueError("'models' is empty: declare at least one shape model")
+            raise ValueError(
+                "no shape models: declare at least one under 'models', or point "
+                "'library.root' at a folder of built .npz models"
+            )
         if self.model not in self.models:
             raise ValueError(
-                f"model {self.model!r} is not declared under 'models'. "
+                f"model {self.model!r} is not available. "
                 f"Available: {sorted(self.models)}"
             )
 
     def source(self) -> ShapeModelSource:
         """The selected model's entry."""
         return self.models[self.model]
+
+    def model_names(self) -> List[str]:
+        """Every selectable model, in the order the dropdown lists them."""
+        return sorted(self.models)
 
 
 @dataclass
@@ -589,21 +749,42 @@ class ModelOptimizationConfig:
 
 @dataclass
 class NicpConfig:
-    """Step 2: correspondence + MAP-regularised surface fit.
+    """Step 2: a list of fits, each one a full (correspondence, loss, prior,
+    solver, projection) choice against the step 1 result.
 
-    Each entry of ``model_optimization.gammas``/``.variants`` gets its own
-    match/fit loop, starting fresh from the step 1 result: ``estimate``
-    correspondences with ``matching`` against the shape as it currently
-    stands, ``fit`` it at that entry's fixed gamma, repeat for
-    ``iterations`` rounds. ``iterations: 1`` reproduces the original
-    single-shot behaviour (correspondences estimated once, one MAP solve).
+    Two spellings, and ``fits`` wins when both are present:
+
+    ``fits`` (preferred) is the same language ``configs/ssm/nicp.yaml`` speaks -
+    each entry is a partial override of ``defaults``, validated into a
+    :class:`NicpFitSpec`. It is the only spelling that can reach a
+    correspondence-free objective, because it can say ``correspondence: none``
+    and name a loss that makes its own pairs.
+
+    ``matching`` + ``model_optimization`` is the original flat spelling, kept
+    working by desugaring into the same specs. It can only ever express matched
+    L2 solved in closed form, which is what it was built for.
     """
 
     iterations: int = 1
     # Write an extra snapshot of the fitted surface every Nth round (1 = every
-    # round). The canonical result (registry key + nicp_gamma/nicp_variant
-    # file) is always the final round regardless of this setting.
+    # round). The canonical result is always the final round regardless.
     save_every: int = 1
+
+    # -- compute ---------------------------------------------------------------
+    device: str = "auto"           # auto | cpu | cuda
+    dtype: str = "float64"         # float64 matches the original numpy solve
+    seed: Optional[int] = 0        # seeds any subsampling a loss does
+    # false treats the model as a point cloud, which is what this stage has
+    # always done. true attaches the triangulation, so model normals come from
+    # the surface and are consistently oriented - better matching, but it
+    # changes results, so flip it deliberately.
+    use_model_faces: bool = False
+
+    # -- preferred spelling ----------------------------------------------------
+    defaults: Dict[str, Any] = field(default_factory=dict)
+    fits: List[Dict[str, Any]] = field(default_factory=list)
+
+    # -- legacy spelling, desugared into the above -----------------------------
     matching: MatchingConfig = field(default_factory=MatchingConfig)
     model_optimization: ModelOptimizationConfig = field(default_factory=ModelOptimizationConfig)
 
@@ -612,6 +793,103 @@ class NicpConfig:
             raise ValueError(f"nicp.iterations must be >= 1, got {self.iterations}")
         if self.save_every < 1:
             raise ValueError(f"nicp.save_every must be >= 1, got {self.save_every}")
+
+    def resolve_fits(self, client) -> List["NicpFitSpec"]:
+        """The fits this configuration runs, in order, whichever spelling it used."""
+        entries = self.fits or self._desugar_legacy()
+        if not entries:
+            raise ValueError(
+                "nicp has no fits: add entries under 'nicp.fits', or gammas/variants "
+                "under 'nicp.model_optimization'"
+            )
+        return resolve_fit_specs(self.defaults, entries, client, source="nicp.fits")
+
+    def _desugar_legacy(self) -> List[Dict[str, Any]]:
+        """``matching`` + ``model_optimization`` as ``fits`` entries.
+
+        The legacy ``gamma`` becomes ``solver.damping``, NOT a prior. The two
+        are different equations: a prior on the coefficients carries a
+        ``- gamma * alpha`` term on the right-hand side and pulls the fit
+        towards the mean, while ``ShapeInstance.l2_closed_form_step`` - what
+        this spelling used to call - has no such term and only shortens the
+        step. Mapping gamma onto ``prior: isotropic`` would silently move every
+        result this spelling has ever produced.
+        """
+        opt = self.model_optimization
+        correspondence = self.matching.to_spec()
+
+        def entry(name, gamma, learning_rate, chi_clamp):
+            spec = {
+                "name": name,
+                "correspondence": {"name": correspondence.name, "kwargs": correspondence.kwargs},
+                "loss": {"name": "matched_l2", "kwargs": {"reduction": "sum"}},
+                "prior": {"name": "none"},
+                "solver": {"name": "normal_equations",
+                           "kwargs": {"iterations": self.iterations,
+                                      "learning_rate": learning_rate,
+                                      "damping": float(gamma)}},
+                "refresh_every": 1,
+            }
+            if chi_clamp is not None:
+                spec["projection"] = {"name": "mahalanobis_clamp", "kwargs": {"p": chi_clamp}}
+            return spec
+
+        entries = [entry(f"gamma_{_format_gamma(g)}", g, opt.learning_rate, opt.chi_clamp)
+                   for g in opt.gammas]
+        entries += [entry(v.name, v.gamma, v.learning_rate, v.chi_clamp) for v in opt.variants]
+        return entries
+
+
+def _format_gamma(gamma) -> str:
+    """``5`` not ``5.0``, so a desugared sweep keeps the filenames it always had."""
+    return str(int(gamma)) if float(gamma).is_integer() else str(gamma)
+
+
+def deep_merge(base: Mapping, override: Mapping) -> Dict[str, Any]:
+    """Recursive dict merge; ``override`` wins on leaves.
+
+    One special case: a block that names an implementation is replaced wholesale
+    when the name changes, instead of being merged. ``kwargs`` belong to the
+    implementation, not to the slot it sits in, so a fit that switches from
+    ``normal_equations`` to ``gradient`` must not inherit the former's
+    ``learning_rate``.
+    """
+    merged = dict(base)
+    for key, value in override.items():
+        current = merged.get(key)
+        if isinstance(value, Mapping) and isinstance(current, Mapping):
+            if value.get("name", current.get("name")) != current.get("name"):
+                merged[key] = dict(value)
+            else:
+                merged[key] = deep_merge(current, value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def resolve_fit_specs(defaults: Mapping, entries: Sequence[Mapping], client,
+                      source: str = "fits") -> List["NicpFitSpec"]:
+    """Merges each entry onto ``defaults`` and validates it into a NicpFitSpec.
+
+    Shared by the standalone runner's ``runs`` and the pipeline stage's
+    ``fits``, so one fit means the same thing in both. Every entry is resolved
+    before any of them runs: a typo in the last of twelve fails immediately
+    rather than after the first eleven have been fitted.
+    """
+    specs, seen = [], set()
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{source}[{index}] must be a mapping, got {type(entry).__name__}")
+        if "name" not in entry:
+            raise ValueError(f"{source}[{index}] is missing 'name'; it becomes the file name")
+
+        spec = client.from_dict(deep_merge(defaults, entry), NicpFitSpec,
+                                source=f"{source}[{index}]")
+        if spec.name in seen:
+            raise ValueError(f"duplicate fit name '{spec.name}' in {source}; names become files")
+        seen.add(spec.name)
+        specs.append(spec)
+    return specs
 
 
 # --------------------------------------------------------------------------
@@ -913,12 +1191,13 @@ class PipelineOutputFiles:
     matching_field: str = "matching_field.vtp"
     template_aligned: str = "template_aligned.vtp"
     gmm_2_template_transform: str = "gmm_2_template.npz"
-    nicp_gamma: str = "nicp_refined_vertices_gamma_{gamma}.vtp"
-    nicp_gamma_matching: str = "nicp_matching_field_gamma_{gamma}.vtp"
-    nicp_gamma_iteration: str = "nicp_refined_vertices_gamma_{gamma}_iter_{iteration:04d}.vtp"
-    nicp_variant: str = "nicp_refined_vertices_{name}.vtp"
-    nicp_variant_matching: str = "nicp_matching_field_{name}.vtp"
-    nicp_variant_iteration: str = "nicp_refined_vertices_{name}_iter_{iteration:04d}.vtp"
+    # One family for every fit, keyed by the fit's own name. A desugared gamma
+    # sweep names its fits "gamma_5", so it still writes
+    # nicp_refined_vertices_gamma_5.vtp - the filenames never moved, and no
+    # gamma-aware code is needed to keep them.
+    nicp_fit: str = "nicp_refined_vertices_{name}.vtp"
+    nicp_fit_matching: str = "nicp_matching_field_{name}.vtp"
+    nicp_fit_iteration: str = "nicp_refined_vertices_{name}_iter_{iteration:04d}.vtp"
     region_vertices: str = "n_region_verts.vtp"
     deformed_vertices: str = "deformed_vertices.vtp"
 

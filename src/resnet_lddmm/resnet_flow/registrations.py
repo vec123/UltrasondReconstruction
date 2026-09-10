@@ -51,6 +51,11 @@ Registry.register("data_term", "weighted_chamfer", "src.resnet_lddmm.resnet_flow
 
 # Per-direction (weight, base_sigma, point-field) chamfer -- see config.ChamferSideCfg
 Registry.register("data_term", "field_weighted_chamfer", "src.resnet_lddmm.resnet_flow.losses.data_terms:FieldWeightedCDData")
+# Same per-direction (weight, base_sigma, field) config shape as
+# field_weighted_chamfer, but the residual is measured to the target's tangent
+# plane. Needs a 'normal' point array on the target -- see
+# scripts/write_surface_normals.py and runner.FIELD_WEIGHTED_DATA_NAMES.
+Registry.register("data_term", "field_weighted_point2plane_chamfer", "src.resnet_lddmm.resnet_flow.losses.data_terms:FieldWeightedP2PlaneData")
 Registry.register("data_term", "pcd", "src.resnet_lddmm.resnet_flow.losses.data_terms:PCDData")
 Registry.register("data_term", "ncd", "src.resnet_lddmm.resnet_flow.losses.data_terms:NCDData")
 

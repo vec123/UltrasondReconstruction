@@ -24,9 +24,9 @@ class PointCloud:
     cached tree and normals no longer describe the points.
     """
 
-    __slots__ = ("_points", "_faces", "_normals", "_tree")
+    __slots__ = ("_points", "_faces", "_normals", "_tree", "_fields")
 
-    def __init__(self, points, faces=None, normals=None):
+    def __init__(self, points, faces=None, normals=None, fields=None):
         pts = np.asarray(points, dtype=np.float64)
         if pts.ndim == 1:
             # accept the flat (3N,) layout the SSM reconstructs into
@@ -45,6 +45,19 @@ class PointCloud:
                     f"normals must match the points, got {normals.shape} for {pts.shape}"
                 )
             self._normals = normals
+
+        #: name -> (N,) scalar per point, as read off the source .vtp. These are
+        #: what a per-direction weight field in a two-sided data term reads (a
+        #: consistency score, a support count); geometry never touches them.
+        self._fields = {}
+        for name, values in (fields or {}).items():
+            arr = np.asarray(values, dtype=np.float64).squeeze()
+            if arr.shape != (pts.shape[0],):
+                raise ValueError(
+                    f"field {name!r} has shape {arr.shape}, expected ({pts.shape[0]},) "
+                    f"- one scalar per point"
+                )
+            self._fields[name] = arr
 
     @classmethod
     def as_cloud(cls, obj, faces=None) -> "PointCloud":
@@ -67,6 +80,18 @@ class PointCloud:
         if self._normals is None:
             self._normals = vertex_normals(self._points, self._faces)
         return self._normals
+
+    @property
+    def field_names(self):
+        return sorted(self._fields)
+
+    def field(self, name: str) -> np.ndarray:
+        """One named per-point scalar; raises with the available names if absent."""
+        if name not in self._fields:
+            raise ValueError(
+                f"point field {name!r} not on this cloud; available: {self.field_names}"
+            )
+        return self._fields[name]
 
     @property
     def tree(self):

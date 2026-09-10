@@ -153,16 +153,27 @@ def neighborhood_normal(points):
     return normal / np.linalg.norm(normal,axis=-1, keepdims=True)
 
 def mesh_vertex_normals(verts, faces):
-    """Vertex normals, by summing (unit) incident face normals. numpy in / out."""
+    """Vertex normals, by summing (unit) incident face normals. numpy in / out.
+
+    UNWEIGHTED: a sliver triangle counts as much as a large one at the same
+    vertex. See surface_measures._vertex_normals for the area-weighted variant.
+
+    A vertex whose incident faces are degenerate or cancel exactly sums to the
+    zero vector; the epsilon below returns it as zero rather than NaN. That
+    distinction matters -- a zero normal EXCLUDES that vertex from whatever
+    consumes it (a cos-similarity weight becomes 0, a point-to-plane residual
+    becomes 0), while a NaN propagates through every downstream reduction and
+    silently destroys the whole result. Real meshes have these: the fused scans
+    here carry ~0.1% of them.
+    """
     face_n = face_normals(verts, faces)
 
     vertex_normals = np.zeros(verts.shape)
     for i in range(3):
         np.add.at(vertex_normals, faces[:,i], face_n)
 
-    vertex_normals = vertex_normals / np.linalg.norm(vertex_normals,axis=-1,keepdims=True)
-
-    return vertex_normals
+    norm = np.linalg.norm(vertex_normals, axis=-1, keepdims=True)
+    return vertex_normals / np.maximum(norm, 1e-12)
 
 
 def vertex_normals(verts, faces=None, n_neighbors_cloud=30, normalize=True):

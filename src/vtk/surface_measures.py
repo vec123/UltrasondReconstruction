@@ -162,6 +162,65 @@ def _quadric_residual_sq_sum(vi, disp, normals, n_pts):
     return np.maximum(res_sq, 0.0)  # clamp negative round-off
 
 
+def compute_vertex_normals(polydata, field_name="normal", weighting="unit"):
+    """Assign each vertex the unit normal of the surface it sits on.
+
+    The ONE place a persisted ``normal`` point array is produced, so the
+    convention cannot drift between the pipeline stage that bakes it
+    (scan_fusion) and the standalone re-bake (scripts/write_surface_normals.py).
+    ``io.load_shape`` reads an array of this name into ``Shape.normals``, which
+    is what the point-to-plane data term projects onto.
+
+    ``weighting`` picks how the incident faces are averaged:
+
+    - ``"unit"``: mean of the incident faces' UNIT normals. A sliver counts as
+      much as a large triangle. Matches vtkPolyDataNormals (verified to
+      |cos| > 0.9999 on 99.9% of a fused scan's vertices) and is what
+      ``scan_fusion`` already uses for its normal-agreement weighting.
+    - ``"area"``: area-weighted, via ``_vertex_normals``. More robust on
+      irregular triangulations, where a sliver's noisy normal is otherwise
+      counted in full.
+
+    Derived from FACES, never estimated from the point cloud: a mesh without
+    polys raises rather than silently falling back to a kNN-PCA fit, which is a
+    different object with different error characteristics.
+
+    Vertices whose incident faces are degenerate or cancel come back as the ZERO
+    vector, never NaN (see geometry.mesh_vertex_normals). Consumers must treat
+    zero as "no tangent plane here" -- the point-to-plane term scores them at
+    zero plane-distance, falling back to its point-to-point component.
+
+    If ``field_name`` is not None the result is attached to ``polydata`` as a
+    3-component point field. Returns the normals as an ``[N, 3]`` numpy array.
+    """
+    verts, faces = extract_vtp_points_cells(polydata)
+    if faces.size == 0:
+        raise ValueError(
+            f"compute_vertex_normals needs a triangulated mesh; polydata has "
+            f"{verts.shape[0]} points and no polys. A bare point cloud would need "
+            f"estimated (kNN-PCA) normals -- see geometry.vertex_normals -- which "
+            f"is a deliberate choice, not a fallback."
+        )
+
+    if weighting == "unit":
+        # Local import: geometry pulls in heavier deps than this module's own.
+        from src.geometry import mesh_vertex_normals
+        normals = mesh_vertex_normals(verts=verts, faces=faces)
+    elif weighting == "area":
+        normals = _vertex_normals(verts, faces)
+    else:
+        raise ValueError(f"unknown weighting {weighting!r}; expected 'unit' or 'area'")
+
+    # Belt and braces: both helpers guard their own division, but a NaN reaching
+    # a training loss is unrecoverable and silent until the loss itself goes NaN,
+    # so never let one leave this function.
+    normals = np.nan_to_num(normals, nan=0.0, posinf=0.0, neginf=0.0)
+
+    if field_name is not None:
+        add_point_field(polydata, normals.astype(np.float32), field_name=field_name)
+    return normals
+
+
 def compute_vertex_roughness(polydata, n_rings=2, scale_invariant=True, field_name="roughness",
                              method="plane", neighbors="knn", max_neighbors=32):
     """Assign each vertex a scalar reflecting local surface roughness.

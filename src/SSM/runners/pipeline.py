@@ -24,6 +24,7 @@ from typing import Optional
 
 import numpy as np
 
+from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import PipelineConfig
 from src.SSM.correspondence.vtk import save_matching_field
 from src.landmarks.load_landmarks import load_landmarks
@@ -50,7 +51,10 @@ from src.vtk.create import (
 from src.SSM.laplacian.laplacian import solve_laplacian_deformation
 from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
 from src.SSM.model.model import ShapeInstance, StatisticalShapeModel
-from src.SSM.nicp import Correspondences, PointCloud, build_correspondence
+from src.SSM.nicp import Correspondences, PointCloud
+from src.SSM.nicp.problem import build_problem
+from src.SSM.nicp.shape import ShapeSpace
+from src.SSM.nicp.solvers import build_solver
 
 #: registry key for the step 1 result
 REFINED_KEY = "refined"
@@ -75,7 +79,10 @@ class PipelineResult:
 class PipelineRunner:
     """Executes the pipeline stages selected by a :class:`PipelineConfig`."""
 
-    def __init__(self, config: PipelineConfig):
+    def __init__(self, config: PipelineConfig, client=None):
+        # the config client validates each fit spec; the stage adapter passes
+        # its own so ${VAR} interpolation behaves the same everywhere
+        self.client = client or ConfigClient()
         self.config = config
 
         # state shared between the steps
@@ -97,7 +104,7 @@ class PipelineRunner:
         self.model_faces: Optional[np.ndarray] = None    # model's fixed triangulation
         self.surface_faces: Optional[np.ndarray] = None  # target mesh_vtp's own triangulation
         self.template_point_data = None  # inputs.template_vtp's PointData, see _save_points
-        self._strategy = None   # correspondence method, built on first use
+        self._specs = None      # resolved nicp.fits, built on first use
 
     def run(self) -> PipelineResult:
         self.validate_plan()
@@ -124,13 +131,22 @@ class PipelineRunner:
 
     # -- plan validation ---------------------------------------------------
 
+    def _planned_fits(self) -> list:
+        """The resolved ``nicp.fits``, built once and cached.
+
+        Resolving validates every fit, so this doubles as the config check and
+        is why an unknown kwarg in the last fit fails before the first one runs.
+        """
+        if self._specs is None:
+            self._specs = self.config.nicp.resolve_fits(self.client)
+        return self._specs
+
     def planned_keys(self) -> list:
         """Registry keys this configuration will produce, in order."""
         cfg = self.config
         keys = [REFINED_KEY]
         if cfg.steps.nicp:
-            keys += [f"gamma_{self._fmt_gamma(g)}" for g in cfg.nicp.model_optimization.gammas]
-            keys += [v.name for v in cfg.nicp.model_optimization.variants]
+            keys += [spec.name for spec in self._planned_fits()]
         return keys
 
     def validate_plan(self):
@@ -156,15 +172,20 @@ class PipelineRunner:
                 "steps.gmm_2_template is on but the gmm_2_template config block is missing"
             )
 
-        # The MAP step solves against a fixed set of matched vertices, so it has
-        # no way to associate the surfaces on its own.
-        if cfg.steps.nicp and not self._correspondence_strategy().produces_matches:
-            raise ValueError(
-                f"nicp.matching.mode='{cfg.nicp.matching.mode}' produces no correspondences, but "
-                f"the pipeline's NICP step fits against a fixed match set. Use 'nearest' or "
-                f"'constrained' here; correspondence-free fitting needs a data term that "
-                f"associates the surfaces itself."
-            )
+        # Assemble every fit before any of them runs. The FitProblem constructor
+        # rejects a pairing-consuming loss with correspondence 'none', and the
+        # closed-form solver rejects a loss it cannot solve, so an impossible
+        # combination fails here rather than after the first fit has finished.
+        if cfg.steps.nicp:
+            # A stand-in basis: this runs before the model is loaded, and none of
+            # the checks look at the numbers - only at which components were
+            # named and whether they can work together.
+            probe_space = ShapeSpace(np.zeros(12), np.zeros((12, 2)), np.ones(2),
+                                     device="cpu", dtype="float32")
+            probe_cloud = PointCloud(np.zeros((4, 3)))
+            for spec in self._planned_fits():
+                problem = build_problem(spec, probe_space, probe_cloud)
+                build_solver(spec.solver.name, spec.solver.kwargs).validate(problem)
 
         if not cfg.steps.laplacian:
             return
@@ -462,7 +483,7 @@ class PipelineRunner:
 
     def fit_to_surface(self):
         cfg = self.config
-        self._log("----------Step 2: (correspondence + model-optimization NICP loop)")
+        self._log("----------Step 2: (configured NICP fits)")
 
         if not cfg.steps.nicp:
             self._log("skipped (steps.nicp is off)")
@@ -471,101 +492,62 @@ class PipelineRunner:
         self._log("refined_vertices.shape: ", self.refined_vertices.shape)
         self._log("aligned_surface.shape: ", self.aligned_surface.shape)
 
-        strategy = self._correspondence_strategy()
-        self._log("correspondence:", strategy.describe())
-        self._log(f"iterations (match -> fit rounds) per gamma/variant: {cfg.nicp.iterations}")
+        # Built once each: neither the model basis nor the target moves between
+        # fits, only the coefficients do.
+        space = ShapeSpace.from_model(
+            self.shape_model,
+            faces=self.model_faces if cfg.nicp.use_model_faces else None,
+            device=cfg.nicp.device, dtype=cfg.nicp.dtype,
+        )
+        target_cloud = PointCloud(self.aligned_surface.reshape(-1, 3),
+                                  faces=self.surface_faces)
 
-        # Built once: the target does not move between rounds, only the model does.
-        target_cloud = PointCloud(self.aligned_surface.reshape(-1, 3))
+        specs = self._planned_fits()
+        self._log(f"{len(specs)} fit(s): {[s.name for s in specs]}")
+        for spec in specs:
+            self._nicp_fit(spec, space, target_cloud)
 
-        opt = cfg.nicp.model_optimization
-        for gamma in opt.gammas:
-            self._nicp_fit(
-                key=f"gamma_{self._fmt_gamma(gamma)}",
-                gamma=gamma,
-                learning_rate=opt.learning_rate,
-                chi_clamp=opt.chi_clamp,
-                out_key="nicp_gamma",
-                out_fmt={"gamma": self._fmt_gamma(gamma)},
-                target_cloud=target_cloud,
-            )
+    def _nicp_fit(self, spec, space, target_cloud):
+        """One configured fit, starting fresh from the step 1 shape.
 
-        for variant in opt.variants:
-            self._nicp_fit(
-                key=variant.name,
-                gamma=variant.gamma,
-                learning_rate=variant.learning_rate,
-                chi_clamp=variant.chi_clamp,
-                out_key="nicp_variant",
-                out_fmt={"name": variant.name},
-                target_cloud=target_cloud,
-            )
-
-    def _correspondence_strategy(self):
-        """The matcher selected by the ``nicp.matching`` block, built once and cached."""
-        if self._strategy is None:
-            spec = self.config.nicp.matching.to_spec()
-            self._strategy = build_correspondence(spec.name, spec.kwargs)
-        return self._strategy
-
-    def _nicp_fit(self, key, gamma, learning_rate, chi_clamp, out_key, out_fmt, target_cloud):
-        """One gamma/variant's own match -> fit loop, starting fresh from step 1's shape.
-
-        Each round re-estimates correspondences against the shape as it
-        currently stands, then does one MAP-regularised solve at this entry's
-        fixed gamma - the standard chicken-and-egg non-rigid ICP alternation,
-        just with the regularisation strength held constant across rounds
-        instead of annealed. ``nicp.iterations: 1`` reduces this to the
-        original single-shot fit.
+        Everything that distinguishes one fit from another - whether it pairs
+        the surfaces at all, what it minimises, how it is solved - lives in the
+        spec. This only runs it and writes the result, so reaching a
+        correspondence-free objective is a config change and nothing else.
         """
         cfg = self.config
-        strategy = self._correspondence_strategy()
-        shape_fit = deepcopy(self.shape)
-        matches = None
+        problem = build_problem(spec, space, target_cloud,
+                                alpha0=self.shape.alpha, seed=cfg.nicp.seed)
+        solver = build_solver(spec.solver.name, spec.solver.kwargs)
+        self._log(f"  [{spec.name}] {problem.describe()}")
+        self._log(f"  [{spec.name}] solver       ={solver.describe()}")
 
-        for iteration in range(cfg.nicp.iterations):
-            current_verts = shape_fit.reconstruct().reshape(-1, 3)
-            matches = strategy.estimate(current_verts, target_cloud)
-            self._log(f"  [{key}] iter {iteration + 1}/{cfg.nicp.iterations}: {matches.summary()}")
+        def on_iteration(iteration, alpha, terms):
+            # iteration 0 is the shape the fit starts from, so the stride counts
+            # from it rather than skipping it.
+            if iteration % cfg.nicp.save_every:
+                return
+            self._save_points(space.to_numpy(alpha), "nicp_fit_iteration",
+                              faces=self.model_faces, iteration=iteration, name=spec.name)
 
-            if matches.is_empty:
-                raise RuntimeError(
-                    f"no valid matches found for '{key}' at iteration {iteration + 1}; raise "
-                    f"nicp.matching.dist_thresh / nicp.matching.normal_thresh_deg, or use "
-                    f"nicp.matching.mode: nearest"
-                )
+        result = solver.solve(problem, log=self._log if cfg.verbose else None,
+                              on_iteration=on_iteration)
 
-            shape_fit.fit_to_matching(
-                self.aligned_surface,
-                matches.as_array(),
-                learning_rate=learning_rate,
-                gamma=gamma,
-                chi_clamp=chi_clamp,
-            )
+        vertices = space.to_numpy(result.alpha)
+        shape_fit = ShapeInstance(self.shape_model,
+                                  alpha=result.alpha.detach().cpu().numpy().astype(float))
+        self._register(spec.name, shape_fit, vertices)
+        self._save_points(vertices, "nicp_fit", faces=self.model_faces, name=spec.name)
 
-            is_last = iteration == cfg.nicp.iterations - 1
-            if (iteration + 1) % cfg.nicp.save_every == 0 and not is_last:
-                self._save_points(
-                    shape_fit.reconstruct(), f"{out_key}_iteration",
-                    faces=self.model_faces, iteration=iteration, **out_fmt,
-                )
-
-        vertices = shape_fit.reconstruct()
+        # A correspondence-free fit has no pairs to draw, so there is nothing to
+        # write: the one place anything downstream notices which family it was.
+        matches = problem.context.correspondences
         self.matches = matches
-
-        self._register(key, shape_fit, vertices)
-        self._save_points(vertices, out_key, faces=self.model_faces, **out_fmt)
-
-        matching_path = cfg.outputs.path(f"{out_key}_matching", **out_fmt)
-        save_matching_field(
-            vertices.reshape(-1, 3), target_cloud.points,
-            matches.as_array(), filename=str(matching_path),
-        )
-        self.written_files.append(matching_path)
-
-    @staticmethod
-    def _fmt_gamma(gamma) -> str:
-        return str(int(gamma)) if float(gamma).is_integer() else str(gamma)
+        if matches is not None and not matches.is_empty:
+            path = cfg.outputs.path("nicp_fit_matching", name=spec.name)
+            save_matching_field(vertices.reshape(-1, 3), target_cloud.points,
+                                matches.as_array(), filename=str(path))
+            self.written_files.append(path)
 
     # -- step 3: regional Laplacian deformation ----------------------------
 

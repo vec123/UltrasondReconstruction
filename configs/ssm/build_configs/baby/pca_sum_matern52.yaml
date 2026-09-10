@@ -1,0 +1,40 @@
+# Additive GPMM: pca + matern52.
+# Keeps the BabyFM PCA variation and adds deformation directions outside
+# the PCA subspace. Twice mean-square differentiable - curvature is defined; the usual default for a surface prior.
+#
+# Domain: BabyFM, bounding-box diagonal 0.019914, 31027 vertices, 163 PCA modes,
+# mean per-coordinate PCA variance 4.16e-8.
+#   rho 0.00462 = the smooth length scale (25% of the diagonal), chosen so
+#   this kernel's correlation reaches 0.05 at the same distance as
+#   gaussian(sigma=0.005). That equivalence is what makes the four
+#   pca_sum_* models comparable.
+#   scale 4.160e-08 = 1x the mean per-coordinate PCA variance. In a sum the term
+#   is lifted isotropically and its scale IS a per-coordinate variance.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    - name: pca
+    - name: matern52
+      kwargs:
+        rho: 0.00462
+        scale: 4.160e-08
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  # 93081 rows is past DENSE_ROW_LIMIT, so dense_eigh is not an option.
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_pca_sum_matern52.npz

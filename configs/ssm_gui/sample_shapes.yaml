@@ -1,0 +1,149 @@
+# Configuration for scripts/SSM/sample_shapes.py  ->  src.SSM.runners.SampleShapesRunner
+#
+#   python scripts/SSM/sample_shapes.py --config configs/ssm_gui/sample_shapes.yaml
+#   python scripts/SSM/sample_shapes.py --model fetus/pca     # override 'model' below
+#   python scripts/SSM/sample_shapes.py --no-window --screenshot outputs/shape_space.png
+#
+# Opens the shape space with one slider per mode. Dragging slider k sets
+#
+#   x = mean + sum_k alpha_k * phi_k ,   alpha_k = (slider k) * sqrt(lambda_k)
+#
+# so the sliders read in *standard deviations*, not raw coefficients - the only
+# scale on which modes (and different models) are comparable. RESET TO MEAN, or
+# the 'r' key, puts every slider back to 0, which is the mean shape.
+#
+# The window is the interactive counterpart of configs/ssm/mean_shape.yaml: that
+# one writes what the model can do as static heatmaps, this one lets you move
+# through it and watch the surface follow.
+#
+# Models are picked from the dropdown in the window - 'm' opens it, '[' and ']'
+# step through the list - so comparing two kernels is a click, not an edit and a
+# restart. The list is 'library' below plus anything named under 'models'.
+
+# Where the built models live. Every archive under here is offered in the
+# dropdown, named by its path without the redundant folder prefix:
+# src/SSM/saved_models/fetus/fetus_pca_times_matern52.npz -> 'fetus/pca_times_matern52'.
+# This is exactly what scripts/SSM/build_model.py writes from
+# configs/ssm/build_configs/, so building a new kernel puts it in the window
+# with no edit here.
+library:
+  root: ${PROJECT_ROOT}/src/SSM/saved_models
+  pattern: "*.npz"
+  camera_axis: "+z"
+  view_up: "+y"
+
+# The picker itself.
+dropdown:
+  visible_rows: 14      # taller lists scroll with the wheel
+  width: 340
+  row_height: 22
+
+# Which model opens. Any name from 'library' or 'models'; --model overrides it.
+model: fetus/pca
+
+# Models that discovery cannot describe: a different parametrisation, a source
+# that is not an .npz, or a camera of its own. These win over a discovered
+# entry of the same name.
+models:
+  # The same atlas kept on the manifold: PCA on the initial momenta, and every
+  # sample reached by shooting the geodesic instead of summing displacements.
+  # Each sample is then a diffeomorphism of the template - it cannot fold the
+  # surface through itself - and large deformations stay on the manifold.
+  #
+  # It is not free: a sample costs an integration (~0.3 s at 6 time points), so
+  # the sliders are throttled during a drag and the shape catches up when you
+  # let go. The status line reports how far the current sample sits from the
+  # best the linear basis could do, which is the honest measure of what the
+  # linear route gives up: at +2 sd on mode 0 that is 0.077 mm on a sample that
+  # moves 7.14 mm, so near the population the two agree closely.
+  #
+  # Only an atlas can do this - a .mat has neither momenta nor a kernel - so
+  # there is no 'baby' counterpart.
+  fetus_lddmm:
+    path: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+    parametrization: lddmm
+    lddmm_time_points: 6      # 6 is converged to ~0.14 mm; 11 is deformetrica's default
+    camera_axis: "+z"
+    view_up: "+y"
+    atlas:
+      kernel_width: null      # null reads 'kwd' from the atlas params.json
+      cache: true
+
+sliders:
+  # How many modes the panel exposes. null exposes every one of them (183 on
+  # the fetus model, 163 on the baby), reached by scrolling the panel - the
+  # rows are a fixed pool re-bound as it scrolls, so this costs nothing.
+  # A number truncates instead, and the modes past it stay at alpha = 0.
+  # For reference on the fetus model, the first 8 modes carry ~81% of the
+  # variance, the first 10 ~84%, and mode 100 carries 0.05%.
+  mode_count: null
+  # Rows drawn at once. Past ~14 they crowd at a 900 px window height.
+  visible_rows: 10
+  # Travel either side of the mean, in standard deviations. The model is
+  # Gaussian by construction, so +/-3 covers 99.7% of the training population -
+  # past that you are extrapolating, and it tends to look like it.
+  sigma_range: 3.0
+  # Hold the slider positions when the dropdown switches model, rather than
+  # dropping back to the mean - so one set of positions can be held still while
+  # the model under it changes, which is the point of having the kernels a
+  # keypress apart. What carries is the reading in standard deviations, not the
+  # raw coefficient: lambda differs by ~3.5e7 between the two domains here, so
+  # alpha does not transfer and sigma does.
+  #
+  # Modes are matched by index, and index is all they share - mode 3 of a
+  # Matern model is not mode 3 of a Gaussian one, and across domains they are
+  # unrelated. Within one domain the leading modes usually do correspond, which
+  # is where this earns its keep. 'r' still resets whenever you want it.
+  carry_across_models: true
+
+view:
+  window_size: [1400, 900]
+  # light | dark, toggled live with 't'. It sets the whole palette, not only
+  # the background: the colour ramp below runs the other way in each, so its
+  # near-zero end always recedes towards the surface instead of shouting.
+  theme: light
+
+  # The mode the window OPENS in; 'c' (or the COLOR button) cycles through all
+  # four at runtime, so this is a default rather than a commitment.
+  #
+  #   displacement         |x - mean| per vertex, recomputed as you drag: what
+  #                        the current coefficients are actually moving
+  #   signed_displacement  (x - mean) . n against the MEAN shape's outward
+  #                        normal, on a diverging ramp centred at 0: positive
+  #                        where the sample bulges out, negative where it dents
+  #                        in. Tells a growing nose from a collapsing one, which
+  #                        the unsigned magnitude cannot. Only the normal
+  #                        component, so a vertex sliding tangentially reads 0.
+  #   total_std            the model's own per-vertex sd, fixed: shows where the
+  #                        population varies at all (the mean_shape.py heatmap)
+  #   none                 flat surface colour, shape read from the lighting
+  #                        alone - the honest way to judge a silhouette
+  color_by: displacement
+  # Top of the colour ramp, in model units. null derives it from the model as
+  # sigma_range * max(total_std) and then holds it fixed, so colours keep the
+  # same meaning while the sliders move.
+  color_range: null
+  show_scalar_bar: true
+  show_edges: false
+
+  # Hold the mean shape behind the sample as a translucent ghost, so the
+  # displacement is visible as a shape and not only as a colour.
+  show_mean: false
+  mean_opacity: 0.15
+
+# false renders a single frame and exits - use it with 'screenshot' to get a
+# picture out of a machine with no display.
+interactive: true
+screenshot: null
+
+# Where 's' / the SAVE .VTP button writes the shape currently on screen. The
+# file carries the sample on the model's triangulation with displacement,
+# signed_displacement and total_std as point data, the displacement vectors for
+# warping or glyphing, and the coefficients that produced it as field data - so
+# a saved sample can be rebuilt exactly, not just looked at.
+export:
+  dir: ${PROJECT_ROOT}/outputs/shape_space
+  binary: true
+  include_fields: true
+
+verbose: true

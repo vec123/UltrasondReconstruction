@@ -1,0 +1,30 @@
+# Prior-only GPMM: no empirical PCA term.
+# The Gaussian scale is matched to the BabyFM per-coordinate variance scale.
+domain:
+  #source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: gaussian
+  kwargs:
+    sigma: 0.005
+    # BabyFM's mean per-coordinate PCA variance is about 4.16e-8.
+    scale: 1.0e-7
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+# The current consumers evaluate the saved basis on this mesh. Continuous
+# inference is optional and requires the potpourri3d inducing-point dependency.
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/outputs/gpmm/gaussian
+  filename: fetus_gaussian.npz

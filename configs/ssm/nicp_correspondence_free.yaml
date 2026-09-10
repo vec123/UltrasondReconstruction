@@ -1,0 +1,163 @@
+# Does a correspondence-free objective beat matched least squares on our data?
+#
+#   python scripts/SSM/nicp.py -c configs/ssm/nicp_correspondence_free.yaml --list
+#   python scripts/SSM/nicp.py -c configs/ssm/nicp_correspondence_free.yaml
+#   python scripts/SSM/nicp.py -c configs/ssm/nicp_correspondence_free.yaml -r symmetric
+#
+# This answers the question *before* any refactor, by feeding the standalone
+# NICP runner the pipeline's own intermediates:
+#
+#   rigid_alignment.vtp    the scan, already mapped into model space by the
+#                          pipeline's step 1 - so no to_model_space transform is
+#                          needed here, the two frames already coincide
+#   refined_vertices.vtp   the step 1 result (5743 pts = a model instance), so
+#                          init_vtp projects it back onto the basis and every
+#                          run starts exactly where the pipeline's step 2 does
+#
+# Everything is therefore in FetusModel_x4's units: millimetres, mean shape
+# spanning ~56 x 80 x 24 mm, ~1 mm mean edge length. Do not copy thresholds or
+# learning rates from configs/ssm/nicp.yaml, which is tuned for BabyFM's
+# ~0.01-unit scale.
+#
+# Compare the runs on metrics.csv:
+#   model_to_target_rms   how far the fitted model sits from the scan
+#   target_to_model_rms   how well the scan is explained by the model
+# On a partial scan those two disagree, and the gap is the whole reason to try a
+# bidirectional or correspondence-free objective.
+
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  mesh_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/rigid_alignment.vtp
+  init_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/refined_vertices.vtp
+  # already in model space - nothing to solve or replay
+  to_model_space:
+    template_vtp: null
+    transform_npz: null
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/correspondence_free
+  run_dir: "{run}"
+  save_alpha: true
+  save_matching_field: true   # skipped automatically by the correspondence-free runs
+  save_history: true
+  save_world: false           # model space *is* world space here
+  save_iterations: false      # a 300-step gradient run would write ~300 meshes
+
+model:
+  normalize: false
+  atlas:
+    # FetusModel_x4 annotates 13 of the 19 baby landmarks; the rest are dropped
+    landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+
+compute:
+  device: auto
+  dtype: float32
+  seed: 0
+  # false = treat the model as a point cloud, which is what the pipeline does,
+  # so 'baseline' below stays comparable to nicp_refined_vertices_gamma_5.vtp
+  use_model_faces: false
+
+defaults:
+  correspondence:
+    name: constrained
+    kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
+             use_target_normals: true, one_to_one: true}
+  loss: {name: matched_l2, kwargs: {reduction: sum}}
+  prior: {name: none}
+  solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0}}
+  projection: {name: none}
+  refresh_every: 1
+
+runs:
+  # -- the control -------------------------------------------------------------
+  # The pipeline's gamma_5 fit, expressed through the modular stack. gamma is
+  # damping on the step, not a prior, so it goes in solver.damping - see
+  # docs/nicp-correspondence-free-objectives.md section 4.1. This is the number
+  # every run below has to beat.
+  - name: baseline
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 5.0}}
+
+  # -- bidirectional pairing, still closed form --------------------------------
+  # Chamfer expressed as a pairing instead of a loss, so the rejection rules
+  # still apply and one linear solve per round replaces a few hundred gradient
+  # steps. Expected to be the best value for the compute; try this first.
+  # backward_weight > forward_weight because the scan is partial: every scan
+  # point deserves explaining, but model vertices outside the scanned region
+  # have no counterpart and the forward term would invent one for them.
+  - name: symmetric
+    correspondence:
+      name: symmetric
+      kwargs: {forward_weight: 1.0, backward_weight: 5.0, max_dist: 10.0,
+               trim_ratio: 0.05, normal_thresh_deg: null, seed: 0}
+    solver: {name: normal_equations, kwargs: {iterations: 10, learning_rate: 1.0, damping: 5.0}}
+
+  # Same pairing, with the distance measured along the target normal so the
+  # model can slide tangentially instead of being dragged to whichever point it
+  # was paired with. This is correspondence-free point-to-plane; it is not
+  # quadratic, so it needs the gradient solver.
+  - name: symmetric_p2plane
+    correspondence:
+      name: symmetric
+      kwargs: {forward_weight: 1.0, backward_weight: 5.0, max_dist: 10.0,
+               trim_ratio: 0.05, normal_thresh_deg: 60.0, seed: 0}
+    loss:
+      name: composite
+      kwargs:
+        terms:
+          - {name: matched_l2,     weight: 1.0, kwargs: {reduction: sum}}
+          - {name: point_to_plane, weight: 0.5, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 0.1, normalize: true}}
+    solver: {name: gradient, kwargs: {optimizer: adam, lr: 1.0e-2, iterations: 200,
+             tolerance: 1.0e-8, patience: 5, log_every: 25}}
+
+  # -- genuinely correspondence-free -------------------------------------------
+  # No pairing at all: the loss re-associates the surfaces on every evaluation
+  # and applies no rejection, so nothing bounds how far a model vertex may reach.
+  # Two learning rates because lr is NOT transferable between objectives - watch
+  # the logged objective over the first 25 iterations and bracket from there
+  # rather than trusting either of these.
+  - name: chamfer_lr_1e-2
+    correspondence: {name: none}
+    loss:
+      name: chamfer
+      kwargs:
+        # Per direction: weight (how much it counts) and base_sigma (the length
+        # at which a residual costs ~1 unit), contributing weight/(2*sigma^2).
+        # 1.0 mm is roughly the model's mean edge length.
+        source_to_target: {weight: 1.0, base_sigma: 1.0}
+        target_to_source: {weight: 5.0, base_sigma: 1.0}
+        p: 2
+        source_ratio: 0.0
+        target_ratio: 0.25
+    # weight 0.1 put the prior at 1.2e6 against a data term of 2.2e2 and froze
+    # the fit at the mean. The chamfer data term is a mean of squared mm, so it
+    # is O(1e2) here; this puts the prior at ~10% of it. Read the 'data' and
+    # 'prior' split the solver logs and adjust rather than porting a weight in.
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-6, normalize: true}}
+    solver: {name: gradient, kwargs: {optimizer: adam, lr: 1.0e-2, iterations: 300,
+             tolerance: 1.0e-8, patience: 5, log_every: 25}}
+    refresh_every: 0
+
+  - name: chamfer_lr_1e-1
+    correspondence: {name: none}
+    loss:
+      name: chamfer
+      kwargs:
+        # Per direction: weight (how much it counts) and base_sigma (the length
+        # at which a residual costs ~1 unit), contributing weight/(2*sigma^2).
+        # 1.0 mm is roughly the model's mean edge length.
+        source_to_target: {weight: 1.0, base_sigma: 1.0}
+        target_to_source: {weight: 5.0, base_sigma: 1.0}
+        p: 2
+        source_ratio: 0.0
+        target_ratio: 0.25
+    # weight 0.1 put the prior at 1.2e6 against a data term of 2.2e2 and froze
+    # the fit at the mean. The chamfer data term is a mean of squared mm, so it
+    # is O(1e2) here; this puts the prior at ~10% of it. Read the 'data' and
+    # 'prior' split the solver logs and adjust rather than porting a weight in.
+    prior: {name: mahalanobis, kwargs: {weight: 1.0e-6, normalize: true}}
+    solver: {name: gradient, kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 300,
+             tolerance: 1.0e-8, patience: 5, log_every: 25}}
+    refresh_every: 0
+
+verbose: true

@@ -70,7 +70,7 @@ from src.vtk.create import create_polydata
 from src.vtk.extract import extract_vtp_points_cells
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
-from src.vtk.surface_measures import compute_vertex_roughness
+from src.vtk.surface_measures import compute_vertex_normals, compute_vertex_roughness
 from src.vtk.process import extract_polydata_vertex_subset
 
 from src.transforms.similarity import median_scale
@@ -199,6 +199,21 @@ def run(cfg: Config):
             neighbors="knn",
             max_neighbors=32,
         )
+
+    if cfg.compute_normals:
+        # AFTER extract_polydata_vertex_subset: min_support dropped vertices and
+        # fusion moved the survivors, so this is the first point where the faces
+        # describe the surface the normals are supposed to be normal TO. The
+        # ref_normals computed far above are pre-fusion and do not apply here.
+        normals = compute_vertex_normals(fused_mesh, field_name="normal",
+                                         weighting=cfg.normal_weighting)
+        degenerate = int((np.linalg.norm(normals, axis=1) < 1e-6).sum())
+        note = "" if not degenerate else (
+            f"; {degenerate} ({degenerate / len(normals) * 100:.2f}%) are zero-length "
+            f"-- degenerate or cancelling incident faces, no tangent plane there"
+        )
+        print(f"computed post-fusion vertex normals "
+              f"({cfg.normal_weighting}-weighted){note}")
 
     output_path = os.path.join(cfg.output_dir, "fused_scan.vtp")
     save_vtp(fused_mesh, output_path)

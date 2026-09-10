@@ -18,7 +18,7 @@ from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import SampleShapesConfig
 from src.SSM.runners import SampleShapesRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "sample_shapes.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "sample_shapes.yaml"
 
 
 def main(argv=None) -> int:
@@ -29,7 +29,13 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--model", "-m", default=None,
-        help="which entry of 'models' to open, overriding the config (e.g. baby, fetus)",
+        help="which model to open, overriding the config. Any name declared under "
+             "'models' or discovered under 'library.root' (e.g. fetus/pca_times_matern52). "
+             "The window's dropdown switches between them all at runtime.",
+    )
+    parser.add_argument(
+        "--list-models", action="store_true",
+        help="print every selectable model and exit",
     )
     parser.add_argument(
         "--screenshot", type=Path, default=None,
@@ -42,11 +48,19 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     config = ConfigClient().load(args.config, SampleShapesConfig)
+
+    if args.list_models:
+        for name in config.model_names():
+            marker = "*" if name == config.model else " "
+            print(f" {marker} {name:44s} {config.models[name].path}")
+        return 0
+
     if args.model is not None:
         if args.model not in config.models:
             parser.error(
-                f"--model {args.model!r} is not declared in {args.config}. "
-                f"Available: {sorted(config.models)}"
+                f"--model {args.model!r} is neither declared under 'models' in "
+                f"{args.config} nor found under 'library.root'. "
+                f"Run with --list-models to see the {len(config.models)} available."
             )
         config.model = args.model
     if args.screenshot is not None:

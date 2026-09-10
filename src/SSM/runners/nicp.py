@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from src.config.SSM.client import ConfigClient
-from src.config.SSM.schema import NicpFitConfig, NicpFitSpec
+from src.config.SSM.schema import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
 from src.SSM.correspondence.vtk import save_matching_field
 from src.transforms.similarity import SimilarityTransform
 from src.vtk.io import (
@@ -27,6 +27,7 @@ from src.vtk.io import (
     save_vtp
 )
 from src.vtk.extract import (
+    extract_all_vtp_point_fields,
     get_vtp_faces,
     get_vtp_vertices
 )
@@ -39,32 +40,10 @@ from src.SSM.nicp.correspondence import build_correspondence
 from src.SSM.nicp.losses import build_loss
 from src.SSM.nicp.metrics import coefficient_metrics, displacement_metrics, surface_metrics
 from src.SSM.nicp.priors import build_prior
-from src.SSM.nicp.problem import FitProblem
+from src.SSM.nicp.problem import FitProblem, build_problem
 from src.SSM.nicp.projections import build_projection
 from src.SSM.nicp.shape import ShapeSpace
 from src.SSM.nicp.solvers import build_solver
-
-
-def deep_merge(base: Mapping, override: Mapping) -> Dict[str, Any]:
-    """Recursive dict merge; ``override`` wins on leaves.
-
-    One special case: a block that names an implementation is replaced wholesale
-    when the name changes, instead of being merged. ``kwargs`` belong to the
-    implementation, not to the slot it sits in, so a run that switches from
-    ``normal_equations`` to ``gradient`` must not inherit the former's
-    ``learning_rate``.
-    """
-    merged = dict(base)
-    for key, value in override.items():
-        current = merged.get(key)
-        if isinstance(value, Mapping) and isinstance(current, Mapping):
-            if value.get("name", current.get("name")) != current.get("name"):
-                merged[key] = dict(value)
-            else:
-                merged[key] = deep_merge(current, value)
-        else:
-            merged[key] = value
-    return merged
 
 
 @dataclass
@@ -113,37 +92,14 @@ class NicpRunner:
 
     def resolve_runs(self) -> List[NicpFitSpec]:
         """Merges every run onto the defaults and validates the result."""
-        cfg = self.config
-        if not cfg.runs:
+        if not self.config.runs:
             raise ValueError("no runs configured; add at least one entry under 'runs'")
-
-        specs, seen = [], set()
-        for index, run in enumerate(cfg.runs):
-            if not isinstance(run, Mapping):
-                raise ValueError(f"runs[{index}] must be a mapping, got {type(run).__name__}")
-            if "name" not in run:
-                raise ValueError(f"runs[{index}] is missing 'name'")
-
-            merged = deep_merge(cfg.defaults, run)
-            spec = self.client.from_dict(merged, NicpFitSpec, source=f"runs[{index}]")
-            if spec.name in seen:
-                raise ValueError(f"duplicate run name '{spec.name}'; names become file names")
-            seen.add(spec.name)
-            specs.append(spec)
-        return specs
+        return resolve_fit_specs(self.config.defaults, self.config.runs,
+                                 self.client, source="runs")
 
     def build_problem(self, spec: NicpFitSpec) -> FitProblem:
-        return FitProblem(
-            space=self.space,
-            target=self.target,
-            correspondence=build_correspondence(spec.correspondence.name, spec.correspondence.kwargs),
-            loss=build_loss(spec.loss.name, spec.loss.kwargs),
-            prior=build_prior(spec.prior.name, spec.prior.kwargs),
-            projection=build_projection(spec.projection.name, spec.projection.kwargs),
-            alpha0=self.alpha0,
-            refresh_every=spec.refresh_every,
-            seed=self.config.compute.seed,
-        )
+        return build_problem(spec, self.space, self.target, alpha0=self.alpha0,
+                             seed=self.config.compute.seed)
 
     # -- inputs ------------------------------------------------------------
 
@@ -171,31 +127,45 @@ class NicpRunner:
         self._log(f"        {0 if faces is None else len(faces)} triangles "
                   f"({'surface' if faces is not None else 'point cloud only'})")
 
-        self.target = PointCloud(*self._load_target())
+        verts, faces, fields = self._load_target()
+        self.target = PointCloud(verts, faces=faces, fields=fields)
         self.alpha0 = self._initial_alpha()
         self.initial_vertices = self.space.to_numpy(self.alpha0)
         self._save_inputs()
 
     def _load_target(self):
-        """The target surface and its topology, mapped into model space."""
+        """The target surface, its topology and its point fields, in model space.
+
+        The fields come along because a two-sided data term can weight the
+        target->model direction by one of them - a per-point confidence, say -
+        and they are carried rather than consumed, so which ones exist is the
+        file's business, not this runner's.
+        """
         inputs = self.config.inputs
         self.mesh_world = load_vtp(str(inputs.mesh_vtp))
         faces = get_vtp_faces(self.mesh_world)
+        # scalars only: a weight field is one value per point, and the vector
+        # arrays a scan carries ("True normals 0..2") are not candidates
+        fields = {name: values for name, values
+                  in extract_all_vtp_point_fields(self.mesh_world).items()
+                  if np.asarray(values).squeeze().ndim == 1}
         self._log(f"target: {self.mesh_world.GetNumberOfPoints()} points, "
                   f"{0 if faces is None else len(faces)} triangles from {inputs.mesh_vtp.name}")
+        if fields:
+            self._log(f"        point fields available for weighting: {sorted(fields)}")
 
         self.transform = self._model_space_transform()
         if self.transform is None:
             self._log("        no transform applied - mesh_vtp is taken to be in model space")
             self.mesh_model = self.mesh_world
-            return get_vtp_vertices(self.mesh_world), faces
+            return get_vtp_vertices(self.mesh_world), faces, fields
 
         self.mesh_model = self.transform.apply_polydata(self.mesh_world)
         verts = get_vtp_vertices(self.mesh_model)
         extent = verts.max(0) - verts.min(0)
         self._log(f"        mapped into model space (scale {self.transform.scale:.6g}), "
                   f"extent now {np.array2string(extent, precision=4)}")
-        return verts, faces
+        return verts, faces, fields
 
     def _save_inputs(self):
         """Writes what the fit was actually given, in both frames.

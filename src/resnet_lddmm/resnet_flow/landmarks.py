@@ -153,14 +153,21 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
             would give an infinite precision and a dominating, noise-fitting
             gradient.
         heatmap_prefix: forwarded to ``resolve_template_points``.
-        label_weights: optional ``{label: weight}`` multiplier on top of the
-            annotation-derived precision, e.g. to lean harder on a landmark the
+        label_weights: optional ``{label: weight}`` -- doubles as BOTH the
+            inclusion filter and a multiplier on the annotation-derived
+            precision. A label is only used at all if it is present here
+            with weight > 0; a label the target annotated but that is
+            missing from this dict, or given weight <= 0, is dropped BEFORE
+            template resolution -- so a template that cannot resolve that
+            label (no ``heatmap_<label>`` field) never raises for it. A
+            surviving label's weight multiplies its annotator-derived
+            precision as before, e.g. to lean harder on a landmark the
             annotators happened to agree on by luck, or ease off one that
-            matters less for this run than its spread implies. A label not
-            present in the dict defaults to 1.0 (annotator-derived precision
-            unchanged). All three axes of a label share its one weight -- this
-            scales how much the label counts, not its per-axis anisotropy.
-            None (default) is exactly the old behaviour, weight 1.0 everywhere.
+            matters less for this run than its spread implies. All three
+            axes of a label share its one weight -- this scales how much the
+            label counts, not its per-axis anisotropy. None (default) is the
+            old behaviour: every annotated label is used, uniformly weighted
+            1.0.
         hard_precision: optional ``{label: precision}`` OVERRIDE, applied AFTER
             ``label_weights`` and replacing that label's precision outright --
             the annotator-derived std (and any label_weights entry for it) is
@@ -181,12 +188,14 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
         ``labels`` (the L label names, same order as the tensors' L axis).
 
     Raises:
-        ValueError: ``label_weights`` or ``hard_precision`` names a label that
-            ``cfg.landmarks`` never resolved (almost certainly a typo -- caught
-            here rather than silently ignored); or the same label appears in
-            both (ambiguous -- scaling a precision that is about to be thrown
-            away and replaced makes no sense); or a ``hard_precision`` value is
-            not > 0.
+        ValueError: ``label_weights`` (plus ``hard_precision``, which also
+            counts as inclusion) excludes every label the target annotated
+            (nothing left to guide on); the same label appears in both
+            ``label_weights`` and ``hard_precision`` (ambiguous -- scaling a
+            precision that is about to be thrown away and replaced makes no
+            sense); or a ``hard_precision`` value is not > 0. A
+            ``hard_precision`` label this subject didn't annotate is silently
+            skipped, not an error -- see the inclusion filter above.
     """
     if not cfg.landmarks:
         return None
@@ -194,6 +203,23 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
     dtype = getattr(torch, cfg.dtype)
 
     annotations = load_annotations(cfg.landmarks)
+    if label_weights is not None:
+        # A label named in hard_precision is included even if label_weights
+        # omits it (or gives it 0) -- hard_precision is its own inclusion
+        # signal, since it goes on to REPLACE this label's precision outright
+        # (see below), independent of label_weights' soft multiplier.
+        hard_labels = set(hard_precision) if hard_precision else set()
+        included = {
+            k: v for k, v in annotations.items()
+            if label_weights.get(k, 0.0) > 0 or k in hard_labels
+        }
+        if not included:
+            raise ValueError(
+                f"loss.landmark_kwargs.label_weights {label_weights} (plus "
+                f"hard_precision {hard_precision}) leaves no landmark labels for "
+                f"this subject (annotated: {sorted(annotations)})"
+            )
+        annotations = included
     labels, target_mean_world, target_std_world = aggregate(annotations)
     template_points_world = resolve_template_points(template_shape, labels, heatmap_prefix)
 
@@ -213,26 +239,25 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
             )
 
     if label_weights:
-        unknown = sorted(set(label_weights) - set(labels))
-        if unknown:
-            raise ValueError(
-                f"loss.landmark_kwargs.label_weights names unknown label(s) "
-                f"{unknown}; resolved labels are {labels}"
-            )
+        # A label included only via hard_precision has no label_weights entry
+        # (that's allowed -- see the inclusion filter above); its 1.0 default
+        # here is moot regardless, since hard_precision overwrites its
+        # precision outright right below.
         weights = torch.tensor([label_weights.get(label, 1.0) for label in labels], dtype=dtype)
         target_precision = target_precision * weights.view(1, -1, 1)
 
     if hard_precision:
-        unknown = sorted(set(hard_precision) - set(labels))
-        if unknown:
-            raise ValueError(
-                f"loss.landmark_kwargs.hard_precision names unknown label(s) "
-                f"{unknown}; resolved labels are {labels}"
-            )
         for label, value in hard_precision.items():
             if value <= 0:
                 raise ValueError(f"hard_precision[{label!r}] must be > 0, got {value}")
-            target_precision[0, labels.index(label), :] = value
+        # A hard_precision label this subject didn't annotate at all is simply
+        # skipped, not an error -- same reasoning as label_weights above:
+        # hard_precision is typically one shared master list (see
+        # configs/master/end_to_end.yaml), and which labels a given subject's
+        # own CSVs actually carry legitimately varies subject to subject.
+        for label, value in hard_precision.items():
+            if label in labels:
+                target_precision[0, labels.index(label), :] = value
 
     return {
         "template_points": template_points,
