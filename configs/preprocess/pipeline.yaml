@@ -82,7 +82,7 @@ paths:
     #input_aligned_dir: roughness_filter.shapes_dir
     input_aligned_dir: landmark_bbox_cut.output_dir
     output_consistency_dir: nrrd_to_vtp.output_dir + /consistency_shapes_vtp
-    output_denoised_dir: nrrd_to_vtp.output_dir + /denoised_shapes_vtp
+    output_denoised_dir: nrrd_to_vtp.output_dir + /consistency_thresholds
     output_merged_dir: nrrd_to_vtp.output_dir + /merged_high_confidence_scan
     transforms_dir: align_to_template.transforms_dir
 
