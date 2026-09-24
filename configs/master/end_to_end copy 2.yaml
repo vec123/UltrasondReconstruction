@@ -1,13 +1,5 @@
 # End-to-end example wiring all three pipelines from one file:
 #
-#   preprocess (through scan_consistency's merged scan)
-#     -> ssm_fit (SSM-fits that merged scan)
-#     -> scan_fusion_ssm (preprocess's scan_fusion again, but using the SSM
-#        fit - not the plain template - as the reference shape)
-#     -> resnet_lddmm_train (trains on the SSM-refined fused mesh)
-#     -> recon_target_distance (QC: point-to-point distance between the
-#        trained reconstruction and its training target)
-#
 # Any stage can be switched off with `enabled: false` (its config still binds,
 # so later stages can still reference its fields - see scripts/pipeline/cli.py).
 #
@@ -15,6 +7,8 @@
 #   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1
 
 stages:
+
+#-----------Preprocessing
   - name: nrrd_to_vtp
     enabled: false
   - name: align_to_reference
@@ -28,76 +22,198 @@ stages:
   - name: scan_consistency
     enabled: false
 
-#-----------fetus ssm
+
+
+#-----------ssm fits
+
+#-----------fetus ssm (pre-fusion)
   - name: ssm_fit
+    id: fetus_ssm_fit_init_pca
+    enabled: true
+
+  - name: ssm_fit
+    id: fetus_ssm_fit_init_pca_times_gaussian
+    enabled: true
+
+  - name: ssm_fit
+    id: fetus_ssm_fit_init_pca_times_wendland
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_p2plane
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_times_gaussian_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_times_gaussian_p2plane
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_times_wendland_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_init_pca_times_wendland_p2plane
+    enabled: true
+
+#-----------baby ssm (pre-fusion)
+  - name: ssm_fit
+    id: baby_ssm_fit_init_pca
     enabled: false
 
-  - name: recon_target_disctance
-    id: recon_target_disctance_ssm_fit
+  - name: ssm_fit
+    id: baby_ssm_fit_init_pca_times_gaussian
+    enabled: false
+
+  - name: ssm_fit
+    id: baby_ssm_fit_init_pca_times_wendland
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_map
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_p2plane
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_times_gaussian_map
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_times_gaussian_p2plane
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_times_wendland_map
+    enabled: false
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_init_pca_times_wendland_p2plane
     enabled: false
 
 #-----------scan fusion
   - name: scan_fusion
     id: scan_fusion_ssm
-    enabled: false
+    enabled: true
 
-  - name: recon_target_disctance
-    id: recon_target_disctance_scan_fusion
-    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_scan_fusion_ssm
+    enabled: true
 
-#-----------baby ssm
+#-----------baby ssm (post-fusion)
   - name: ssm_fit
-    id: baby_ssm_fit
-    enabled: false
+    id: baby_ssm_fit_pca
+    enabled: true
 
-  - name: recon_target_disctance
-    id: recon_target_disctance_baby_ssm_fit
-    enabled: false
+  - name: ssm_fit
+    id: baby_ssm_fit_pca_times_gaussian
+    enabled: true
+
+  - name: ssm_fit
+    id: baby_ssm_fit_pca_times_wendland
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_p2plane
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_times_gaussian_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_times_gaussian_p2plane
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_times_wendland_map
+    enabled: true
+
+  - name: recon_target_distance
+    id: recon_target_distance_baby_pca_times_wendland_p2plane
+    enabled: true
 
 
-  - name: similarity_transform
-    enabled: false
 
-
+#----------------------------LDDMM
 
 #-----------lddmm baby ssm
-  - name: resnet_lddmm_train_baby_ssm
-    enabled: true
-  - name: resnet_lddmm_apply_baby_ssm
-    enabled: true
-  - name: recon_target_distance_baby_ssm
-    enabled: true
+  - name: similarity_transform
+    id: similarity_transform_baby_ssm
+    enabled: false
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_baby_ssm
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_baby_ssm
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_baby_ssm_lddmm
+    enabled: false
+
+
 
 #-----------lddmm baby mean
-  - name: resnet_lddmm_train_baby_mean
-    enabled: true
-  - name: resnet_lddmm_apply_baby_mean
-    enabled: true
-  - name: recon_target_distance_baby_mean
-    enabled: true
+  - name: similarity_transform
+    id: similarity_transform_baby_mean
+    enabled: false
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_baby_mean
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_baby_mean
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_baby_mean_lddmm
+    enabled: false
 
 #-----------lddmm fetus ssm
-  - name: resnet_lddmm_train_fetus_ssm
-    enabled: true
-  - name: resnet_lddmm_apply_fetus_ssm
-    enabled: true
-  - name: recon_target_distance_fetus_ssm
-    enabled: true
+  - name: similarity_transform
+    id: similarity_transform_fetus_ssm
+    enabled: false
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_fetus_ssm
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_fetus_ssm
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_ssm_lddmm
+    enabled: false
 
 #-----------lddmm fetus mean
-  - name: resnet_lddmm_train_fetus_mean
-    enabled: true
-  - name: resnet_lddmm_apply_fetus_mean
-    enabled: true
-  - name: recon_target_distance_fetus_mean
-    enabled: true
+  - name: similarity_transform
+    id: similarity_transform_fetus_mean
+    enabled: false 
+  - name: resnet_lddmm_train
+    id: resnet_lddmm_train_fetus_mean
+    enabled: false
+  - name: resnet_lddmm_apply
+    id: resnet_lddmm_apply_fetus_mean
+    enabled: false
+  - name: recon_target_distance
+    id: recon_target_distance_fetus_mean_lddmm
+    enabled: false
 
 
 
-#eval lines
-
+#------------eval lines in ultrasound
   - name: vtp_to_nrrd_overlay
-    enabled: true
+    enabled: false
+
 
 paths:
 
@@ -124,8 +240,6 @@ paths:
     output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
     out_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/shapes_vtp
     out_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_vtp
-    # Explicit (not left to align_to_template's own default-filling) so
-    # ssm_fit and resnet_lddmm_train below can reference it.
     out_landmarks_csv_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_csv
     transforms_dir: nrrd_to_vtp.output_dir + /aligned_to_template/transforms
     previous_transforms_dir: align_to_reference.transforms_dir
@@ -153,84 +267,263 @@ paths:
 
   #---------Processing Step 2
 
-  #---------Fetus SSM: fits fetus SSM as seg mask
-  ssm_fit:
-    inputs:
-      shape_model_mat: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  #---------SSM fits, round 1 (pre-fusion): fit each shape model as seg mask
+  fetus_ssm_fit_init_pca:
+    inputs: &fetus_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/fetus/fetus_pca.npz
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end
+      dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/init_pca
 
-  recon_target_distance_ssm_fit:
-    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
-    recon_path: ssm_fit.outputs.dir +  /nicp_refined_vertices_gamma_5.vtp
-    transforms_dir: align_to_template.transforms_dir
-    output_dir: ssm_fit.outputs.dir + /eval
+  fetus_ssm_fit_init_pca_times_gaussian:
+    inputs:
+      <<: *fetus_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/fetus/fetus_pca_times_gaussian.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/init_pca_times_gaussian
+
+  fetus_ssm_fit_init_pca_times_wendland:
+    inputs:
+      <<: *fetus_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/fetus/fetus_pca_times_wendland.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/init_pca_times_wendland
+
+  # Same target scan, the other domain: the BabyFM models carry their own 23
+  # landmarks, so model.atlas.landmarks is left untouched for them (it only ever
+  # fills a gap - see src/SSM/model/model_memory_io.py::annotate_landmarks).
+  baby_ssm_fit_init_pca:
+    inputs: &baby_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca.npz
+      mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+      landmarks_json: align_to_template.out_landmarks_csv_dir
+      template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/init_pca
+
+  baby_ssm_fit_init_pca_times_gaussian:
+    inputs:
+      <<: *baby_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca_times_gaussian.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/init_pca_times_gaussian
+
+  baby_ssm_fit_init_pca_times_wendland:
+    inputs:
+      <<: *baby_init_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca_times_wendland.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/init_pca_times_wendland
+
+
 
   #------------------Scan Fusion
+  # The fused scan is the target of all six round-2 fits, so it sits beside the
+  # per-model folders rather than inside one of them. Its reference surface is
+  # the PCA fit of round 1 - the baseline of the sweep, and the model these
+  # stages have always used.
   scan_fusion_ssm:
     input_aligned_dir: align_to_template.out_shapes_vtp_dir
-    reference_vtp: ssm_fit.outputs.dir + /nicp_refined_vertices_gamma_5.vtp
-    output_dir: ssm_fit.outputs.dir + /fused_scan_ssm
+    reference_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    output_dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/fused_scan_ssm
     transforms_dir: align_to_template.transforms_dir
 
   recon_target_distance_scan_fusion_ssm:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
-    recon_path: sscan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
     transforms_dir: align_to_template.transforms_dir
     output_dir: scan_fusion_ssm.output_dir + /eval
 
-  #--------- Baby SSM: fits scan_fusion with fetus SSM
-  baby_ssm_fit:
-    inputs:
-      shape_model_mat: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  #---------SSM fits, round 2 (post-fusion): the three baby models against the
+  # fused scan. Same models and same hyperparameters as round 1; only
+  # inputs.mesh_vtp moves, from the single-subject merged scan to
+  # scan_fusion_ssm's output. The fetus models are not refitted here - the fused
+  # scan is built from a fetus fit, so measuring one against it again would be
+  # scoring a surface partly against itself.
+  baby_ssm_fit_pca:
+    inputs: &baby_fused_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca.npz
       mesh_vtp: scan_fusion_ssm.output_dir + /fused_scan.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/pca
 
-  recon_target_distance_baby_ssm_fit:
-    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: baby_ssm_fit.outputs.dir +  /nicp_refined_vertices_gamma_2.vtp
+  baby_ssm_fit_pca_times_gaussian:
+    inputs:
+      <<: *baby_fused_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca_times_gaussian.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/pca_times_gaussian
+
+  baby_ssm_fit_pca_times_wendland:
+    inputs:
+      <<: *baby_fused_inputs
+      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca_times_wendland.npz
+    outputs:
+      dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/pca_times_wendland
+
+
+
+
+  #---------Reconstruction-to-target distance, one pair per SSM fit.
+  # Each fit stage writes eight nicp_refined_vertices_<name>.vtp; these measure
+  # two of them against that stage's own target - the damped-L2 representative
+  # of the gamma sweep, and the correspondence-free chamfer fit - into
+  # eval_l2/ and eval_p2plane/ beside the fit they score.
+
+  #-- Fetus PCA (pre-fusion)
+  recon_target_distance_fetus_init_pca_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: baby_ssm_fit.outputs.dir + /eval
+    output_dir: fetus_ssm_fit_init_pca.outputs.dir + /eval_map
 
+  recon_target_distance_fetus_init_pca_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit_init_pca.outputs.dir + /eval_p2plane
+
+  #-- Fetus PCA x Gaussian (pre-fusion)
+  recon_target_distance_fetus_init_pca_times_gaussian_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_map
+
+  recon_target_distance_fetus_init_pca_times_gaussian_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_p2plane
+
+  #-- Fetus PCA x Wendland (pre-fusion)
+  recon_target_distance_fetus_init_pca_times_wendland_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_map
+
+  recon_target_distance_fetus_init_pca_times_wendland_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA (pre-fusion)
+  recon_target_distance_baby_init_pca_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca.outputs.dir + /eval_map
+
+  recon_target_distance_baby_init_pca_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA x Gaussian (pre-fusion)
+  recon_target_distance_baby_init_pca_times_gaussian_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_map
+
+  recon_target_distance_baby_init_pca_times_gaussian_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA x Wendland (pre-fusion)
+  recon_target_distance_baby_init_pca_times_wendland_map:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_map
+
+  recon_target_distance_baby_init_pca_times_wendland_p2plane:
+    target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+    recon_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA (post-fusion)
+  recon_target_distance_baby_pca_map:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca.outputs.dir + /eval_map
+
+  recon_target_distance_baby_pca_p2plane:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA x Gaussian (post-fusion)
+  recon_target_distance_baby_pca_times_gaussian_map:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca_times_gaussian.outputs.dir + /eval_map
+
+  recon_target_distance_baby_pca_times_gaussian_p2plane:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca_times_gaussian.outputs.dir + /eval_p2plane
+
+  #-- Baby PCA x Wendland (post-fusion)
+  recon_target_distance_baby_pca_times_wendland_map:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca_times_wendland.outputs.dir + /eval_map
+
+  recon_target_distance_baby_pca_times_wendland_p2plane:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+    transforms_dir: align_to_template.transforms_dir
+    output_dir: baby_ssm_fit_pca_times_wendland.outputs.dir + /eval_p2plane
 
 #---------------------ResNetLDDMM with from the baby ssm to the scan_fusion from the fetus_ssm
   similarity_transform_baby_ssm:
-    source_vtp: baby_ssm_fit.outputs.dir +  /nicp_refined_vertices_gamma_2.vtp
+    source_vtp: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
     output_path: align_to_template.output_dir + /baby_ssm_aligned.vtp
 
-  resnet_lddmm_train:
+  resnet_lddmm_train_baby_ssm:
     source: similarity_transform_baby_ssm.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
     output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_baby_ssm/${SUBJECT_ID}
 
-  resnet_lddmm_apply:
-    train_config: resnet_lddmm_train.output_dir + /config.json
-    checkpoint: resnet_lddmm_train.output_dir + /checkpoints
-    output_dir: resnet_lddmm_train.output_dir + /apply
+  resnet_lddmm_apply_baby_ssm:
+    train_config: resnet_lddmm_train_baby_ssm.output_dir + /config.json
+    checkpoint: resnet_lddmm_train_baby_ssm.output_dir + /checkpoints
+    output_dir: resnet_lddmm_train_baby_ssm.output_dir + /apply
 
-  recon_target_distance:
+  recon_target_distance_baby_ssm_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: resnet_lddmm_apply.output_dir + /world/deformed.vtp
+    recon_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: resnet_lddmm_train.output_dir + /eval
+    output_dir: resnet_lddmm_apply_baby_ssm.output_dir + /eval
 
 
 #---------------------ResNetLDDMM with from the baby mean to the scan_fusion from the fetus_ssm
   similarity_transform_baby_mean:
-    source_vtp: baby_ssm_fit.outputs.dir +  /init_shape.vtp
+    source_vtp: baby_ssm_fit_pca.outputs.dir +  /init_shape.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
     output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
 
   resnet_lddmm_train_baby_mean:
-    source: resnet_lddmm_train_baby_mean.output_path
+    source: similarity_transform_baby_mean.output_path
+   # source: scan_consistency.output_merged_dir + /merged_high_consistency_scan_0.8.vtp
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
     output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_baby_mean/${SUBJECT_ID}
@@ -242,20 +535,20 @@ paths:
 
   recon_target_distance_baby_mean_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: resnet_lddmm_train_baby_mean.output_dir + /world/deformed.vtp
+    recon_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: resnet_lddmm_train_baby_mean.output_dir + /eval
+    output_dir: resnet_lddmm_apply_baby_mean.output_dir + /eval
 
 
 #---------------------ResNetLDDMM with from the fetus mean to the scan_fusion from the fetus_ssm
   similarity_transform_fetus_ssm:
-    #source_vtp: fetus_ssm_fit.outputs.dir +  /init_shape.vtp
-    source_vtp: fetus_ssm_fit.outputs.dir +  /nicp_refined_vertices_gamma_2.vtp
+    #source_vtp: fetus_ssm_fit_init_pca.outputs.dir +  /init_shape.vtp
+    source_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
     output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
 
   resnet_lddmm_train_fetus_ssm:
-    source: resnet_lddmm_train_fetus_ssm.output_path
+    source: similarity_transform_fetus_ssm.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
     output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_fetus_ssm/${SUBJECT_ID}
@@ -267,19 +560,19 @@ paths:
 
   recon_target_distance_fetus_ssm_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: resnet_lddmm_train_fetus_ssm.output_dir + /world/deformed.vtp
+    recon_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: resnet_lddmm_train_fetus_ssm.output_dir + /eval
+    output_dir: resnet_lddmm_apply_fetus_ssm.output_dir + /eval
 
 
 #---------------------ResNetLDDMM with from the fetus mean to the scan_fusion from the fetus_mean
   similarity_transform_fetus_mean:
-    source_vtp: fetus_ssm_fit.outputs.dir +  /init_shape.vtp
+    source_vtp: fetus_ssm_fit_init_pca.outputs.dir +  /init_shape.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
     output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
 
   resnet_lddmm_train_fetus_mean:
-    source: resnet_lddmm_train_fetus_mean.output_path
+    source: similarity_transform_fetus_mean.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
     output_dir: ${PROJECT_ROOT}/outputs/resnet_lddmm_fetus_mean/${SUBJECT_ID}
@@ -291,31 +584,133 @@ paths:
 
   recon_target_distance_fetus_mean_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    recon_path: resnet_lddmm_train_fetus_mean.output_dir + /world/deformed.vtp
+    recon_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
     transforms_dir: align_to_template.transforms_dir
-    output_dir: resnet_lddmm_train_fetus_mean.output_dir + /eval
+    output_dir: resnet_lddmm_apply_fetus_mean.output_dir + /eval
 
 
 #----------------------Ultrasound-----Overlay of all lines
   vtp_to_nrrd_overlay:
     nrrd_path: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/${SUBJECT_ID}-20s-01.nrrd
-    output_path: resnet_lddmm_train.output_dir + /overlay/recon_overlay.nrrd
-    label_maps_dir: resnet_lddmm_train.output_dir + /overlay/recon_overlay_labels
+    output_path: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay.nrrd
+    label_maps_dir: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay_labels
     layers:
-      - vtp_path: resnet_lddmm_apply.output_dir + /world/deformed.vtp
-        name: Reconstruction
+      # Final LDDMM reconstructions -- one per template/model combo trained above.
+      # The transform back into the raw NRRD's frame is the same for every layer
+      # below, so it is written once here and aliased thereafter.
+      - vtp_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
+        name: Reconstruction (Baby SSM)
         line_color: [255, 255, 0]
-        transform:
+        transform: &to_nrrd_frame
           manifest_dir: align_to_template.transforms_dir
           subject_id: ${SUBJECT_ID}-20s-01
           apply_inverse: true
+      - vtp_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
+        name: Reconstruction (Baby Mean)
+        line_color: [255, 165, 0]
+        transform: *to_nrrd_frame
+      - vtp_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
+        name: Reconstruction (Fetus SSM)
+        line_color: [0, 255, 255]
+        transform: *to_nrrd_frame
+      - vtp_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
+        name: Reconstruction (Fetus Mean)
+        line_color: [255, 0, 255]
+        transform: *to_nrrd_frame
+      # Pre-LDDMM SSM fits -- the NICP baseline each LDDMM run started from,
+      # useful to see how much the LDDMM step actually improved on the SSM fit.
+      # Two objectives per model, same colour family so the pair reads as a
+      # comparison: the lighter line is matched least squares, the darker one
+      # the correspondence-free point-to-plane chamfer fitted from the same
+      # starting shape against the same scan. One family per shape model.
+      - vtp_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Fetus init, PCA, MAP)
+        line_color: [100, 180, 255]
+        transform: *to_nrrd_frame
+      - vtp_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Fetus init, PCA, P2Plane Chamfer)
+        line_color: [0, 90, 200]
+        transform: *to_nrrd_frame
+      - vtp_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Fetus init, PCA x Gaussian, MAP)
+        line_color: [120, 230, 230]
+        transform: *to_nrrd_frame
+      - vtp_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Fetus init, PCA x Gaussian, P2Plane Chamfer)
+        line_color: [0, 150, 150]
+        transform: *to_nrrd_frame
+      - vtp_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Fetus init, PCA x Wendland, MAP)
+        line_color: [150, 150, 255]
+        transform: *to_nrrd_frame
+      - vtp_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Fetus init, PCA x Wendland, P2Plane Chamfer)
+        line_color: [60, 60, 210]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby init, PCA, MAP)
+        line_color: [255, 210, 120]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby init, PCA, P2Plane Chamfer)
+        line_color: [210, 150, 0]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby init, PCA x Gaussian, MAP)
+        line_color: [255, 150, 110]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby init, PCA x Gaussian, P2Plane Chamfer)
+        line_color: [200, 80, 20]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby init, PCA x Wendland, MAP)
+        line_color: [220, 180, 140]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby init, PCA x Wendland, P2Plane Chamfer)
+        line_color: [150, 100, 40]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby fused, PCA, MAP)
+        line_color: [255, 100, 180]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby fused, PCA, P2Plane Chamfer)
+        line_color: [200, 0, 90]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby fused, PCA x Gaussian, MAP)
+        line_color: [230, 130, 255]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby fused, PCA x Gaussian, P2Plane Chamfer)
+        line_color: [150, 0, 210]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+        name: SSM Fit (Baby fused, PCA x Wendland, MAP)
+        line_color: [180, 120, 255]
+        transform: *to_nrrd_frame
+      - vtp_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
+        name: SSM Fit (Baby fused, PCA x Wendland, P2Plane Chamfer)
+        line_color: [110, 0, 230]
+        transform: *to_nrrd_frame
+      # Targets -- the fused cross-subject scan every LDDMM run trains toward,
+      # and the single-subject merged scan it was itself fused from.
       - vtp_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-        name: Target
+        name: Target (Fused Scan)
         line_color: [0, 255, 0]
-        transform:
-          manifest_dir: align_to_template.transforms_dir
-          subject_id: ${SUBJECT_ID}-20s-01
-          apply_inverse: true
+        transform: *to_nrrd_frame
+      - vtp_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+        name: Merged Scan (Raw)
+        line_color: [255, 255, 255]
+        transform: *to_nrrd_frame
+      # nrrd_to_vtp's own isosurface -- the very first stage's output, still in
+      # the raw NRRD's own "original frame" (see that stage's module docstring),
+      # so no transform is needed here: it already lines up with nrrd_path below.
+      - vtp_path: nrrd_to_vtp.output_dir + /${SUBJECT_ID}-20s-01.vtp
+        name: Isosurface (Raw NRRD)
+        line_color: [255, 0, 0]
 
 
 
@@ -328,7 +723,7 @@ paths:
 
 
 
-#-------Hyperparameters:
+#---------Hyperparameters:
 hyperparameters:
   nrrd_to_vtp:
     contour_value: 70
@@ -394,7 +789,9 @@ hyperparameters:
     denoise_min_bridge_width: 0
     denoise_min_bridge_relative: true
 
-  ssm_fit:
+  # ---------------------------------------------------------------------
+  # The one set of SSM-fitting hyperparameters
+  ssm_fit: &ssm_fit_common
     steps:
       gmm_2_template: false
       align: true
@@ -405,33 +802,57 @@ hyperparameters:
       normalize: false
       atlas:
         # FetusModel_x4 only has 13 of the 19 baby landmarks annotated;
-        # the rest are dropped from target_landmarks rather than failing.
+        # Read for the fetus models only
         landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
     rigid:
       iterations: 10
       landmark_fit_learning_rate: 1.0
       allow_scale: true
-    nicp:
-      iterations: 10
+    nicp: &nicp_common
       save_every: 1
-      matching:
-        mode: constrained
-        dist_thresh: 10.0
-        normal_thresh_deg: 60.0
-        k: 50
-        use_target_normals: true
-        one_to_one: true
-      model_optimization:
-        gammas: [0, 0.1, 1, 2, 5]
-        learning_rate: 1.0
-        chi_clamp: null
-        variants:
-          - name: free
-            gamma: 0
-            chi_clamp: null
-          - name: clamped
-            gamma: 0
-            chi_clamp: 0.99
+      defaults: {}
+      fits:
+        - &fit_map
+          name: map
+          correspondence:
+            name: constrained
+            kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
+                     use_target_normals: true, one_to_one: true}
+          loss:       {name: matched_l2, kwargs: {reduction: mean}}
+          prior:      {name: none}        # replaced per model
+          projection: {name: none}
+          solver: {name: normal_equations,
+                   kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}
+          refresh_every: 1          # re-match every round: this is the ICP loop
+
+        # -- weighted point-to-plane chamfer: no correspondence ---------------
+        - &fit_p2plane_chamfer
+          name: p2plane_chamfer
+          correspondence: {name: none}
+          loss:
+            name: p2plane_chamfer
+            kwargs:
+              source_to_target: {weight: 1.0, base_sigma: 1.0}
+              target_to_source: {weight: 5.0, base_sigma: 1.0}
+              plane_weight: 0.8
+              p: 2
+              source_ratio: 0.0
+              target_ratio: 0.25   # thin the scan; the search is linear in it
+              # E_stiff of the classical NICP energy: the mean squared strain of
+              # the displacement field over the mesh edges,
+              #   mean_(i,j) ||d_i - d_j||^2 / ||xbar_i - xbar_j||^2,  d = x(a) - xbar.
+              # A translation costs nothing; stretching and bending the template
+              # does. Divided by the rest edge length it is dimensionless, so one
+              # value means the same on the fetus and the baby model despite the
+              # ~5000x scale gap between them. 0 disables the term.
+              stiffness: 0.0
+          projection: {name: none}
+          # prior is supplied per model below - it is the one hyperparameter
+          # that cannot be shared, see the calibration note.
+          solver: {name: gradient,
+                   kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 300,
+                            tolerance: 1.0e-8, patience: 5, log_every: 25}}
+          refresh_every: 0         # no effect: this loss re-pairs every evaluation
     verbose: true
 
   scan_fusion_ssm:
@@ -442,46 +863,183 @@ hyperparameters:
     surface_fit_method: quadric  # "plane" | "quadric"
     compute_roughness: false
 
-  baby_ssm_fit:
-    steps:
-      gmm_2_template: false
-      align: true
-      landmark_fit: true
-      nicp: true
-      laplacian: false
-    model:
-      normalize: false
-      # No atlas.landmarks override here (unlike ssm_fit above): that field
-      # only matters for a Deformetrica atlas directory's own landmark-drop
-      # logic, and is never read for a .mat model - BabyFaceModel.mat's own
-      # embedded landmarks (23 named points, a full superset of the 13 our
-      # subject CSVs carry) are used directly, nothing gets dropped.
-    rigid:
-      iterations: 10
-      landmark_fit_learning_rate: 1.0
-      allow_scale: true
+  # ---------------------------------------------------------------------
+  # The per-model chamfer prior, the one thing that cannot be shared.
+  #
+  # `mahalanobis` is the model's own Gaussian prior: alpha ~ N(0, Lambda), so
+  # the penalty sum(alpha_i^2 / lambda_i) is its negative log density. This
+  # project stores the UNWHITENED alpha (the basis is normalised and does not
+  # absorb sqrt(Lambda) - see src/SSM/model/model.py::reconstruct), which is why
+  # the isotropic prior is not the matching one here: with normalize:true this
+  # is exactly an isotropic penalty on the whitened z_i = alpha_i/sqrt(lambda_i).
+  #
+  # Each weight is solved from the closed form in
+  # theory/shape_deformation_models.tex, "Expected chi2_crit through
+  # MAP-estimation": under u = Psi Lam^1/2 z + eps with eps ~ N(0, sn^2 I),
+  #
+  #     E[||z||^2 | u] = ||z_hat||^2 + tr(Sigma_z)
+  #
+  # which falls monotonically in sn^2 from ||z_ML||^2 to L. The weight below is
+  # the root of E[||z||^2 | u] = chi2.ppf(0.99, L) - the same 99% ellipsoid the
+  # `clamped` fit's mahalanobis_clamp enforces - converted to this config's
+  # units by w = sn^2 / (lambda_max * P), where P is the matched-pair count:
+  # the closed form assumes a SUMMED likelihood, and both losses here average,
+  # which scales the data term by 1/P and the prior weight with it. So each
+  # model is regularised exactly enough that its EXPECTED plausibility radius,
+  # posterior variance included, sits on the 99% level rather than past it.
+  #
+  # map_<n>x is n TIMES THE CALIBRATED WEIGHT for that model, not a weight of n:
+  # map_1x is the solved value below, and the sweep brackets it 0.25x .. 4x. A
+  # literal weight of 1.0 would be a different reference - under normalize:true
+  # it restrains the dominant mode exactly as isotropic weight 1 would - and has
+  # no reason to coincide with the MAP value, which is set by the scan noise.
+  #
+  # The weights are not comparable between models: they depend on L, on the
+  # eigenvalue spectrum and on the domain's units. Calibrated on subject 2's
+  # merged scan - the only preprocessed subject - so re-run the calibration if
+  # the preprocessing or the scan set changes.
+  # ---------------------------------------------------------------------
+
+  # L=183 modes, chi2_99=230.4, sigma_n^2=10.13, lambda_max=1.86, P=2058 pairs
+  fetus_ssm_fit_init_pca:
+    <<: *ssm_fit_common
     nicp:
-      iterations: 10
-      save_every: 1
-      matching:
-        mode: constrained
-        dist_thresh: 10.0
-        normal_thresh_deg: 60.0
-        k: 50
-        use_target_normals: true
-        one_to_one: true
-      model_optimization:
-        gammas: [0, 0.1, 1, 2, 5]
-        learning_rate: 1.0
-        chi_clamp: null
-        variants:
-          - name: free
-            gamma: 0
-            chi_clamp: null
-          - name: clamped
-            gamma: 0
-            chi_clamp: 0.99
-    verbose: true
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.0006614, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.001323, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.002646, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.005291, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.01058, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.034147, normalize: true}}}]
+
+  # L=113 modes, chi2_99=150.9, sigma_n^2=398.1, lambda_max=0.6005, P=1643 pairs
+  fetus_ssm_fit_init_pca_times_gaussian:
+    <<: *ssm_fit_common
+    nicp:
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.1009, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.2018, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.4035, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.8071, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 1.614, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.17322, normalize: true}}}]
+
+  # L=165 modes, chi2_99=210.2, sigma_n^2=51.78, lambda_max=0.3989, P=2070 pairs
+  fetus_ssm_fit_init_pca_times_wendland:
+    <<: *ssm_fit_common
+    nicp:
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.01568, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.03136, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.06271, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.1254, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.2508, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.19677, normalize: true}}},
+             # -- constrained instead of penalised --------------------------------
+             # Same two objectives, but solved subject to ||z||^2 <= chi2_99 rather
+             # than with a prior weight fixed in advance. solver 'trust_region'
+             # re-solves the constraint's Lagrange multiplier against the CURRENT
+             # correspondences every iteration
+             # prior must be none: the solver is the prior.
+             #
+             # constrain: expected (the default) bounds the whole posterior,
+             #   E[||z||^2|u] = ||z_hat||^2 + tr(Sigma_z) <= chi2_99,
+             # so a DRAW from the posterior is inside the 99% level. The point
+             # estimate then lands strictly inside it, by exactly tr(Sigma_z).
+             # constrain: mean bounds ||z_hat||^2 alone, which puts the fit ON
+             # the boundary with half its posterior mass outside - the stricter-
+             # looking setting is the weaker statement.
+             {<<: *fit_map, name: tr_map,
+              solver: {name: trust_region,
+                       kwargs: {p: 0.99, constrain: expected, iterations: 10}}},
+             # Same constraint on the chamfer. tr(Sigma_z) comes from autograd
+             # here rather than from an assembled normal matrix (see _curvature),
+             # computed once per ICP round at the warm start; hessian_refresh:
+             # true recomputes it at every bracket step, at ~10x the cost.
+             {<<: *fit_p2plane_chamfer, name: tr_chamfer,
+              solver: {name: trust_region,
+                       kwargs: {p: 0.99, constrain: expected, iterations: 5,
+                                inner_iterations: 25, outer_iterations: 10,
+                                lr: 1.0e-1}}}]
+
+  # L=163 modes, chi2_99=207.9, sigma_n^2=1.6e-06, lambda_max=2.178e-08, P=4783 pairs
+  baby_ssm_fit_init_pca: &ssm_fit_baby_pca
+    <<: *ssm_fit_common
+    nicp:
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.00384, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.007679, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.01536, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.03072, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.06143, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.16467, normalize: true}}}]
+
+  # L=196 modes, chi2_99=245.0, sigma_n^2=7.398e-06, lambda_max=9.282e-09, P=4051 pairs
+  baby_ssm_fit_init_pca_times_gaussian: &ssm_fit_baby_pca_times_gaussian
+    <<: *ssm_fit_common
+    nicp:
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.04919, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.09837, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.1967, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.3935, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.787, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.41725, normalize: true}}}]
+
+  # L=226 modes, chi2_99=278.4, sigma_n^2=1.031e-05, lambda_max=6.726e-09, P=4012 pairs
+  baby_ssm_fit_init_pca_times_wendland: &ssm_fit_baby_pca_times_wendland
+    <<: *ssm_fit_common
+    nicp:
+      <<: *nicp_common
+      fits: [{<<: *fit_map, name: map_0.25x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.09549, normalize: true}}},
+             {<<: *fit_map, name: map_0.5x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.191, normalize: true}}},
+             {<<: *fit_map, name: map_1x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.382, normalize: true}}},
+             {<<: *fit_map, name: map_2x,
+              prior: {name: mahalanobis, kwargs: {weight: 0.7639, normalize: true}}},
+             {<<: *fit_map, name: map_4x,
+              prior: {name: mahalanobis, kwargs: {weight: 1.528, normalize: true}}},
+             {<<: *fit_p2plane_chamfer,
+              prior: {name: mahalanobis, kwargs: {weight: 0.4557, normalize: true}}}]
+
+  # The post-fusion baby fits reuse their model's weight verbatim. It was
+  # calibrated against the merged scan rather than the fused one, which does
+  # not exist until scan_fusion_ssm has run.
+  baby_ssm_fit_pca:                   *ssm_fit_baby_pca
+  baby_ssm_fit_pca_times_gaussian:    *ssm_fit_baby_pca_times_gaussian
+  baby_ssm_fit_pca_times_wendland:    *ssm_fit_baby_pca_times_wendland
 
   similarity_transform:
     heatmap_prefix: heatmap_
@@ -514,10 +1072,10 @@ hyperparameters:
           field_name: support
           #field_name: null
         robust_kernel: quadratic
-      kinetic_weight: 10.0
+      kinetic_weight: 500.0
       code_reg_weight: 0.0
       isometry_weight: 0.0
-      isometry_type: strain
+      isometry_type: det
       landmark_weight: 1
       landmark_kwargs:
         label_weights:
@@ -530,19 +1088,20 @@ hyperparameters:
           li: 1.0
           pg: 1.0
           sl: 1.0
-          n: 1.0
-          ls: 1.0
-          prn: 1.0
-          sn: 1.0
-          acR: 1.0
-          acL: 1.0
-          aL: 1.0
-          aR: 1.0
-          enL: 1.0
-          enR: 1.0
-        #hard_precision:
+          
+        hard_precision:
         #n: 1000000
-        
+          n:  1000000000
+          ls:  1000000000
+          prn:  1000000000
+          sn: 1000000000
+          acR:  1000000000
+          acL:  1000000000
+          aL:  1000000000
+          aR:  1000000000
+          enL: 1000000000
+          enR:  1000000000
+
       subsample_M: 1000
       save_full: false
       direction: forward
@@ -557,7 +1116,138 @@ hyperparameters:
       val_every: 0
       export_shapes: 2
       export_strategy: sequential
-  
+
+
+  resnet_lddmm_train_fetus_ssm:
+    field:
+      kind: time_varying
+      num_steps: 10
+      width: 246
+      activation: relu
+    code:
+      kind: none
+      position_aware: true
+      conditioning_method: concat
+      grid: 16
+    loss:
+      #data_name: field_weighted_chamfer
+      data_name: field_weighted_point2plane_chamfer
+      data_kwargs:
+        source_to_target:
+          weight: 1
+          base_sigma: 0.1
+          field_name: landmark_weight
+         # field_name: null
+        target_to_source:
+          weight: 1.0
+          base_sigma: 0.01
+          field_name: support
+          #field_name: null
+        robust_kernel: quadratic
+      kinetic_weight: 10.0
+      code_reg_weight: 0.0
+      isometry_weight: 0.0
+      isometry_type: strain
+      landmark_weight: 1
+      landmark_kwargs:
+        label_weights:
+          exL: 1.0
+          exR: 1.0
+          n: 1.0
+          ls: 1.0
+          prn: 1.0
+          sn: 1.0
+          acR: 1.0
+          acL: 1.0
+          aL: 1.0
+          aR: 1.0
+          enL: 1.0
+          enR: 1.0
+          pg: 1.0
+        #hard_precision:
+        #n: 1000000
+
+      subsample_M: 1000
+      save_full: false
+      direction: forward
+    train:
+      mode: pair
+      steps: 2000
+      batch: 4
+      lr: 0.0001
+      seed: 42
+      log_every: 10
+      save_every: 100
+      val_every: 0
+      export_shapes: 2
+      export_strategy: sequential
+
+  # See resnet_lddmm_train_fetus_ssm above for why this block's
+  # label_weights differs from the shared resnet_lddmm_train block.
+  resnet_lddmm_train_fetus_mean:
+    field:
+      kind: time_varying
+      num_steps: 10
+      width: 246
+      activation: relu
+    code:
+      kind: none
+      position_aware: true
+      conditioning_method: concat
+      grid: 16
+    loss:
+      #data_name: field_weighted_chamfer
+      data_name: field_weighted_point2plane_chamfer
+      data_kwargs:
+        source_to_target:
+          weight: 1
+          base_sigma: 0.1
+          field_name: landmark_weight
+         # field_name: null
+        target_to_source:
+          weight: 1.0
+          base_sigma: 0.01
+          field_name: support
+          #field_name: null
+        robust_kernel: quadratic
+      kinetic_weight: 10.0
+      code_reg_weight: 0.0
+      isometry_weight: 0.0
+      isometry_type: strain
+      landmark_weight: 1
+      landmark_kwargs:
+        label_weights:
+          exL: 1.0
+          exR: 1.0
+          n: 1.0
+          ls: 1.0
+          prn: 1.0
+          sn: 1.0
+          acR: 1.0
+          acL: 1.0
+          aL: 1.0
+          aR: 1.0
+          enL: 1.0
+          enR: 1.0
+          pg: 1.0
+        #hard_precision:
+        #n: 1000000
+
+      subsample_M: 1000
+      save_full: false
+      direction: forward
+    train:
+      mode: pair
+      steps: 2000
+      batch: 4
+      lr: 0.0001
+      seed: 42
+      log_every: 10
+      save_every: 100
+      val_every: 0
+      export_shapes: 2
+      export_strategy: sequential
+
   resnet_lddmm_apply:
     device: cpu
     chunk_size: 0  # 0 = integrate every point in one batch; raise if this OOMs on a denser template
