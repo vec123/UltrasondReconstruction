@@ -1,0 +1,40 @@
+# Strictly regional GPMM: localized(pca).
+# The population's own deformation, confined to a stated region and frozen
+# outside it - w(x) k_pca(x,y) w(y). Every sample is population-plausible (the
+# directions are still PCA's) but only the region moves.
+#
+# The sibling pca_sum_localized_gaussian adds regional freedom BESIDE the full
+# model; this one SUBTRACTS everything outside the region. Use this when the
+# rest of the shape is already fixed - fitting a nose onto an otherwise settled
+# head - and the sum when the whole shape is still free.
+#
+# Cheap by construction: a diagonal congruence changes no rank, so localising
+# the 183-mode pca kernel gives a 183-mode kernel and 'exact_factor' still
+# applies. Compare pca_times_gaussian, whose Khatri-Rao factor is 163 x 300.
+#
+# Domain: BabyFM, bounding-box diagonal 0.0199, 31027 vertices,
+# 163 PCA modes, mean per-coordinate PCA variance 4.16e-8.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: localized
+  kwargs:
+    weights: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+    weights_field: heatmap_landmarks
+  children:
+    - name: pca
+truncation:
+  # The congruence preserves rank, so all 163 modes survive it.
+  n_components: 163
+  variance_threshold: 1.0
+approximation:
+  name: exact_factor
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  filename: baby_pca_localized.npz

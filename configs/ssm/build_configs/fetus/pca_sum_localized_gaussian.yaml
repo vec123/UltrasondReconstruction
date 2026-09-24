@@ -1,0 +1,67 @@
+# Regional GPMM: pca + localized(gaussian).
+# The population model everywhere, plus extra smooth deformation confined to a
+# stated region - the classic way to let a model flex where a scan disagrees
+# with it without loosening it everywhere.
+#
+# This is NOT what pca_times_gaussian does, and the difference is the point:
+#
+#   pca * gaussian    localizes by SEPARATION. It shortens every correlation,
+#                     uniformly, everywhere, and in doing so destroys the
+#                     global modes - the model can no longer say "the whole
+#                     head is longer". It also multiplies rank (183 x 300 in
+#                     the Khatri-Rao factor), which is why those builds keep
+#                     only ~95% of their variance at n_components 300.
+#   localized(k)      localizes by ABSOLUTE POSITION: w(x) k(x,y) w(y), a
+#                     diagonal congruence. The region is stated by the weights
+#                     rather than implied by a radius, the global pca term is
+#                     untouched beside it, and rank is preserved exactly.
+#
+# Domain: FetusModel_x4, bounding-box diagonal 101.1 mm, 5743 vertices,
+# 183 PCA modes, mean per-coordinate PCA variance 1.449.
+domain:
+  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  metric: euclidean
+  mass: true
+
+normalize: false
+kernel:
+  name: sum
+  children:
+    # Untouched: every global mode the population showed stays available.
+    - name: pca
+    # The regional term. Weights come from the heatmap_landmarks point field
+    # already baked on Templates/fetus_mean.vtp, which is this same mesh in the
+    # same vertex order (its total_std matches the atlas mean exactly). The
+    # field peaks at 1.0, so it needs no rescaling: variance scales as w^2, so
+    # w = 1 gives the full 'scale' below and the floor (~0.006) gives ~4e-5 of
+    # it - effectively frozen outside the region.
+    - name: localized
+      kwargs:
+        weights: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+        weights_field: heatmap_landmarks
+      children:
+        # sigma 8.0 is deliberately SMALLER than the region (885 vertices at
+        # w > 0.25, mean radius 14.3 mm). A sigma larger than its own region
+        # makes the kernel near-constant inside it, and the region then only
+        # translates as a unit instead of changing shape.
+        - name: gaussian
+          kwargs:
+            sigma: 8.0
+            # 1x the mean per-coordinate PCA variance, at the region's peak.
+            scale: 1.449
+truncation:
+  n_components: 300
+  variance_threshold: 0.99
+approximation:
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 300
+    tolerance: 1.0e-3
+# A localised kernel has no analytic value away from its own vertices - the
+# weights are tabulated per vertex - but the pca term beside it is tabulated
+# too, so this model is a discrete one either way.
+inference:
+  name: none
+output:
+  dir: ${PROJECT_ROOT}/src/SSM/saved_models/fetus
+  filename: fetus_pca_sum_localized_gaussian.npz
