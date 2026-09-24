@@ -13,6 +13,7 @@ from scripts.pipeline.stage_spec import StageSpec
 from .stages import (
     align_to_reference,
     align_to_template,
+    distance_distribution_overlay,
     echotexture,
     landmark_bbox_cut,
     landmark_distance_cut,
@@ -46,4 +47,7 @@ STAGE_SPECS = {
     "similarity_transform": StageSpec(similarity_transform.Config, similarity_transform.run),
     "vtp_to_nrrd_overlay": StageSpec(vtp_to_nrrd_overlay.Config, vtp_to_nrrd_overlay.run),
     "recon_target_distance": StageSpec(recon_target_distance.Config, recon_target_distance.run),
+    "distance_distribution_overlay": StageSpec(
+        distance_distribution_overlay.Config, distance_distribution_overlay.run
+    ),
 }
