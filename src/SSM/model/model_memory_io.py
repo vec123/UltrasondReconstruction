@@ -318,6 +318,35 @@ def save_model(path, model: StatisticalShapeModel, spec: ModelCacheSpec) -> None
     tmp.replace(path)
 
 
+def annotate_landmarks(model: StatisticalShapeModel, landmarks_json) -> StatisticalShapeModel:
+    """Gives a model that carries no landmarks the ones named in a JSON file.
+
+    A GPMM built on a Deformetrica atlas inherits the atlas's lack of landmark
+    annotation (see :mod:`src.SSM.model.landmarks`), and the archive keeps the
+    source's vertex ordering unchanged - so the very file that annotates the
+    atlas annotates every model built from it, with no rebuild. A model that
+    brought its own landmarks along (anything descended from the BabyFM .mat)
+    keeps them: this only ever fills a gap, it never overrides.
+    """
+    if landmarks_json is None or len(model.landmarks.get("names ", [])):
+        return model
+
+    from src.SSM.model.landmarks import read_landmark_map
+
+    mapping = read_landmark_map(landmarks_json)
+    if not mapping:
+        return model
+
+    verts = np.asarray(list(mapping.values()), dtype=np.int64)
+    if verts.max(initial=-1) >= model.n_vertices:
+        raise ValueError(
+            f"{landmarks_json} names vertex {verts.max()}, but this model has only "
+            f"{model.n_vertices} vertices - it annotates a different mesh"
+        )
+    model.landmarks = {"names ": list(mapping), "verts ": verts}
+    return model
+
+
 def load_model_file(path, normalize: bool = False, atlas_options=None,
                     verbose: bool = False) -> StatisticalShapeModel:
     """Load a serialized GPMM or a legacy model source into one model object.
@@ -326,13 +355,17 @@ def load_model_file(path, normalize: bool = False, atlas_options=None,
     ``.mat`` files and atlas directories are converted to the same
     :class:`StatisticalShapeModel` contract without changing their source
     files. This keeps callers independent of the on-disk representation.
+
+    ``atlas_options`` reaches a ``.npz`` only through its ``landmarks`` entry
+    (see :func:`annotate_landmarks`); everything else in it describes how to
+    turn an atlas into a linear model, which the archive already is.
     """
     path = Path(path)
     if path.suffix.lower() == ".npz":
         model = load_model(path)
         if model is None:
             raise ValueError(f"could not load serialized GPMM model from {path}")
-        return model
+        return annotate_landmarks(model, dict(atlas_options or {}).get("landmarks"))
 
     from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
 

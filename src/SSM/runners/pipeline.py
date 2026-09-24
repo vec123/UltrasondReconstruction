@@ -49,7 +49,7 @@ from src.vtk.create import (
 )
 
 from src.SSM.laplacian.laplacian import solve_laplacian_deformation
-from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+from src.SSM.model.model_memory_io import load_model_file
 from src.SSM.model.model import ShapeInstance, StatisticalShapeModel
 from src.SSM.nicp import Correspondences, PointCloud
 from src.SSM.nicp.problem import build_problem
@@ -234,11 +234,19 @@ class PipelineRunner:
         self.surface_vertices = get_vtp_vertices(surface)
         self.surface_faces = get_vtp_faces(surface)
 
-        mean, eigenfunctions, eigenvalues, model_landmarks = load_shape_model(
+        # One loader for every model format this project has: the BabyFM .mat,
+        # a Deformetrica atlas directory, and a .npz GPMM built by
+        # scripts.SSM.build_model (src/SSM/saved_models/<domain>/). Which one
+        # inputs.shape_model_mat names changes nothing below - a model is
+        # (mean, Phi, Lambda, landmarks) plus a triangulation either way.
+        self.shape_model = load_model_file(
             inputs.shape_model_mat, normalize=cfg.model.normalize,
             atlas_options=cfg.model.atlas.to_options(), verbose=cfg.verbose,
         )
-        self.model_faces = load_shape_model_triangulation(inputs.shape_model_mat)
+        self.model_faces = self.shape_model.faces
+        mean = self.shape_model.mean
+        eigenfunctions = self.shape_model.eigenfunctions
+        eigenvalues = self.shape_model.eigenvalues
 
         if inputs.template_vtp is not None:
             if not inputs.template_vtp.exists():
@@ -254,21 +262,15 @@ class PipelineRunner:
                 )
             self.template_point_data = template_polydata
 
-        self.shape_model = StatisticalShapeModel(
-            mean=mean,
-            eigenfunctions=eigenfunctions,
-            eigenvalues=eigenvalues,
-            landmarks=model_landmarks,
-        )
-
         # Landmark-driven stages address the model by landmark name, which a
         # model without any annotation cannot answer - caught here rather than
         # as an empty match set two steps later.
         if self._needs_landmarks() and not len(self.shape_model.landmark_indices()):
             raise ValueError(
                 f"{inputs.shape_model_mat.name} carries no landmarks, so steps.align "
-                f"and steps.landmark_fit cannot run against it. Turn both off (a "
-                f"Deformetrica atlas is unannotated), or use "
+                f"and steps.landmark_fit cannot run against it. A Deformetrica atlas - "
+                f"and any GPMM built on one - is unannotated until model.atlas.landmarks "
+                f"names a vertex-index JSON for it; set that, turn both steps off, or use "
                 f"gmm_2_template/inputs.to_model_space to get into model space instead."
             )
         self._log("-------- Model Summary:")
@@ -386,6 +388,15 @@ class PipelineRunner:
         Mean is transformed as a point set; eigenfunctions are direction fields
         so they rotate and scale but do not translate; eigenvalues are variances
         and therefore scale quadratically.
+
+        What comes out is the four-field contract plus the triangulation, and
+        deliberately not a GPMM's extra self-knowledge: a kernel, its continuous
+        inference and the ``mass`` inner product its basis is orthonormal in are
+        all statements about the *untransformed* domain, and a similarity scale
+        invalidates each of them (Phi^T M Phi picks up an s^4). Nothing in the
+        fit reads them - ``ShapeInstance.closed_form_solution`` forms Phi^T Phi
+        rather than assuming it away - so they are dropped rather than carried
+        along with a label that has stopped being true.
         """
         model = self.shape_model
         K = model.n_components
@@ -400,6 +411,7 @@ class PipelineRunner:
             eigenfunctions=Phi,
             eigenvalues=model.eigenvalues * (s ** 2),
             landmarks=model.landmarks,
+            faces=model.faces,
         )
         self.shape = ShapeInstance(self.shape_model)
 
