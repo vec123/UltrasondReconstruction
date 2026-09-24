@@ -422,6 +422,14 @@ class PointToPlaneLoss(Loss):
         return LossValue(total, {"point_to_plane": float(total.detach())})
 
 
+def _mesh_edges(faces, device) -> torch.Tensor:
+    """Unique undirected edges of a triangulation, as a ``(2, E)`` index tensor."""
+    f = np.asarray(faces, dtype=np.int64)
+    pairs = np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]], axis=0)
+    pairs = np.unique(np.sort(pairs, axis=1), axis=0)
+    return torch.as_tensor(pairs.T, dtype=torch.long, device=device)
+
+
 @register_loss("p2plane_chamfer")
 class P2PlaneChamferLoss(ChamferLoss):
     """``chamfer``'s per-direction weighting, with the residual measured to the
@@ -458,6 +466,7 @@ class P2PlaneChamferLoss(ChamferLoss):
     def __init__(self, source_to_target=None, target_to_source=None,
                  plane_weight: float = 0.8, p: int = 2,
                  source_ratio: float = 0.0, target_ratio: float = 0.0,
+                 stiffness: float = 0.0,
                  robust_kernel: Optional[str] = None,
                  robust_breakpoint: Optional[float] = None,
                  robust_slope: Optional[float] = None,
@@ -472,6 +481,9 @@ class P2PlaneChamferLoss(ChamferLoss):
                 f"point-to-point (0) against point-to-plane (1), it is not a scale"
             )
         self.plane_weight = plane_weight
+        if stiffness < 0:
+            raise ValueError(f"stiffness must be >= 0, got {stiffness}")
+        self.stiffness = stiffness
 
     def __call__(self, pred: torch.Tensor, ctx: LossContext) -> LossValue:
         if ctx.target_normals is None:
@@ -527,11 +539,70 @@ class P2PlaneChamferLoss(ChamferLoss):
         terms["p2plane_chamfer"] = float(total.detach())
         terms["chamfer_n_source"] = float(source.shape[0])
         terms["chamfer_n_target"] = float(target.shape[0])
+
+        if self.stiffness > 0.0:
+            total = total + self.stiffness * self._stiffness_energy(pred, ctx, terms)
         return LossValue(total, terms)
 
+    def _stiffness_energy(self, pred: torch.Tensor, ctx: LossContext, terms) -> torch.Tensor:
+        """Mean squared *strain* of the displacement field over the mesh edges.
+
+        ``E_stiff`` of the classical NICP energy, in the only form that means
+        anything here. Amberg's term penalises differences between neighbouring
+        per-vertex affine transforms; this model has no per-vertex transforms to
+        compare, only the coefficients, so what is penalised instead is the
+        variation of the displacement ``d = x(alpha) - xbar`` across each edge::
+
+            E_stiff = mean over edges (i,j) of  ||d_i - d_j||^2 / ||xbar_i - xbar_j||^2
+
+        A pure translation of the whole surface costs nothing, as it must - the
+        term charges for *differential* deformation, i.e. for stretching and
+        bending the template rather than for moving it.
+
+        The division by the rest edge length is what makes the weight portable.
+        Without it the energy carries units of length squared, and since the two
+        domains here differ by a factor of ~5000 in scale (see the Units note in
+        src/SSM/kernels/stationary.py) one weight could not serve both. Divided,
+        each edge contributes a squared relative stretch, which is dimensionless
+        and means the same thing on either model.
+
+        Edge weighting is uniform rather than cotangent-based: the mesh is fixed
+        and roughly uniform, so the refinement would buy accuracy the rest of
+        this term does not have. The edges are built once per fit and cached on
+        the context, since the triangulation never moves.
+        """
+        faces = ctx.space.faces
+        if faces is None:
+            raise RegistryError(
+                "loss 'p2plane_chamfer' was given stiffness > 0, but the shape space "
+                "carries no triangulation - it has no edges to be stiff across. The "
+                "pipeline only attaches the model's faces when nicp.use_model_faces is "
+                "true (it is false by default, which treats the model as a point cloud); "
+                "set that, or set stiffness: 0."
+            )
+        edges = ctx.cache.get("mesh_edges")
+        rest = ctx.cache.get("mesh_rest_length_sq")
+        if edges is None:
+            edges = _mesh_edges(faces, pred.device)
+            mean_xyz = ctx.space.mean.view(-1, 3)
+            rest = (mean_xyz[edges[0]] - mean_xyz[edges[1]]).pow(2).sum(-1).clamp_min(1e-30)
+            ctx.cache["mesh_edges"] = edges
+            ctx.cache["mesh_rest_length_sq"] = rest
+
+        displacement = pred - ctx.space.mean.view(-1, 3)
+        delta = displacement[edges[0]] - displacement[edges[1]]
+        value = (delta.pow(2).sum(-1) / rest).mean()
+        terms["p2plane_stiffness"] = float(value.detach())
+        terms["p2plane_total"] = float(
+            terms["p2plane_chamfer"] + self.stiffness * value.detach()
+        )
+        return value
+
     def describe(self) -> str:
+        stiff = f"stiffness={self.stiffness:g}, " if self.stiffness else ""
         return super().describe().replace(
-            "ChamferLoss(", f"P2PlaneChamferLoss(plane_weight={self.plane_weight:g}, ")
+            "ChamferLoss(",
+            f"P2PlaneChamferLoss(plane_weight={self.plane_weight:g}, {stiff}")
 
 
 @register_loss("cpd")
