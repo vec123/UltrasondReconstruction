@@ -24,7 +24,7 @@ kernel:
     - name: pca
     - name: gaussian
       kwargs:
-        sigma: 15.0
+        sigma: 5.0
         scale: 1.0
 truncation:
   n_components: 300
