@@ -386,23 +386,28 @@ class VtpToNrrdOverlayConfig:
 class ReconTargetDistanceConfig:
     target_path: str = ""
     recon_path: str = ""
+    landmarks_path: str = ""
+
+    # Distance thresholds for the `fraction_within` block of each direction's
+    # stats - the share of points closer than each one, in the SAME units as
+    # `units` (so these are mm only while landmarks_path is a mm-frame CSV).
+    # Empty, the block is omitted.
+    coverage_thresholds: List[float] = dataclasses.field(
+        default_factory=lambda: [1.0, 2.0, 3.0]
+    )
+
+    # Label for the frame `landmarks_path` is in, used in the printed lines,
+    # the plot axis and the JSON outputs. Left unset, "landmark frame units".
+    units: str = ""
+
+    # 3x3 metric matrix M of the landmark Mahalanobis distance
+    # sqrt(d^T M d), d = (recon landmark - CSV landmark) in landmark-frame
+    # coordinates. Left unset, the identity - i.e. plain Euclidean distance.
+    # Pass the inverse of a landmark covariance here to weight the axes.
+    landmark_metric: List[List[float]] = dataclasses.field(default_factory=list)
 
     # Directory to save target_w_distance.vtp / recon_w_distance.vtp /
-    # distance_summary.json into. Left unset, saves next to target_path /
-    # recon_path respectively (the .json alongside recon_path).
+    # distance_summary.json / landmark_distances.json into. Left unset, saves
+    # next to target_path / recon_path respectively (the .json alongside
+    # recon_path).
     output_dir: str = ""
-
-    # align_to_template's saved-transforms dir for this subject (one .npz per
-    # sweep/scan of that subject). When set, reported distances are divided
-    # by the median similarity scale over those transforms, into the
-    # original (pre-alignment) data's physical scale. Left unset (""),
-    # distances stay in the meshes' own template units.
-    transforms_dir: str = ""
-
-    # Which single transform within transforms_dir (e.g. one sweep's id)
-    # defines the saved geometry's back-transform. When set, the FULL
-    # inverse (rotation+translation+scale) of that one transform is applied
-    # to the saved meshes, placing them back in that subject's original
-    # frame - not just rescaled. Left unset (""), geometry is only rescaled
-    # (if transforms_dir is set) or left untouched (if it isn't).
-    subject_id: str = ""
