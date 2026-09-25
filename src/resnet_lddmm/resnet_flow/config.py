@@ -121,6 +121,38 @@ class CodeCfg:
     pose: PoseCfg = dataclass_field(default_factory=PoseCfg)
 
 
+# The flat robust_* keys a data term used to take, each now a key of ONE
+# loss_distance_handle block. Still recognised, but only to fail with the new
+# syntax instead of a bare unknown-key or unexpected-argument error.
+RENAMED_LOSS_DISTANCE_KEYS = {"robust_kernel": "kind", "robust_breakpoint": "breakpoint",
+                              "robust_slope": "slope", "robust_tau": "tau"}
+
+
+def reject_renamed_loss_distance_keys(d: dict, where: str) -> None:
+    """Fail on the no-longer-supported robust_* keys, naming their replacement.
+
+    Only called where a data term is BUILT (runner.build, ChamferSideCfg) --
+    never on loading an ExperimentCfg, since every finished run's config.json
+    still carries the old keys and apply must keep reading those.
+
+    Args:
+        d: a data_kwargs mapping, or one direction's block inside it.
+        where: its place in the config, for the message.
+
+    Raises:
+        ValueError: any robust_* key is present.
+    """
+    old = [key for key in RENAMED_LOSS_DISTANCE_KEYS if key in d]
+    if old:
+        block = ", ".join(f"{RENAMED_LOSS_DISTANCE_KEYS[key]}: "
+                          f"{'null' if d[key] is None else d[key]}" for key in old)
+        raise ValueError(
+            f"{where}: {', '.join(old)} {'is' if len(old) == 1 else 'are'} no longer "
+            f"supported -- the robust_* keys were replaced by one loss_distance_handle "
+            f"block. Write  loss_distance_handle: {{{block}}}  instead."
+        )
+
+
 @dataclass
 class ChamferSideCfg:
     """One direction of a field-weighted chamfer term (data_name: field_weighted_chamfer).
@@ -192,6 +224,7 @@ class ChamferSideCfg:
 
     @classmethod
     def from_dict(cls, d: dict) -> "ChamferSideCfg":
+        reject_renamed_loss_distance_keys(d, "source_to_target/target_to_source block")
         reject_unknown_keys(d, {"weight", "base_sigma", "field_name", "field_source",
                                 "field_transform", "field_scale", "loss_distance_handle"},
                             what="chamfer side")

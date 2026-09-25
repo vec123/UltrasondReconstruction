@@ -17,7 +17,8 @@ import torch
 
 from src.resnet_lddmm.resnet_flow.checkpoint import checkpoint_step, load_checkpoint, resolve_checkpoint
 from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
-from src.resnet_lddmm.resnet_flow.config import ExperimentCfg, CENTERING_DOMAINS
+from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAINS,
+                                                 reject_renamed_loss_distance_keys)
 from src.resnet_lddmm.resnet_flow.poses import TRANSLATING_KINDS
 from src.resnet_lddmm.resnet_flow.io import load_shape, joint_normalize, export_trajectory, export_shape
 from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs
@@ -592,7 +593,9 @@ def build(cfg: ExperimentCfg):
     # to load a checkpoint into.
     flow = build_flow(cfg)
 
-    # Registry.create: data term and isometry loss (shared)
+    # Registry.create: data term and isometry loss (shared). Old robust_* keys
+    # fail here with their replacement rather than as an unexpected argument.
+    reject_renamed_loss_distance_keys(cfg.loss.data_kwargs, "loss.data_kwargs")
     data_term = Registry.create(
         "data_term", cfg.loss.data_name,
         **cfg.loss.data_kwargs
