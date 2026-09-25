@@ -229,7 +229,15 @@ class LossDistanceHandle:
                 f"{extra} -- quadratic below the breakpoint, {self.kind!r} above it")
 
     def __call__(self, dist_sq: Tensor) -> Tensor:
-        """Per-point penalty, same shape as ``dist_sq``; see _robust_penalty."""
+        """Per-point penalty, same shape as ``dist_sq``; see _robust_penalty.
+
+        A no-op when quadratic -- returns ``dist_sq`` unchanged, so the default is
+        bit-for-bit plain Chamfer. Meant for the ALREADY-REDUCED nearest-neighbour
+        distance (post ``.min()``), never the full pairwise matrix: every kind is
+        monotonic in ``d`` below the point where it starts flattening/dropping,
+        so applying it after argmin gives the identical nearest-neighbour
+        assignment, for a fraction of the cost.
+        """
         if self.is_quadratic:
             return dist_sq
         return _robust_penalty(dist_sq, self.kind, self.breakpoint,
@@ -324,19 +332,6 @@ class TwoSidedDataTerm(DataTerm):
         if not self.loss_distance_handle.is_quadratic:
             print(f"[data_term] {self.loss_distance_handle.describe()}")
 
-    def _robustify(self, dist_sq: Tensor) -> Tensor:
-        """Apply the configured robust kernel to per-point squared distances.
-
-        No-op when robust_kernel is None/"quadratic" -- returns dist_sq unchanged,
-        so the default is bit-for-bit identical to plain Chamfer. Meant to be
-        called on the ALREADY-REDUCED nearest-neighbour distance (post ``.min()``),
-        never on the full pairwise matrix: every kind here is monotonic in ``d``
-        below the point where it starts flattening/dropping, so applying it after
-        argmin gives the identical nearest-neighbour assignment as before, for a
-        fraction of the cost.
-        """
-        return self.loss_distance_handle(dist_sq)
-
     def regime_fraction(self, dist_sq: Tensor) -> float:
         """Fraction of points currently beyond the robust breakpoint.
 
@@ -349,8 +344,8 @@ class TwoSidedDataTerm(DataTerm):
         configured, since then nothing is ever "in the tail".
 
         Args:
-            dist_sq: per-point squared distances (e.g. the same tensor _robustify
-                would be called on).
+            dist_sq: per-point squared distances (e.g. the same tensor the
+                loss_distance_handle is applied to).
 
         Returns:
             A python float in [0, 1].
@@ -437,11 +432,11 @@ class CDData(TwoSidedDataTerm):
             return per_point_losses
 
         # Standard scalar loss
-        term1 = self._robustify(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
+        term1 = self.loss_distance_handle(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
 
         term2 = None
         if self.scores_target_to_source:
-            dist_t_to_p = self._robustify(dist_sq.min(dim=1)[0])
+            dist_t_to_p = self.loss_distance_handle(dist_sq.min(dim=1)[0])
             term2 = (dist_t_to_p * mask).sum() / (mask.sum() + 1e-8)
 
         return self._combine(term1, term2)
@@ -557,12 +552,12 @@ class WeightedCDData(TwoSidedDataTerm):
             return per_point_losses
 
         # Term 1: pred → target (unweighted, average nearest target distance)
-        term1 = self._robustify(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
+        term1 = self.loss_distance_handle(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
 
         # Term 2: target → pred (weighted by tgt_w if provided)
         term2 = None
         if self.scores_target_to_source:
-            tgt_to_pred = self._robustify(dist_sq.min(dim=1)[0])  # [B, M]
+            tgt_to_pred = self.loss_distance_handle(dist_sq.min(dim=1)[0])  # [B, M]
             if tgt_w is not None:
                 # Normalize weights to avoid changing overall scale
                 w_normalized = tgt_w / (tgt_w.mean(dim=1, keepdim=True) + 1e-8)
@@ -610,8 +605,8 @@ class PCDData(TwoSidedDataTerm):
             return per_point_losses
 
         # Symmetric at the default weights: pred→target + target→pred
-        term1 = self._robustify(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
-        term2 = self._robustify(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
+        term1 = self.loss_distance_handle(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
+        term2 = self.loss_distance_handle(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
         return self._combine(term1, term2)
 
 
@@ -990,8 +985,8 @@ class NCDData(TwoSidedDataTerm):
         if normals is None:
             if per_point:
                 return dist_sq.min(dim=1)[0]
-            term1 = self._robustify(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
-            term2 = self._robustify(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
+            term1 = self.loss_distance_handle(dist_sq.min(dim=2)[0]).mean() if self.scores_source_to_target else None
+            term2 = self.loss_distance_handle(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
             return self._combine(term1, term2)
 
         if per_point:
@@ -1030,10 +1025,10 @@ class NCDData(TwoSidedDataTerm):
             # Geometric distance is robustified; the normal-alignment penalty is a
             # different quantity (a bounded [0,1] dot-product term already) and is
             # never subject to the distance kernel.
-            term1 = self._robustify(pred_to_tgt_dists).mean() + self.normal_weight * normal_penalty
+            term1 = self.loss_distance_handle(pred_to_tgt_dists).mean() + self.normal_weight * normal_penalty
 
         # Term 2: target → pred (point distance only)
-        term2 = self._robustify(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
+        term2 = self.loss_distance_handle(dist_sq.min(dim=1)[0]).mean() if self.scores_target_to_source else None
 
         return self._combine(term1, term2)
 
