@@ -283,10 +283,7 @@ class TwoSidedDataTerm(DataTerm):
 
     def __init__(self, source_to_target_weight: float = 1.0,
                  target_to_source_weight: float = 1.0,
-                 robust_kernel: Optional[str] = None,
-                 robust_breakpoint: Optional[float] = None,
-                 robust_slope: Optional[float] = None,
-                 robust_tau: Optional[float] = None):
+                 loss_distance_handle: Optional[dict] = None):
         """Initialize the direction weights and the shared LossDistanceHandle.
 
         The four robust_* settings are validated and held together as
@@ -323,8 +320,7 @@ class TwoSidedDataTerm(DataTerm):
         self.source_to_target_weight = float(source_to_target_weight)
         self.target_to_source_weight = float(target_to_source_weight)
 
-        self.loss_distance_handle = LossDistanceHandle(
-            robust_kernel, robust_breakpoint, slope=robust_slope, tau=robust_tau)
+        self.loss_distance_handle = LossDistanceHandle.from_dict(loss_distance_handle)
         if not self.loss_distance_handle.is_quadratic:
             print(f"[data_term] {self.loss_distance_handle.describe()}")
 
@@ -653,10 +649,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
     def __init__(self, source_to_target: Optional[dict] = None,
                  target_to_source: Optional[dict] = None,
-                 robust_kernel: Optional[str] = None,
-                 robust_breakpoint: Optional[float] = None,
-                 robust_slope: Optional[float] = None,
-                 robust_tau: Optional[float] = None):
+                 loss_distance_handle: Optional[dict] = None):
         """Initialize from two ChamferSideCfg-shaped dicts, one per direction.
 
         Args:
@@ -680,8 +673,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         # them as the one setting for both directions, which a side's own
         # robust_kernel may override. They are built and logged per direction here.
         super().__init__(source_to_target_weight=st.weight, target_to_source_weight=ts.weight)
-        self.loss_distance_handle = LossDistanceHandle(
-            robust_kernel, robust_breakpoint, slope=robust_slope, tau=robust_tau)
+        self.loss_distance_handle = LossDistanceHandle.from_dict(loss_distance_handle)
         self.source_to_target_loss_distance_handle = self._direction_handle("source_to_target", st)
         self.target_to_source_loss_distance_handle = self._direction_handle("target_to_source", ts)
         self.source_to_target_sigma = st.base_sigma
@@ -829,10 +821,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
     def __init__(self, source_to_target: Optional[dict] = None,
                  target_to_source: Optional[dict] = None,
                  plane_weight: float = 0.8,
-                 robust_kernel: Optional[str] = None,
-                 robust_breakpoint: Optional[float] = None,
-                 robust_slope: Optional[float] = None,
-                 robust_tau: Optional[float] = None):
+                 loss_distance_handle: Optional[dict] = None):
         """Initialize from two ChamferSideCfg-shaped dicts, plus the blend.
 
         Args:
@@ -847,8 +836,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
         """
         super().__init__(source_to_target=source_to_target,
                          target_to_source=target_to_source,
-                         robust_kernel=robust_kernel, robust_breakpoint=robust_breakpoint,
-                         robust_slope=robust_slope, robust_tau=robust_tau)
+                         loss_distance_handle=loss_distance_handle)
         if not 0.0 <= plane_weight <= 1.0:
             raise ValueError(
                 f"plane_weight must be in [0, 1], got {plane_weight}: it is a blend "
@@ -953,10 +941,7 @@ class NCDData(TwoSidedDataTerm):
     def __init__(self, normal_weight: float = 1.0,
                  source_to_target_weight: float = 1.0,
                  target_to_source_weight: float = 1.0,
-                 robust_kernel: Optional[str] = None,
-                 robust_breakpoint: Optional[float] = None,
-                 robust_slope: Optional[float] = None,
-                 robust_tau: Optional[float] = None):
+                 loss_distance_handle: Optional[dict] = None):
         """Initialize NCD loss.
 
         Args:
@@ -970,8 +955,7 @@ class NCDData(TwoSidedDataTerm):
         """
         super().__init__(source_to_target_weight=source_to_target_weight,
                          target_to_source_weight=target_to_source_weight,
-                         robust_kernel=robust_kernel, robust_breakpoint=robust_breakpoint,
-                         robust_slope=robust_slope, robust_tau=robust_tau)
+                         loss_distance_handle=loss_distance_handle)
         self.normal_weight = normal_weight
 
     def forward(
