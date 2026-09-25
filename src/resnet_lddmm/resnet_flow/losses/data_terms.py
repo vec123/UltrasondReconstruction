@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+from src.core.config import reject_unknown_keys
 from src.resnet_lddmm.learning.losses.losses import chamfer_loss
 from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
@@ -147,6 +148,8 @@ class LossDistanceHandle:
     handle then returns ``dist_sq`` itself, bit-for-bit.
     """
 
+    KEYS = ("kind", "breakpoint", "slope", "tau")   # of the config block, see from_dict
+
     def __init__(self, kind: Optional[str] = None, breakpoint: Optional[float] = None,
                  slope: Optional[float] = None, tau: Optional[float] = None):
         """Validate and store one setting.
@@ -165,18 +168,51 @@ class LossDistanceHandle:
         # Messages name the CONFIG keys (robust_kernel, robust_breakpoint), since
         # that is what the user has to change.
         if kind is not None and kind not in ROBUST_KINDS:
-            raise ValueError(f"unknown robust_kernel {kind!r}; expected "
+            raise ValueError(f"unknown loss_distance_handle kind {kind!r}; expected "
                               f"one of {ROBUST_KINDS} or None")
         if kind not in (None, "quadratic") and breakpoint is None:
             raise ValueError(
-                f"robust_kernel={kind!r} needs a robust_breakpoint -- the "
+                f"loss_distance_handle kind={kind!r} needs a breakpoint -- the "
                 f"distance at which its behaviour changes from the plain quadratic "
-                f"regime. Pass one, or drop robust_kernel to disable it."
+                f"regime. Pass one, or drop the loss_distance_handle block to disable it."
             )
         self.kind = kind
         self.breakpoint = breakpoint
         self.slope = slope
         self.tau = tau
+
+    @classmethod
+    def from_dict(cls, block: Optional[dict]) -> "LossDistanceHandle":
+        """A handle from its ``loss_distance_handle`` config block.
+
+        Args:
+            block: ``{kind, breakpoint, slope, tau}``, or None when there is no
+                block at all -- plain squared distance.
+
+        Returns:
+            The validated LossDistanceHandle.
+
+        Raises:
+            ValueError: not a mapping, an unknown key, no ``kind``, or anything
+                __init__ rejects.
+        """
+        if block is None:
+            return cls()
+        if not isinstance(block, dict):
+            raise ValueError(
+                f"loss_distance_handle must be a mapping such as "
+                f"{{kind: truncated, breakpoint: 0.04}}, got {block!r}")
+        reject_unknown_keys(block, cls.KEYS, what="loss_distance_handle")
+        # Without its kind, a block would silently mean plain squared distance
+        # while reading as configured.
+        if block.get("kind") is None:
+            raise ValueError(
+                f"loss_distance_handle needs a kind, one of {ROBUST_KINDS}; drop the "
+                f"block entirely for plain squared distance. Got {block!r}")
+        params = {key: None if block.get(key) is None else float(block[key])
+                  for key in ("breakpoint", "slope", "tau")}
+        return cls(block["kind"], params["breakpoint"],
+                   slope=params["slope"], tau=params["tau"])
 
     @property
     def is_quadratic(self) -> bool:
@@ -186,11 +222,11 @@ class LossDistanceHandle:
     def describe(self) -> str:
         """One line naming the kind and its parameters, for the build-time log."""
         if self.is_quadratic:
-            return f"robust_kernel={self.kind!r} -- plain squared distance"
+            return f"loss_distance_handle kind={self.kind!r} -- plain squared distance"
         extra = {"linear": f"slope={self.slope!r}",
                  "exponential": f"tau={self.tau!r}"}.get(self.kind, "")
-        return (f"robust_kernel={self.kind!r} breakpoint={self.breakpoint:g} {extra} "
-                f"-- quadratic below the breakpoint, {self.kind!r} above it")
+        return (f"loss_distance_handle kind={self.kind!r} breakpoint={self.breakpoint:g} "
+                f"{extra} -- quadratic below the breakpoint, {self.kind!r} above it")
 
     def __call__(self, dist_sq: Tensor) -> Tensor:
         """Per-point penalty, same shape as ``dist_sq``; see _robust_penalty."""
