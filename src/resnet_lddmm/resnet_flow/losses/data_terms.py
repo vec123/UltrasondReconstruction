@@ -637,9 +637,9 @@ class FieldWeightedCDData(TwoSidedDataTerm):
     already-validated data term instead of re-parsing the raw config dict.
 
     Each direction also has its OWN LossDistanceHandle. A side whose
-    ChamferSideCfg sets robust_kernel uses that, with that side's own
-    breakpoint/slope/tau; a side that does not inherits the shared robust_*
-    arguments, exactly as before per-direction settings existed. That is what
+    ChamferSideCfg carries its own loss_distance_handle block uses it; a side
+    without one inherits the shared block, exactly as before per-direction
+    settings existed. That is what
     lets source_to_target ignore far pairs -- the part of a full template a
     partial scan never saw -- while target_to_source keeps pulling on every
     observed point, however far.
@@ -688,8 +688,8 @@ class FieldWeightedCDData(TwoSidedDataTerm):
     def _direction_handle(self, direction: str, side) -> LossDistanceHandle:
         """One direction's LossDistanceHandle, logged as one line.
 
-        Its own when ``side`` (a ChamferSideCfg) sets robust_kernel -- built from
-        that side's breakpoint/slope/tau alone, never mixed with the shared ones --
+        Its own when ``side`` (a ChamferSideCfg) carries a loss_distance_handle
+        block -- built from that block alone, never mixed with the shared one --
         otherwise the shared ``self.loss_distance_handle`` itself.
 
         Args:
@@ -699,12 +699,10 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         Returns:
             The handle this direction's residuals go through in forward.
         """
-        if side.robust_kernel is None:
+        if side.loss_distance_handle is None:
             handle, origin = self.loss_distance_handle, "shared"
         else:
-            handle, origin = LossDistanceHandle(
-                side.robust_kernel, side.robust_breakpoint,
-                slope=side.robust_slope, tau=side.robust_tau), "own"
+            handle, origin = LossDistanceHandle.from_dict(side.loss_distance_handle), "own"
         unused = "" if side.weight != 0.0 else " [weight 0: never computed]"
         print(f"[data_term] {direction} ({origin}): {handle.describe()}{unused}")
         return handle
