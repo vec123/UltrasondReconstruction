@@ -30,7 +30,7 @@ def run(cfg: Config):
         source_points,
         template_vtp=cfg.source_vtp,
         landmark_path=cfg.landmark_path,
-        lps_to_ras=cfg.lps_to_ras,
+        landmarks_frame=cfg.landmarks_frame,
         with_scale=cfg.with_scale,
         heatmap_prefix=cfg.heatmap_prefix,
     )

@@ -4,7 +4,10 @@
 # so later stages can still reference its fields - see scripts/pipeline/cli.py).
 #
 # Run with:
-#   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1
+#   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=1-20s-01
+#
+# REFERENCE_SCAN is the scan (file name without extension) every other scan is
+# aligned onto, e.g. SdeFrankterHaar-01 for SUBJECT_ID=9992.
 
 stages:
 
@@ -49,7 +52,7 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_map
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_p2plane
@@ -71,9 +74,6 @@ stages:
     id: recon_target_distance_fetus_init_pca_times_wendland_p2plane
     enabled: false
 
-  # No _p2plane counterpart: the p2plane_chamfer fit is commented out of this
-  # model's hyperparameters, so no nicp_refined_vertices_p2plane_chamfer.vtp
-  # is written for it (same as the post-fusion pca_sum_matern32 below).
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_sum_matern32_map
     enabled: true
@@ -101,7 +101,7 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_map
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_p2plane
@@ -159,7 +159,7 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_map
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_p2plane
@@ -192,19 +192,19 @@ stages:
 #-----------lddmm baby ssm
   - name: similarity_transform
     id: similarity_transform_baby_ssm
-    enabled: true
+    enabled: false
   - name: resnet_lddmm_train
     id: resnet_lddmm_train_baby_ssm
-    enabled: true
+    enabled: false
   - name: resnet_lddmm_apply
     id: resnet_lddmm_apply_baby_ssm
-    enabled: true
+    enabled: false
   - name: recon_target_distance
     id: recon_target_distance_baby_ssm_lddmm
-    enabled: true
+    enabled: false
   - name: recon_target_distance
     id: recon_target_distance_baby_ssm_lddmm_high_confidence
-    enabled: true
+    enabled: false
 
 
 
@@ -289,7 +289,7 @@ paths:
     cache_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas/Cache
 
   align_to_reference:
-    landmarks_csv_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/Lmks_Antonia
+    landmarks_csv_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/Lmks
     vtp_shapes_dir: nrrd_to_vtp.output_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned
     raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
@@ -408,7 +408,7 @@ paths:
   recon_target_distance_scan_fusion_ssm:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
     recon_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: scan_fusion_ssm.output_dir + /eval
 
   #---------SSM fits, round 2 (post-fusion): the three baby models against the
@@ -464,9 +464,9 @@ paths:
   #
   # That frame is align_to_reference's aligned_landmarks, NOT
   # align_to_template's landmarks_csv: align_to_reference is fit onto the
-  # reference scan, which is 1-20s-01 itself (reference_subject_id: null takes
-  # the first id), so its transform for that scan is the identity and the CSV
-  # is the original Slicer landmarks with only the LPS->RAS flip applied. The
+  # reference scan, which is REFERENCE_SCAN itself (reference_subject_id), so
+  # its transform for that scan is the identity and the CSV is the original
+  # Slicer landmarks, only converted to LPS (see landmarks_frame). The
   # distances therefore come out in original scan mm. align_to_template's CSVs
   # would work equally well as a common frame, but carry that stage's extra
   # size normalisation onto the template (s = 1.236 for this subject), so the
@@ -492,19 +492,19 @@ paths:
   recon_target_distance_fetus_init_mean_shape:
     target_path: fetus_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca.outputs.dir + /init_shape.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/eval_init_mean_shape
 
   recon_target_distance_baby_init_mean_shape:
     target_path: baby_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca.outputs.dir + /init_shape.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/eval_init_mean_shape
 
   recon_target_distance_baby_fused_mean_shape:
     target_path: baby_ssm_fit_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca.outputs.dir + /init_shape.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: ${PROJECT_ROOT}/outputs/baby_ssm/${SUBJECT_ID}/end_to_end/eval_fused_mean_shape
 
   #-- Fetus PCA (pre-fusion)
@@ -512,13 +512,13 @@ paths:
   recon_target_distance_fetus_init_pca_map:
     target_path: fetus_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca.outputs.dir + /eval_map
 
   recon_target_distance_fetus_init_pca_p2plane:
     target_path: fetus_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca.outputs.dir + /eval_p2plane
 
   #-- Fetus PCA x Gaussian (pre-fusion)
@@ -526,13 +526,13 @@ paths:
   recon_target_distance_fetus_init_pca_times_gaussian_map:
     target_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_map
 
   recon_target_distance_fetus_init_pca_times_gaussian_p2plane:
     target_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_p2plane
 
   #-- Fetus PCA x Wendland (pre-fusion)
@@ -540,13 +540,13 @@ paths:
   recon_target_distance_fetus_init_pca_times_wendland_map:
     target_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_map
 
   recon_target_distance_fetus_init_pca_times_wendland_p2plane:
     target_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_p2plane
 
   #-- Fetus PCA + Matern-3/2 (pre-fusion)
@@ -554,7 +554,7 @@ paths:
   recon_target_distance_fetus_init_pca_sum_matern32_map:
     target_path: fetus_ssm_fit_init_pca_sum_matern32.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca_sum_matern32.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: fetus_ssm_fit_init_pca_sum_matern32.outputs.dir + /eval_map
 
   #-- Baby PCA (pre-fusion)
@@ -562,13 +562,13 @@ paths:
   recon_target_distance_baby_init_pca_map:
     target_path: baby_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca.outputs.dir + /eval_map
 
   recon_target_distance_baby_init_pca_p2plane:
     target_path: baby_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca.outputs.dir + /eval_p2plane
 
   #-- Baby PCA x Gaussian (pre-fusion)
@@ -576,13 +576,13 @@ paths:
   recon_target_distance_baby_init_pca_times_gaussian_map:
     target_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_map
 
   recon_target_distance_baby_init_pca_times_gaussian_p2plane:
     target_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca_times_gaussian.outputs.dir + /eval_p2plane
 
   #-- Baby PCA x Wendland (pre-fusion)
@@ -590,13 +590,13 @@ paths:
   recon_target_distance_baby_init_pca_times_wendland_map:
     target_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_map
 
   recon_target_distance_baby_init_pca_times_wendland_p2plane:
     target_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca_times_wendland.outputs.dir + /eval_p2plane
 
   #-- Baby PCA + Matern-3/2 (pre-fusion)
@@ -604,7 +604,7 @@ paths:
   recon_target_distance_baby_init_pca_sum_matern32_map:
     target_path: baby_ssm_fit_init_pca_sum_matern32.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca_sum_matern32.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_init_pca_sum_matern32.outputs.dir + /eval_map
 
   #-- Baby PCA (post-fusion)
@@ -612,13 +612,13 @@ paths:
   recon_target_distance_baby_pca_map:
     target_path: baby_ssm_fit_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca.outputs.dir + /eval_map
 
   recon_target_distance_baby_pca_p2plane:
     target_path: baby_ssm_fit_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca.outputs.dir + /eval_p2plane
 
   #-- Baby PCA x Gaussian (post-fusion)
@@ -626,13 +626,13 @@ paths:
   recon_target_distance_baby_pca_times_gaussian_map:
     target_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca_times_gaussian.outputs.dir + /eval_map
 
   recon_target_distance_baby_pca_times_gaussian_p2plane:
     target_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca_times_gaussian.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca_times_gaussian.outputs.dir + /eval_p2plane
 
   #-- Baby PCA x Wendland (post-fusion)
@@ -640,13 +640,13 @@ paths:
   recon_target_distance_baby_pca_times_wendland_map:
     target_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca_times_wendland.outputs.dir + /eval_map
 
   recon_target_distance_baby_pca_times_wendland_p2plane:
     target_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca_times_wendland.outputs.dir + /nicp_refined_vertices_p2plane_chamfer.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca_times_wendland.outputs.dir + /eval_p2plane
 
   #-- Baby PCA + Matern-3/2 (post-fusion). No eval_p2plane: this model has no
@@ -656,13 +656,13 @@ paths:
   recon_target_distance_baby_pca_sum_matern32_map:
     target_path: baby_ssm_fit_pca_sum_matern32.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca_sum_matern32.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: baby_ssm_fit_pca_sum_matern32.outputs.dir + /eval_map
 
 #---------------------ResNetLDDMM with from the baby ssm to the scan_fusion from the fetus_ssm
   similarity_transform_baby_ssm:
     source_vtp: baby_ssm_fit_pca_sum_matern32.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /baby_ssm_aligned.vtp
 
   resnet_lddmm_train_baby_ssm:
@@ -676,11 +676,15 @@ paths:
     checkpoint: resnet_lddmm_train_baby_ssm.output_dir + /checkpoints
     output_dir: resnet_lddmm_train_baby_ssm.output_dir + /apply
 
+  # lddmm_train_config: the run's own dumped config, so lddmm_landmarks.vtp
+  # holds exactly the averaged target landmarks that run guided on, carried
+  # into the eval frame beside recon_landmarks.vtp / reference_landmarks.vtp.
   recon_target_distance_baby_ssm_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
     recon_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_baby_ssm.output_dir + /eval
+    lddmm_train_config: resnet_lddmm_train_baby_ssm.output_dir + /config.json
 
   # Second eval for the same reconstruction, against the merged high-confidence
   # scan instead of the fused one - the target the PRE-fusion SSM fits are
@@ -694,14 +698,15 @@ paths:
   recon_target_distance_baby_ssm_lddmm_high_confidence:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
     recon_path: resnet_lddmm_apply_baby_ssm.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_baby_ssm.output_dir + /eval_high_confidence
+    lddmm_train_config: resnet_lddmm_train_baby_ssm.output_dir + /config.json
 
 
 #---------------------ResNetLDDMM with from the baby mean to the scan_fusion from the fetus_ssm
   similarity_transform_baby_mean:
     source_vtp: baby_ssm_fit_pca.outputs.dir +  /init_shape.vtp
-    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
 
   resnet_lddmm_train_baby_mean:
@@ -719,14 +724,16 @@ paths:
   recon_target_distance_baby_mean_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
     recon_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_baby_mean.output_dir + /eval
+    lddmm_train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
 
   recon_target_distance_baby_mean_lddmm_high_confidence:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
     recon_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_baby_mean.output_dir + /eval_high_confidence
+    lddmm_train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
 
 
 #---------------------Fit summaries: the distance distributions of several fits
@@ -805,7 +812,7 @@ paths:
   similarity_transform_fetus_ssm:
     #source_vtp: fetus_ssm_fit_init_pca.outputs.dir +  /init_shape.vtp
     source_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
 
   resnet_lddmm_train_fetus_ssm:
@@ -822,20 +829,22 @@ paths:
   recon_target_distance_fetus_ssm_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
     recon_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_fetus_ssm.output_dir + /eval
+    lddmm_train_config: resnet_lddmm_train_fetus_ssm.output_dir + /config.json
 
   recon_target_distance_fetus_ssm_lddmm_high_confidence:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
     recon_path: resnet_lddmm_apply_fetus_ssm.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_fetus_ssm.output_dir + /eval_high_confidence
+    lddmm_train_config: resnet_lddmm_train_fetus_ssm.output_dir + /config.json
 
 
 #---------------------ResNetLDDMM with from the fetus mean to the scan_fusion from the fetus_mean
   similarity_transform_fetus_mean:
     source_vtp: fetus_ssm_fit_init_pca.outputs.dir +  /init_shape.vtp
-    landmark_path: align_to_template.out_landmarks_csv_dir + /${SUBJECT_ID}-20s-01.csv
+    landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /fetus_mean_aligned.vtp
 
   resnet_lddmm_train_fetus_mean:
@@ -852,19 +861,21 @@ paths:
   recon_target_distance_fetus_mean_lddmm:
     target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
     recon_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_fetus_mean.output_dir + /eval
+    lddmm_train_config: resnet_lddmm_train_fetus_mean.output_dir + /config.json
 
   recon_target_distance_fetus_mean_lddmm_high_confidence:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
     recon_path: resnet_lddmm_apply_fetus_mean.output_dir + /world/deformed.vtp
-    landmarks_path: align_to_reference.aligned_landmarks_dir + /${SUBJECT_ID}-20s-01_landmarks.csv
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_fetus_mean.output_dir + /eval_high_confidence
+    lddmm_train_config: resnet_lddmm_train_fetus_mean.output_dir + /config.json
 
 
 #----------------------Ultrasound-----Overlay of all lines
   vtp_to_nrrd_overlay:
-    nrrd_path: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/${SUBJECT_ID}-20s-01.nrrd
+    nrrd_path: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/${REFERENCE_SCAN}.nrrd
     output_path: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay.nrrd
     label_maps_dir: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay_labels
     layers:
@@ -876,7 +887,7 @@ paths:
         line_color: [255, 255, 0]
         transform: &to_nrrd_frame
           manifest_dir: align_to_template.transforms_dir
-          subject_id: ${SUBJECT_ID}-20s-01
+          subject_id: ${REFERENCE_SCAN}
           apply_inverse: true
       - vtp_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
         name: Reconstruction (Baby Mean)
@@ -981,7 +992,7 @@ paths:
       # nrrd_to_vtp's own isosurface -- the very first stage's output, still in
       # the raw NRRD's own "original frame" (see that stage's module docstring),
       # so no transform is needed here: it already lines up with nrrd_path below.
-      - vtp_path: nrrd_to_vtp.output_dir + /${SUBJECT_ID}-20s-01.vtp
+      - vtp_path: nrrd_to_vtp.output_dir + /${REFERENCE_SCAN}.vtp
         name: Isosurface (Raw NRRD)
         line_color: [255, 0, 0]
 
@@ -1025,14 +1036,14 @@ hyperparameters:
       crop_margin: 0
 
   align_to_reference:
-    reference_subject_id: null
+    reference_subject_id: ${REFERENCE_SCAN}  # scan every other scan is aligned onto; the REFERENCE_SCAN paths read its outputs
     with_scale: true
-    lps_to_ras: true
+    landmarks_frame: LPS  # frame the landmark CSVs are written in: Lmks_Antonia (subjects 1, 2, 14) is RAS, 9992's Lmks is LPS
 
   align_to_template:
     heatmap_prefix: heatmap_
     with_scale: true
-    lps_to_ras: false
+    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
 
   # Applies to every recon_target_distance_* id (cli.py falls back from the id
   # to the stage name). `units` is only a label - it does not rescale anything;
@@ -1375,14 +1386,14 @@ hyperparameters:
 
   similarity_transform:
     heatmap_prefix: heatmap_
-    lps_to_ras: false
+    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
     with_scale: true
 
   resnet_lddmm_train:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      width: 256
       activation: relu
     code:
       kind: none
@@ -1393,22 +1404,29 @@ hyperparameters:
       #data_name: field_weighted_chamfer
       data_name: field_weighted_point2plane_chamfer
       data_kwargs:
+        #seems to measure how well the target fits the template
         source_to_target:
           weight: 1
-          base_sigma: 0.1
-          field_name: landmark_weight
-         # field_name: null
-        target_to_source:
-          weight: 1.0
-          base_sigma: 0.01
-          field_name: support
-          #field_name: null
-        robust_kernel: quadratic
-      kinetic_weight: 500.0
+          base_sigma: 0.005
+          #field_name: landmark_weight
+          field_name: null
+          loss_distance_handle:
+            kind: truncated
+            breakpoint: 0.08
+        #seems to measure how well the template fits the target
+        target_to_source: 
+          weight: 0.0000001
+          base_sigma: 0.0001
+          #field_name: support
+          field_name: null
+          loss_distance_handle:
+            kind: quadratic
+            #breakpoint: 0.05
+      kinetic_weight: 300.0
       code_reg_weight: 0.0
       isometry_weight: 0.0
       isometry_type: det
-      landmark_weight: 0.0
+      landmark_weight: 1.0
       landmark_kwargs:
         label_weights:
           chL: 0.0
@@ -1423,18 +1441,18 @@ hyperparameters:
           
         hard_precision:
         #n: 1000000
-          n:  0.0
-          ls:  0.0
-          prn:  0.0
-          sn: 0.0
-          acR:  0.0
-          acL:  0.0
-          aL:  0.0
-          aR:  0.0
-          enL: 0.0
-          enR:  0.0
+          n:  1000000.0
+          ls:  1000000.0
+          prn:  1000000.0
+          sn: 1000000.0
+          acR:  1000000.0
+          acL:  1000000.0
+          aL:  1000000.0
+          aR:  1000000.0
+          enL: 1000000.0
+          enR:  1000000.0
 
-      subsample_M: 1000
+      subsample_M: 3000
       save_full: false
       direction: forward
     train:
@@ -1470,13 +1488,17 @@ hyperparameters:
           base_sigma: 0.1
           field_name: landmark_weight
          # field_name: null
+          loss_distance_handle:
+            kind: quadratic
         target_to_source:
           weight: 1.0
           base_sigma: 0.01
           field_name: support
           #field_name: null
-        robust_kernel: quadratic
-      kinetic_weight: 10.0
+          loss_distance_handle:
+            kind: truncated
+            breakpoint: 0.04
+      kinetic_weight: 500.0
       code_reg_weight: 0.0
       isometry_weight: 0.0
       isometry_type: strain
@@ -1536,12 +1558,16 @@ hyperparameters:
           base_sigma: 0.1
           field_name: landmark_weight
          # field_name: null
+          loss_distance_handle:
+            kind: truncated
+            breakpoint: 0.04
         target_to_source:
           weight: 1.0
           base_sigma: 0.01
           field_name: support
           #field_name: null
-        robust_kernel: quadratic
+          loss_distance_handle:
+            kind: quadratic
       kinetic_weight: 10.0
       code_reg_weight: 0.0
       isometry_weight: 0.0

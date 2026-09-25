@@ -754,12 +754,12 @@ hyperparameters:
   align_to_reference:
     reference_subject_id: null
     with_scale: true
-    lps_to_ras: true
+    landmarks_frame: RAS  # frame the landmark CSVs are written in (RAS or LPS)
 
   align_to_template:
     heatmap_prefix: heatmap_
     with_scale: true
-    lps_to_ras: false
+    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
 
   roughness_filter:
     n_rings: 5
@@ -1043,7 +1043,7 @@ hyperparameters:
 
   similarity_transform:
     heatmap_prefix: heatmap_
-    lps_to_ras: false
+    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
     with_scale: true
 
   resnet_lddmm_train:

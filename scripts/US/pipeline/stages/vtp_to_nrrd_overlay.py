@@ -66,7 +66,7 @@ def _rasterize_layer(vtp_path, thickness, dims, spacing, origin, dir_mat, transf
             pts_world,
             template_vtp=landmark_align_cfg.template_vtp,
             landmark_path=landmark_align_cfg.landmark_path,
-            lps_to_ras=landmark_align_cfg.lps_to_ras,
+            landmarks_frame=landmark_align_cfg.landmarks_frame,
             with_scale=landmark_align_cfg.with_scale,
             heatmap_prefix=landmark_align_cfg.heatmap_prefix,
         )

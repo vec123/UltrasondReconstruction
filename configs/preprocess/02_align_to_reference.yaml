@@ -14,4 +14,4 @@ previous_transforms_dir: null
 
 reference_subject_id: null  # defaults to the first common subject id
 with_scale: true
-lps_to_ras: true  # Slicer CSV landmarks are in LPS space, meshes in RAS
+landmarks_frame: RAS  # frame the landmark CSVs are written in (RAS or LPS)

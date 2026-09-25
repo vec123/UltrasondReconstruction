@@ -24,7 +24,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 from src.config.US.schema import AlignToTemplateConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
-from src.landmarks.vtk_landmarks import points_to_labeled_polydata
+from src.landmarks.vtk_landmarks import landmarks_to_lps, points_to_labeled_polydata
 from src.file_name_matching.matching import match_by_subject_id
 from src.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
 
@@ -102,10 +102,7 @@ def run(cfg: Config):
         vtp_path = vtp_map[subject_id]
         csv_path = csv_map[subject_id]
 
-        src_df = pd.read_csv(csv_path).copy()
-        if cfg.lps_to_ras:
-            src_df["x"] = -src_df["x"]
-            src_df["y"] = -src_df["y"]
+        src_df = landmarks_to_lps(pd.read_csv(csv_path), cfg.landmarks_frame)
 
         merged_df = src_df.merge(target_lmk_df, on="label", suffixes=("_src", "_dst"))
         if len(merged_df) < 3:

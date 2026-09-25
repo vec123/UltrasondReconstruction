@@ -89,6 +89,48 @@ def aggregate(annotations: Dict[str, List[np.ndarray]]) -> Tuple[List[str], np.n
     return labels, mean, std
 
 
+def select_annotations(annotations: Dict[str, List[np.ndarray]],
+                       label_weights: Optional[Dict[str, float]] = None,
+                       hard_precision: Optional[Dict[str, float]] = None) -> Dict[str, List[np.ndarray]]:
+    """The labels of ``annotations`` the landmark term actually guides on.
+
+    See ``build_landmark_term_kwargs`` for what ``label_weights`` and
+    ``hard_precision`` mean; only their inclusion role is applied here.
+
+    Args:
+        annotations: {label: [xyz, ...]}, as returned by ``load_annotations``.
+        label_weights: optional ``{label: weight}``; None keeps every label.
+        hard_precision: optional ``{label: precision}``.
+
+    Returns:
+        ``annotations`` restricted to the included labels.
+
+    Raises:
+        ValueError: ``label_weights`` (plus ``hard_precision``) excludes every
+            annotated label.
+    """
+    if label_weights is None:
+        return annotations
+
+    # A label named in hard_precision is included even if label_weights
+    # omits it (or gives it 0) -- hard_precision is its own inclusion
+    # signal, since it goes on to REPLACE this label's precision outright
+    # (see build_landmark_term_kwargs), independent of label_weights' soft
+    # multiplier.
+    hard_labels = set(hard_precision) if hard_precision else set()
+    included = {
+        k: v for k, v in annotations.items()
+        if label_weights.get(k, 0.0) > 0 or k in hard_labels
+    }
+    if not included:
+        raise ValueError(
+            f"loss.landmark_kwargs.label_weights {label_weights} (plus "
+            f"hard_precision {hard_precision}) leaves no landmark labels for "
+            f"this subject (annotated: {sorted(annotations)})"
+        )
+    return included
+
+
 def resolve_template_points(template_shape, labels: List[str],
                              heatmap_prefix: str = "heatmap_") -> np.ndarray:
     """The template's own landmark position for each label: its heatmap's argmax vertex.
@@ -202,24 +244,7 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
 
     dtype = getattr(torch, cfg.dtype)
 
-    annotations = load_annotations(cfg.landmarks)
-    if label_weights is not None:
-        # A label named in hard_precision is included even if label_weights
-        # omits it (or gives it 0) -- hard_precision is its own inclusion
-        # signal, since it goes on to REPLACE this label's precision outright
-        # (see below), independent of label_weights' soft multiplier.
-        hard_labels = set(hard_precision) if hard_precision else set()
-        included = {
-            k: v for k, v in annotations.items()
-            if label_weights.get(k, 0.0) > 0 or k in hard_labels
-        }
-        if not included:
-            raise ValueError(
-                f"loss.landmark_kwargs.label_weights {label_weights} (plus "
-                f"hard_precision {hard_precision}) leaves no landmark labels for "
-                f"this subject (annotated: {sorted(annotations)})"
-            )
-        annotations = included
+    annotations = select_annotations(load_annotations(cfg.landmarks), label_weights, hard_precision)
     labels, target_mean_world, target_std_world = aggregate(annotations)
     template_points_world = resolve_template_points(template_shape, labels, heatmap_prefix)
 

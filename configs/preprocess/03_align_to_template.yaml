@@ -17,4 +17,4 @@ previous_transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fet
 
 heatmap_prefix: heatmap_
 with_scale: true
-lps_to_ras: false  # set true if the landmark CSVs need LPS -> RAS conversion
+landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)

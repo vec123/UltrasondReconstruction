@@ -110,7 +110,7 @@ class AlignToReferenceConfig:
 
     reference_subject_id: Optional[str] = None  # defaults to the first common subject id
     with_scale: bool = True
-    lps_to_ras: bool = True  # Slicer CSV landmarks are in LPS space, meshes in RAS
+    landmarks_frame: str = "RAS"  # frame landmarks_csv_dir's CSVs are written in: "RAS" (flipped to the meshes' LPS) or "LPS"
 
 
 @dataclasses.dataclass
@@ -133,7 +133,7 @@ class AlignToTemplateConfig:
 
     heatmap_prefix: str = "heatmap_"
     with_scale: bool = True
-    lps_to_ras: bool = False  # set True if the landmark CSVs need LPS -> RAS conversion
+    landmarks_frame: str = "LPS"  # frame landmarks_csv_dir's CSVs are written in: "LPS" (as-is) or "RAS" (flipped to LPS)
 
 
 @dataclasses.dataclass
@@ -328,7 +328,7 @@ class LandmarkAlignConfig:
     # reconstructions do).
     template_vtp: str = ""
     heatmap_prefix: str = "heatmap_"
-    lps_to_ras: bool = True  # Slicer fiducial CSVs export in LPS; flip x, y to match the nrrd's world frame
+    landmarks_frame: str = "RAS"  # frame landmark_path is written in: "RAS" (flipped to the nrrd's LPS world frame) or "LPS"
     with_scale: bool = True
 
 
@@ -349,10 +349,10 @@ class SimilarityTransformConfig:
     output_path: str = ""    # source_vtp, saved after being moved into landmark_path's frame
 
     heatmap_prefix: str = "heatmap_"
-    # align_to_template's out_landmarks_csv_dir CSVs are already RAS-aligned
-    # (align_to_template.py applies its own lps_to_ras flip, if any, before
-    # saving them) - only set this True for a raw, unflipped Slicer export.
-    lps_to_ras: bool = False
+    # Frame landmark_path is written in. align_to_template's out_landmarks_csv_dir
+    # CSVs are already in the meshes' frame ("LPS", used as-is) - only set "RAS"
+    # for a raw Slicer export written in RAS.
+    landmarks_frame: str = "LPS"
     with_scale: bool = True
 
 
@@ -387,6 +387,7 @@ class ReconTargetDistanceConfig:
     target_path: str = ""
     recon_path: str = ""
     landmarks_path: str = ""
+    landmarks_frame: str = "LPS"  # frame landmarks_path is written in: "LPS" (as-is) or "RAS" (flipped to LPS)
 
     # Distance thresholds for the `fraction_within` block of each direction's
     # stats - the share of points closer than each one, in the SAME units as
@@ -405,6 +406,14 @@ class ReconTargetDistanceConfig:
     # coordinates. Left unset, the identity - i.e. plain Euclidean distance.
     # Pass the inverse of a landmark covariance here to weight the axes.
     landmark_metric: List[List[float]] = dataclasses.field(default_factory=list)
+
+    # Optional: a resnet_lddmm_train run's dumped config.json. When set, the
+    # target landmarks that run guided on (its `landmarks` folder, filtered by
+    # loss.landmark_kwargs and averaged per label) are carried into the
+    # landmark frame and saved as lddmm_landmarks.vtp. They are in that run's
+    # world frame, so only set this when recon_path / target_path are too
+    # (e.g. its apply's world/deformed.vtp against the fused or merged scan).
+    lddmm_train_config: str = ""
 
     # Directory to save target_w_distance.vtp / recon_w_distance.vtp /
     # distance_summary.json / landmark_distances.json into. Left unset, saves

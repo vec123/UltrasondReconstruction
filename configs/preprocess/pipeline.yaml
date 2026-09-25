@@ -191,12 +191,12 @@ hyperparameters:
   align_to_reference:
     reference_subject_id: null  # defaults to the first common subject id
     with_scale: true
-    lps_to_ras: true  # Slicer CSV landmarks are in LPS space, meshes in RAS
+    landmarks_frame: RAS  # frame the landmark CSVs are written in (RAS or LPS)
 
   align_to_template:
     heatmap_prefix: heatmap_
     with_scale: true
-    lps_to_ras: false  # set true if the landmark CSVs need LPS -> RAS conversion
+    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
 
   landmark_bbox_cut:
     # Padding added to each face of the landmarks' bounding box (mm, original

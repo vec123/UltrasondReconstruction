@@ -48,7 +48,7 @@ def run(cfg: Config):
         reference_id = common_ids[0]
     print(f"Using reference subject: {reference_id}")
 
-    _, ref_df = landmarks_csv_to_polydata(csv_map[reference_id], lps_to_ras=cfg.lps_to_ras)
+    _, ref_df = landmarks_csv_to_polydata(csv_map[reference_id], frame=cfg.landmarks_frame)
 
     for subject_id in common_ids:
         csv_path = csv_map[subject_id]
@@ -56,7 +56,7 @@ def run(cfg: Config):
 
         # 1. Read landmarks CSV and save the raw (unaligned) landmark VTP.
         raw_lmk_vtp_path = os.path.join(cfg.raw_landmarks_vtp_dir, f"{subject_id}_landmarks.vtp")
-        lmk_poly, cur_df = landmarks_csv_to_polydata(csv_path, raw_lmk_vtp_path, lps_to_ras=cfg.lps_to_ras)
+        lmk_poly, cur_df = landmarks_csv_to_polydata(csv_path, raw_lmk_vtp_path, frame=cfg.landmarks_frame)
 
         # 2. Match landmark points by label column.
         merged_df = cur_df.merge(ref_df, on="label", suffixes=("_src", "_dst"))

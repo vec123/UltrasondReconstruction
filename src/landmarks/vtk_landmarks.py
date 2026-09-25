@@ -13,21 +13,34 @@ from src.vtk.create import create_polydata
 from src.vtk.io import save_vtp
 
 
-def landmarks_csv_to_polydata(csv_path, vtp_path=None, lps_to_ras=False):
+LANDMARK_FRAMES = ("LPS", "RAS")
+
+
+def landmarks_to_lps(df, frame):
+    """Returns a copy of `df` with its x, y columns in LPS, the frame the
+    pipeline's meshes live in (nrrd_to_vtp extracts them in SimpleITK's LPS
+    physical space). `frame` is the coordinate system the landmarks were
+    written in: "LPS" is used as-is, "RAS" gets x and y negated."""
+    if frame not in LANDMARK_FRAMES:
+        raise ValueError(f"Unknown landmarks frame {frame!r}; expected one of {LANDMARK_FRAMES}.")
+    df = df.copy()
+    if frame == "RAS":
+        df["x"] = -df["x"]
+        df["y"] = -df["y"]
+    return df
+
+
+def landmarks_csv_to_polydata(csv_path, vtp_path=None, frame="LPS"):
     """
     Reads a landmark CSV file, converts it into a vtkPolyData object, and
     attaches landmark labels as a point data array.
 
-    Set lps_to_ras=True if the CSV (e.g. exported from 3D Slicer) is in LPS
-    space while the surface meshes it's paired with are in RAS space.
+    `frame` is the coordinate system the CSV is written in ("LPS" or "RAS");
+    the points are returned in LPS - see landmarks_to_lps.
 
     Returns (polydata, dataframe).
     """
-    df = pd.read_csv(csv_path).copy()
-
-    if lps_to_ras:
-        df["x"] = -df["x"]
-        df["y"] = -df["y"]
+    df = landmarks_to_lps(pd.read_csv(csv_path), frame)
 
     points = df[["x", "y", "z"]].values.astype(np.float32)
     polydata = create_polydata(points)
@@ -82,13 +95,13 @@ def heatmap_landmark_vertex_indices(template_vtp, heatmap_prefix="heatmap_"):
     return indices
 
 
-def fit_landmark_alignment(vtp_points, template_vtp, landmark_path, lps_to_ras, with_scale, heatmap_prefix="heatmap_"):
+def fit_landmark_alignment(vtp_points, template_vtp, landmark_path, landmarks_frame, with_scale, heatmap_prefix="heatmap_"):
     """Fits a similarity transform mapping `vtp_points`' own frame onto
     `landmark_path`'s frame, by matching labels between `template_vtp`'s
     heatmap-derived vertex indices (into `vtp_points`) and `landmark_path`'s
     labeled x,y,z positions."""
     template_indices = heatmap_landmark_vertex_indices(template_vtp, heatmap_prefix)
-    _, subject_df = landmarks_csv_to_polydata(landmark_path, lps_to_ras=lps_to_ras)
+    _, subject_df = landmarks_csv_to_polydata(landmark_path, frame=landmarks_frame)
     subject_df = subject_df.set_index("label")
 
     common_labels = [label for label in template_indices if label in subject_df.index]

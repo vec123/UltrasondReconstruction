@@ -30,6 +30,13 @@ distance sqrt(d^T M d) between the aligned recon landmark and the CSV landmark
 is written to 'landmark_distances.json'. M is `landmark_metric`, the identity
 by default - in which case this is the plain Euclidean landmark residual left
 over by the similarity fit.
+
+The landmarks themselves are saved beside the meshes, in the same landmark
+frame, each with a 'label' string array: 'recon_landmarks.vtp' (every heatmap
+landmark of the reconstruction), 'reference_landmarks.vtp' (landmarks_path)
+and, when `lddmm_train_config` is set, 'lddmm_landmarks.vtp' - the target
+landmarks that LDDMM run guided on, carried by the same similarity as the
+meshes.
 """
 
 import json
@@ -47,7 +54,9 @@ from src.landmarks.vtk_landmarks import (
     fit_landmark_alignment,
     heatmap_landmark_vertex_indices,
     landmarks_csv_to_polydata,
+    points_to_labeled_polydata,
 )
+from src.resnet_lddmm.resnet_flow.landmarks import aggregate, load_annotations, select_annotations
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 
@@ -155,7 +164,7 @@ def landmark_distances(recon_points, cfg, metric):
     heatmap landmarks - `recon_points` must already be in the landmark frame -
     and the labelled positions in `cfg.landmarks_path`."""
     template_indices = heatmap_landmark_vertex_indices(cfg.recon_path)
-    _, subject_df = landmarks_csv_to_polydata(cfg.landmarks_path, lps_to_ras=False)
+    _, subject_df = landmarks_csv_to_polydata(cfg.landmarks_path, frame=cfg.landmarks_frame)
     subject_df = subject_df.set_index("label")
 
     labels = sorted(label for label in template_indices if label in subject_df.index)
@@ -183,6 +192,49 @@ def landmark_distances(recon_points, cfg, metric):
     return per_landmark, distances
 
 
+def recon_landmarks(recon_points, recon_path):
+    """Every heatmap landmark `recon_path` carries, as (labels, points): each
+    field's peak vertex, read off `recon_points`."""
+    template_indices = heatmap_landmark_vertex_indices(recon_path)
+    labels = sorted(template_indices)
+    return labels, recon_points[[template_indices[label] for label in labels]]
+
+
+def lddmm_landmarks(train_config_path):
+    """The target landmarks a resnet_lddmm_train run guided on, resolved as its
+    own landmark term does (see resnet_flow/landmarks.py): its `landmarks`
+    folder, filtered by loss.landmark_kwargs and averaged per label. Read from
+    the run's dumped config.json, so it is what that run trained with, not what
+    the YAML says now. Returns (labels, points) in the run's world frame."""
+    with open(train_config_path) as f:
+        train_cfg = json.load(f)
+    if not train_cfg.get("landmarks"):
+        raise ValueError(f"'{train_config_path}' names no `landmarks` folder.")
+
+    loss = train_cfg.get("loss", {})
+    landmark_weight = loss.get("landmark_weight", 0.0)
+    if landmark_weight <= 0:
+        print(
+            f"WARNING: '{train_config_path}' has loss.landmark_weight {landmark_weight}: "
+            f"its landmark term was off, so lddmm_landmarks.vtp holds the landmarks "
+            f"it was configured with, not ones it trained on."
+        )
+
+    landmark_kwargs = loss.get("landmark_kwargs", {})
+    annotations = select_annotations(
+        load_annotations(train_cfg["landmarks"]),
+        landmark_kwargs.get("label_weights"),
+        landmark_kwargs.get("hard_precision"),
+    )
+    labels, mean, _ = aggregate(annotations)
+    return labels, mean
+
+
+def save_landmarks(labels, points, path):
+    save_vtp(points_to_labeled_polydata(points, labels=labels), path)
+    print(f"Saved {len(labels)} landmarks to: {path}")
+
+
 def run(cfg: Config):
     output_target_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.target_path), "target_w_distance.vtp")
     output_recon_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "recon_w_distance.vtp")
@@ -191,6 +243,9 @@ def run(cfg: Config):
     output_landmark_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "landmark_distances.json")
     output_coverage_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "distance_coverage.json")
     output_coverage_plot_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "distance_coverage.png")
+    output_recon_landmarks_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "recon_landmarks.vtp")
+    output_reference_landmarks_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "reference_landmarks.vtp")
+    output_lddmm_landmarks_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "lddmm_landmarks.vtp")
 
     target_mesh = load_vtp(cfg.target_path)
     recon_mesh = load_vtp(cfg.recon_path)
@@ -205,7 +260,7 @@ def run(cfg: Config):
         recon_points,
         template_vtp=cfg.recon_path,
         landmark_path=cfg.landmarks_path,
-        lps_to_ras=False,
+        landmarks_frame=cfg.landmarks_frame,
         with_scale=True,
     )
     recon_mesh = alignment.apply_polydata(recon_mesh)
@@ -287,6 +342,13 @@ def run(cfg: Config):
         f"mean={landmark_dists.mean():.4f} max={landmark_dists.max():.4f} "
         f"-> {output_landmark_path}"
     )
+
+    save_landmarks(*recon_landmarks(recon_points, cfg.recon_path), output_recon_landmarks_path)
+    landmarks_csv_to_polydata(cfg.landmarks_path, output_reference_landmarks_path, frame=cfg.landmarks_frame)
+    print(f"Saved reference landmarks to: {output_reference_landmarks_path}")
+    if cfg.lddmm_train_config:
+        labels, points = lddmm_landmarks(cfg.lddmm_train_config)
+        save_landmarks(labels, alignment.apply_points(points), output_lddmm_landmarks_path)
 
     bins = np.histogram_bin_edges(
         np.concatenate((recon_dist_2_target, target_dist_2_recon)), bins=100
