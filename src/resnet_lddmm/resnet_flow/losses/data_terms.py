@@ -70,8 +70,8 @@ def _robust_penalty(dist_sq: Tensor, kind: str, breakpoint: float,
     the far point's influence (the gradient dρ/dd) away:
 
     - "quadratic": ``d**2`` everywhere, unmodified -- the no-op / baseline case, so
-      a run can A/B a robust kernel against plain Chamfer via one config string
-      instead of a separate flag.
+      a run can A/B a loss_distance_handle against plain Chamfer via one config
+      value instead of a separate flag.
     - "linear": ``breakpoint**2 + slope*(d - breakpoint)``. Influence SATURATES at
       the constant ``slope`` instead of growing with ``d``. ``slope=None`` defaults
       to ``2*breakpoint``, matching ``d(d**2)/dd`` at the breakpoint -- the classic
@@ -139,8 +139,9 @@ class LossDistanceHandle:
     """How per-point squared distances become per-point penalties: one of
     ROBUST_KINDS, plus the breakpoint/slope/tau that shape its tail.
 
-    Holds the four ``robust_*`` settings together with the checks that make them
-    a valid combination, so a data term owns ONE object rather than four loose
+    Holds the four settings of one ``loss_distance_handle`` config block -- kind,
+    breakpoint, slope, tau -- together with the checks that make them a valid
+    combination, so a data term owns ONE object rather than four loose
     attributes and their validation. The maths itself stays in _robust_penalty;
     this only decides whether it applies, and with which parameters.
 
@@ -165,8 +166,8 @@ class LossDistanceHandle:
         Raises:
             ValueError: unknown kind, or a non-quadratic kind without a breakpoint.
         """
-        # Messages name the CONFIG keys (robust_kernel, robust_breakpoint), since
-        # that is what the user has to change.
+        # Messages name the CONFIG keys (the loss_distance_handle block's kind and
+        # breakpoint), since that is what the user has to change.
         if kind is not None and kind not in ROBUST_KINDS:
             raise ValueError(f"unknown loss_distance_handle kind {kind!r}; expected "
                               f"one of {ROBUST_KINDS} or None")
@@ -294,23 +295,25 @@ class TwoSidedDataTerm(DataTerm):
                  loss_distance_handle: Optional[dict] = None):
         """Initialize the direction weights and the shared LossDistanceHandle.
 
-        The four robust_* settings are validated and held together as
+        The loss_distance_handle block is validated and held as
         ``self.loss_distance_handle``, applied to both directions.
 
         Args:
             source_to_target_weight: weight on D(phi(source) -> target); 0.0 disables it
             target_to_source_weight: weight on D(target -> phi(source)); 0.0 disables it
-            robust_kernel: one of ROBUST_KINDS, or None (default) to keep plain
-                squared-distance Chamfer -- bit-for-bit the pre-existing behaviour.
-                See _robust_penalty for what each kind does.
-            robust_breakpoint: the distance (not squared) where behaviour changes
-                from the quadratic near-zero regime, in the same normalised length
-                units as loss.sigma. Required whenever robust_kernel is set to
-                anything other than "quadratic"/None.
-            robust_slope: "linear" kernel only; None defaults to the C1-continuous
-                Huber slope (2 * robust_breakpoint). 0 flattens the tail to a
-                constant plateau.
-            robust_tau: "exponential" kernel only; None defaults to robust_breakpoint.
+            loss_distance_handle: the config block ``{kind, breakpoint, slope,
+                tau}`` (see LossDistanceHandle.from_dict), or None (default) to
+                keep plain squared-distance Chamfer -- bit-for-bit the
+                pre-existing behaviour.
+                kind: one of ROBUST_KINDS; see _robust_penalty for what each does.
+                breakpoint: the distance (not squared) where behaviour changes
+                    from the quadratic near-zero regime, in the same normalised
+                    length units as loss.sigma. Required for every kind other
+                    than "quadratic".
+                slope: "linear" only; None defaults to the C1-continuous Huber
+                    slope (2 * breakpoint). 0 flattens the tail to a constant
+                    plateau.
+                tau: "exponential" only; None defaults to breakpoint.
         """
         super().__init__()
         if source_to_target_weight < 0 or target_to_source_weight < 0:
@@ -333,15 +336,15 @@ class TwoSidedDataTerm(DataTerm):
             print(f"[data_term] {self.loss_distance_handle.describe()}")
 
     def regime_fraction(self, dist_sq: Tensor) -> float:
-        """Fraction of points currently beyond the robust breakpoint.
+        """Fraction of points currently beyond the loss_distance_handle's breakpoint.
 
         The direct way to SEE where the configured breakpoint sits relative to the
         current fit, alongside the printed description at construction time: near
-        0 means almost nothing is being robustified yet (breakpoint generous, or
-        the fit is already tight); near 1 means most points are in the tail, which
-        means either the fit has not converged yet or the breakpoint is too tight
-        for the current scale. Returns 0.0 (not an error) when no robust kernel is
-        configured, since then nothing is ever "in the tail".
+        0 means almost nothing is in the tail yet (breakpoint generous, or the fit
+        is already tight); near 1 means most points are in the tail, which means
+        either the fit has not converged yet or the breakpoint is too tight for
+        the current scale. Returns 0.0 (not an error) when the handle is
+        quadratic, since then nothing is ever "in the tail".
 
         Args:
             dist_sq: per-point squared distances (e.g. the same tensor the
@@ -652,9 +655,9 @@ class FieldWeightedCDData(TwoSidedDataTerm):
                 base_sigma, field_name, field_source); {} / None uses its
                 defaults (weight=1.0, base_sigma=0.1, no field).
             target_to_source: same, for the other direction.
-            robust_kernel, robust_breakpoint, robust_slope, robust_tau: the SHARED
-                setting, inherited by every direction whose own ChamferSideCfg
-                does not set robust_kernel; see TwoSidedDataTerm / ROBUST_KINDS.
+            loss_distance_handle: the SHARED block, inherited by every direction
+                that does not set its own (see _direction_handle); see
+                TwoSidedDataTerm for its keys.
         """
         # Local import: config.py is deliberately torch-free at import time
         # (see DTYPES's docstring there), so importing it eagerly at module
@@ -664,9 +667,9 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
         st = ChamferSideCfg.from_dict(source_to_target or {})
         ts = ChamferSideCfg.from_dict(target_to_source or {})
-        # The shared robust_* settings are NOT handed to the base: it would log
-        # them as the one setting for both directions, which a side's own
-        # robust_kernel may override. They are built and logged per direction here.
+        # The shared loss_distance_handle is NOT handed to the base: it would log
+        # it as the one setting for both directions, which a side's own may
+        # override. Handles are built and logged per direction here instead.
         super().__init__(source_to_target_weight=st.weight, target_to_source_weight=ts.weight)
         self.loss_distance_handle = LossDistanceHandle.from_dict(loss_distance_handle)
         self.source_to_target_loss_distance_handle = self._direction_handle("source_to_target", st)
@@ -742,7 +745,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
             tgt_w: [B, M] per-target-point precision multiplier (target_to_source
                 direction), or None.
             normals: ignored (kept for protocol compatibility)
-            per_point: if True, return RAW (unweighted, unrobustified) per-point
+            per_point: if True, return RAW (unweighted, no loss_distance_handle) per-point
                 target->source distances [B, M] -- same contract as CDData's,
                 for adaptive-subsampling callers that need ranks, not the loss.
 
@@ -824,10 +827,9 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             plane_weight: 0.0 = plain point-to-point (this term becomes
                 FieldWeightedCDData), 1.0 = pure point-to-plane. In between,
                 the per-point penalty is the convex blend of the two.
-            robust_kernel, robust_breakpoint, robust_slope, robust_tau: the
-                shared setting; see FieldWeightedCDData. Each direction's
-                LossDistanceHandle is applied to the BLENDED penalty, so a
-                robust_breakpoint keeps meaning "a distance, squared".
+            loss_distance_handle: the shared block; see FieldWeightedCDData.
+                Each direction's LossDistanceHandle is applied to the BLENDED
+                penalty, so its breakpoint keeps meaning "a distance, squared".
         """
         super().__init__(source_to_target=source_to_target,
                          target_to_source=target_to_source,
@@ -858,7 +860,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             normals: [B, M, 3] or [1, M, 3] TARGET normals, addressing the same
                 M vertices as ``target`` and in the same order. Required -- see
                 the raise below for why this is not silently optional.
-            per_point: if True, return RAW (unweighted, unrobustified, and
+            per_point: if True, return RAW (unweighted, no loss_distance_handle, and
                 point-to-POINT) per-point target->source distances [B, M]. Same
                 contract as CDData's, so adaptive-subsampling callers that rank
                 by it are unaffected by the plane projection.
@@ -943,10 +945,9 @@ class NCDData(TwoSidedDataTerm):
             normal_weight: balance between geometric and normal penalties (default 1.0)
             source_to_target_weight: weight on D(phi(source) -> target); 0.0 disables it
             target_to_source_weight: weight on D(target -> phi(source)); 0.0 disables it
-            robust_kernel, robust_breakpoint, robust_slope, robust_tau: see
-                TwoSidedDataTerm. Applied to the GEOMETRIC distance only -- the
-                normal-alignment penalty is a separate, unrelated quantity and is
-                never robustified.
+            loss_distance_handle: see TwoSidedDataTerm. Applied to the
+                GEOMETRIC distance only -- the normal-alignment penalty is a
+                separate, unrelated quantity and never goes through it.
         """
         super().__init__(source_to_target_weight=source_to_target_weight,
                          target_to_source_weight=target_to_source_weight,
@@ -1022,9 +1023,9 @@ class NCDData(TwoSidedDataTerm):
             dot_products = (direction_normalized * normal_normalized).sum(dim=-1)  # [B, N]
             normal_penalty = torch.clamp(dot_products, min=0.0).mean()  # scalar
 
-            # Geometric distance is robustified; the normal-alignment penalty is a
-            # different quantity (a bounded [0,1] dot-product term already) and is
-            # never subject to the distance kernel.
+            # Geometric distance goes through the loss_distance_handle; the
+            # normal-alignment penalty is a different quantity (a bounded [0,1]
+            # dot-product term already) and never does.
             term1 = self.loss_distance_handle(pred_to_tgt_dists).mean() + self.normal_weight * normal_penalty
 
         # Term 2: target → pred (point distance only)
