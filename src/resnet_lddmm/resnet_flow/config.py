@@ -171,6 +171,17 @@ class ChamferSideCfg:
             named field's own values (e.g. a landmark-distance field's
             world-frame length) -- no FrameTransform conversion needed, since
             it only ever appears as a RATIO against the field's own values.
+        robust_kernel: this direction's OWN robust setting, overriding the data
+            term's shared robust_kernel for this direction alone (see
+            data_terms.LossDistanceHandle). None (the default) inherits the
+            shared one, parameters included; "quadratic" forces plain squared
+            distance here even when the shared setting is robust. The kind
+            itself is validated where the handle is built, in the data term,
+            since ROBUST_KINDS lives with the torch code.
+        robust_breakpoint, robust_slope, robust_tau: this direction's own
+            parameters, same meaning and units as the shared ones. Only valid
+            together with this direction's own robust_kernel, and never mixed
+            with the shared parameters.
     """
     weight: float = 1.0
     base_sigma: float = 0.1
@@ -178,13 +189,19 @@ class ChamferSideCfg:
     field_source: Optional[str] = None
     field_transform: Optional[str] = None
     field_scale: Optional[float] = None
+    robust_kernel: Optional[str] = None
+    robust_breakpoint: Optional[float] = None
+    robust_slope: Optional[float] = None
+    robust_tau: Optional[float] = None
 
     TRANSFORMS = ("gaussian_distance",)
+    ROBUST_PARAMS = ("robust_breakpoint", "robust_slope", "robust_tau")
 
     @classmethod
     def from_dict(cls, d: dict) -> "ChamferSideCfg":
         reject_unknown_keys(d, {"weight", "base_sigma", "field_name", "field_source",
-                                "field_transform", "field_scale"},
+                                "field_transform", "field_scale", "robust_kernel",
+                                *cls.ROBUST_PARAMS},
                             what="chamfer side")
         weight = float(d.get("weight", 1.0))
         base_sigma = float(d.get("base_sigma", 0.1))
@@ -209,9 +226,25 @@ class ChamferSideCfg:
             if field_scale <= 0:
                 raise ValueError(f"field_scale must be > 0, got {field_scale}")
 
+        robust_params = {key: None if d.get(key) is None else float(d[key])
+                         for key in cls.ROBUST_PARAMS}
+        if d.get("robust_kernel") is None:
+            # Without its own kind, this side inherits the shared setting WHOLE;
+            # silently dropping (or half-mixing in) its own parameters would read
+            # as configured and not be.
+            orphaned = [key for key, value in robust_params.items() if value is not None]
+            if orphaned:
+                raise ValueError(
+                    f"chamfer side sets {orphaned} without its own robust_kernel; a "
+                    f"direction's robust_* parameters only apply together with its "
+                    f"own robust_kernel. Add one, or move them to the shared robust_* "
+                    f"keys beside source_to_target/target_to_source."
+                )
+
         return cls(weight=weight, base_sigma=base_sigma,
                    field_name=d.get("field_name"), field_source=d.get("field_source"),
-                   field_transform=field_transform, field_scale=field_scale)
+                   field_transform=field_transform, field_scale=field_scale,
+                   robust_kernel=d.get("robust_kernel"), **robust_params)
 
 
 @dataclass
@@ -240,7 +273,11 @@ class LossCfg:
     # source_to_target_weight/target_to_source_weight plus the one shared sigma
     # below (which this data term ignores -- see ChamferSideCfg and
     # FieldWeightedCDData for what each key does, and runner.build for how
-    # field_name/field_source get resolved once the shapes are loaded).
+    # field_name/field_source get resolved once the shapes are loaded). A side
+    # may also carry its own robust_kernel (+ robust_breakpoint/slope/tau),
+    # overriding the shared robust_* keys for that direction only -- e.g.
+    # truncating source_to_target alone, so the part of the source a partial
+    # target never saw stops pulling.
     #
     # data_name: none takes NO kwargs -- it is the explicit "no chamfer term at
     # all" opt-out, always zero/no-gradient, for runs where loss.landmark_weight

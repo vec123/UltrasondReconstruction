@@ -185,6 +185,8 @@ class LossDistanceHandle:
 
     def describe(self) -> str:
         """One line naming the kind and its parameters, for the build-time log."""
+        if self.is_quadratic:
+            return f"robust_kernel={self.kind!r} -- plain squared distance"
         extra = {"linear": f"slope={self.slope!r}",
                  "exponential": f"tau={self.tau!r}"}.get(self.kind, "")
         return (f"robust_kernel={self.kind!r} breakpoint={self.breakpoint:g} {extra} "
@@ -603,6 +605,14 @@ class FieldWeightedCDData(TwoSidedDataTerm):
     docstring for why. They are kept as plain attributes (set below) purely so
     runner._add_field_weighted_chamfer can read them back off the already-built,
     already-validated data term instead of re-parsing the raw config dict.
+
+    Each direction also has its OWN LossDistanceHandle. A side whose
+    ChamferSideCfg sets robust_kernel uses that, with that side's own
+    breakpoint/slope/tau; a side that does not inherits the shared robust_*
+    arguments, exactly as before per-direction settings existed. That is what
+    lets source_to_target ignore far pairs -- the part of a full template a
+    partial scan never saw -- while target_to_source keeps pulling on every
+    observed point, however far.
     """
 
     def __init__(self, source_to_target: Optional[dict] = None,
@@ -618,8 +628,9 @@ class FieldWeightedCDData(TwoSidedDataTerm):
                 base_sigma, field_name, field_source); {} / None uses its
                 defaults (weight=1.0, base_sigma=0.1, no field).
             target_to_source: same, for the other direction.
-            robust_kernel, robust_breakpoint, robust_slope, robust_tau: shared
-                across both directions; see TwoSidedDataTerm / ROBUST_KINDS.
+            robust_kernel, robust_breakpoint, robust_slope, robust_tau: the SHARED
+                setting, inherited by every direction whose own ChamferSideCfg
+                does not set robust_kernel; see TwoSidedDataTerm / ROBUST_KINDS.
         """
         # Local import: config.py is deliberately torch-free at import time
         # (see DTYPES's docstring there), so importing it eagerly at module
@@ -629,9 +640,14 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
         st = ChamferSideCfg.from_dict(source_to_target or {})
         ts = ChamferSideCfg.from_dict(target_to_source or {})
-        super().__init__(source_to_target_weight=st.weight, target_to_source_weight=ts.weight,
-                          robust_kernel=robust_kernel, robust_breakpoint=robust_breakpoint,
-                          robust_slope=robust_slope, robust_tau=robust_tau)
+        # The shared robust_* settings are NOT handed to the base: it would log
+        # them as the one setting for both directions, which a side's own
+        # robust_kernel may override. They are built and logged per direction here.
+        super().__init__(source_to_target_weight=st.weight, target_to_source_weight=ts.weight)
+        self.loss_distance_handle = LossDistanceHandle(
+            robust_kernel, robust_breakpoint, slope=robust_slope, tau=robust_tau)
+        self.source_to_target_loss_distance_handle = self._direction_handle("source_to_target", st)
+        self.target_to_source_loss_distance_handle = self._direction_handle("target_to_source", ts)
         self.source_to_target_sigma = st.base_sigma
         self.target_to_source_sigma = ts.base_sigma
         self.source_to_target_field_name = st.field_name
@@ -642,6 +658,30 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         self.target_to_source_field_source = ts.field_source
         self.target_to_source_field_transform = ts.field_transform
         self.target_to_source_field_scale = ts.field_scale
+
+    def _direction_handle(self, direction: str, side) -> LossDistanceHandle:
+        """One direction's LossDistanceHandle, logged as one line.
+
+        Its own when ``side`` (a ChamferSideCfg) sets robust_kernel -- built from
+        that side's breakpoint/slope/tau alone, never mixed with the shared ones --
+        otherwise the shared ``self.loss_distance_handle`` itself.
+
+        Args:
+            direction: "source_to_target" or "target_to_source", for the log line.
+            side: that direction's ChamferSideCfg.
+
+        Returns:
+            The handle this direction's residuals go through in forward.
+        """
+        if side.robust_kernel is None:
+            handle, origin = self.loss_distance_handle, "shared"
+        else:
+            handle, origin = LossDistanceHandle(
+                side.robust_kernel, side.robust_breakpoint,
+                slope=side.robust_slope, tau=side.robust_tau), "own"
+        unused = "" if side.weight != 0.0 else " [weight 0: never computed]"
+        print(f"[data_term] {direction} ({origin}): {handle.describe()}{unused}")
+        return handle
 
     @staticmethod
     def _weighted_mean(values: Tensor, weight: Optional[Tensor]) -> Tensor:
@@ -693,12 +733,12 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
         term1 = None
         if self.scores_source_to_target:
-            d1 = self._robustify(dist_sq.min(dim=2)[0])
+            d1 = self.source_to_target_loss_distance_handle(dist_sq.min(dim=2)[0])
             term1 = self._weighted_mean(d1, pred_w) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
         if self.scores_target_to_source:
-            d2 = self._robustify(dist_sq.min(dim=1)[0])
+            d2 = self.target_to_source_loss_distance_handle(dist_sq.min(dim=1)[0])
             term2 = self._weighted_mean(d2, tgt_w) / (2.0 * self.target_to_source_sigma ** 2)
 
         return self._combine(term1, term2)
@@ -764,8 +804,9 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             plane_weight: 0.0 = plain point-to-point (this term becomes
                 FieldWeightedCDData), 1.0 = pure point-to-plane. In between,
                 the per-point penalty is the convex blend of the two.
-            robust_kernel, robust_breakpoint, robust_slope, robust_tau: see
-                TwoSidedDataTerm. Applied to the BLENDED penalty, so a
+            robust_kernel, robust_breakpoint, robust_slope, robust_tau: the
+                shared setting; see FieldWeightedCDData. Each direction's
+                LossDistanceHandle is applied to the BLENDED penalty, so a
                 robust_breakpoint keeps meaning "a distance, squared".
         """
         super().__init__(source_to_target=source_to_target,
@@ -845,7 +886,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             gather_idx = idx.unsqueeze(-1).expand(-1, -1, 3)      # [B, N, 3]
             offset = pred - target.gather(1, gather_idx)          # [B, N, 3]
             d_plane = (offset * n.gather(1, gather_idx)).sum(-1).pow(2)
-            d1 = self._robustify((1.0 - a) * d_point + a * d_plane)
+            d1 = self.source_to_target_loss_distance_handle((1.0 - a) * d_point + a * d_plane)
             term1 = self._weighted_mean(d1, pred_w) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
@@ -854,7 +895,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             gather_idx = idx.unsqueeze(-1).expand(-1, -1, 3)      # [B, M, 3]
             offset = pred.gather(1, gather_idx) - target          # [B, M, 3]
             d_plane = (offset * n).sum(-1).pow(2)                 # target's own normal
-            d2 = self._robustify((1.0 - a) * d_point + a * d_plane)
+            d2 = self.target_to_source_loss_distance_handle((1.0 - a) * d_point + a * d_plane)
             term2 = self._weighted_mean(d2, tgt_w) / (2.0 * self.target_to_source_sigma ** 2)
 
         return self._combine(term1, term2)
