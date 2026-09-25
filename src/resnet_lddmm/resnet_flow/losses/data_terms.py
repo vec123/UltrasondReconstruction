@@ -134,6 +134,80 @@ def _robust_penalty(dist_sq: Tensor, kind: str, breakpoint: float,
     return torch.where(beyond, tail, dist_sq)
 
 
+class LossDistanceHandle:
+    """How per-point squared distances become per-point penalties: one of
+    ROBUST_KINDS, plus the breakpoint/slope/tau that shape its tail.
+
+    Holds the four ``robust_*`` settings together with the checks that make them
+    a valid combination, so a data term owns ONE object rather than four loose
+    attributes and their validation. The maths itself stays in _robust_penalty;
+    this only decides whether it applies, and with which parameters.
+
+    ``kind`` None and "quadratic" both mean plain squared distance: calling the
+    handle then returns ``dist_sq`` itself, bit-for-bit.
+    """
+
+    def __init__(self, kind: Optional[str] = None, breakpoint: Optional[float] = None,
+                 slope: Optional[float] = None, tau: Optional[float] = None):
+        """Validate and store one setting.
+
+        Args:
+            kind: one of ROBUST_KINDS, or None for plain squared distance.
+            breakpoint: the distance (not squared) where behaviour changes from
+                the quadratic regime, in the same normalised length units as
+                loss.sigma. Required for every kind other than None/"quadratic".
+            slope: "linear" only; see _robust_penalty.
+            tau: "exponential" only; see _robust_penalty.
+
+        Raises:
+            ValueError: unknown kind, or a non-quadratic kind without a breakpoint.
+        """
+        # Messages name the CONFIG keys (robust_kernel, robust_breakpoint), since
+        # that is what the user has to change.
+        if kind is not None and kind not in ROBUST_KINDS:
+            raise ValueError(f"unknown robust_kernel {kind!r}; expected "
+                              f"one of {ROBUST_KINDS} or None")
+        if kind not in (None, "quadratic") and breakpoint is None:
+            raise ValueError(
+                f"robust_kernel={kind!r} needs a robust_breakpoint -- the "
+                f"distance at which its behaviour changes from the plain quadratic "
+                f"regime. Pass one, or drop robust_kernel to disable it."
+            )
+        self.kind = kind
+        self.breakpoint = breakpoint
+        self.slope = slope
+        self.tau = tau
+
+    @property
+    def is_quadratic(self) -> bool:
+        """Whether distances pass through untouched (kind None or "quadratic")."""
+        return self.kind is None or self.kind == "quadratic"
+
+    def describe(self) -> str:
+        """One line naming the kind and its parameters, for the build-time log."""
+        extra = {"linear": f"slope={self.slope!r}",
+                 "exponential": f"tau={self.tau!r}"}.get(self.kind, "")
+        return (f"robust_kernel={self.kind!r} breakpoint={self.breakpoint:g} {extra} "
+                f"-- quadratic below the breakpoint, {self.kind!r} above it")
+
+    def __call__(self, dist_sq: Tensor) -> Tensor:
+        """Per-point penalty, same shape as ``dist_sq``; see _robust_penalty."""
+        if self.is_quadratic:
+            return dist_sq
+        return _robust_penalty(dist_sq, self.kind, self.breakpoint,
+                                slope=self.slope, tau=self.tau)
+
+    def regime_fraction(self, dist_sq: Tensor) -> float:
+        """Fraction of points beyond the breakpoint; 0.0 when quadratic.
+
+        See TwoSidedDataTerm.regime_fraction for how to read it.
+        """
+        if self.is_quadratic:
+            return 0.0
+        d = dist_sq.clamp_min(0).sqrt()
+        return (d > self.breakpoint).float().mean().item()
+
+
 class TwoSidedDataTerm(DataTerm):
     """Chamfer-family base: ``w_st * D(source->target) + w_ts * D(target->source)``.
 
@@ -175,7 +249,10 @@ class TwoSidedDataTerm(DataTerm):
                  robust_breakpoint: Optional[float] = None,
                  robust_slope: Optional[float] = None,
                  robust_tau: Optional[float] = None):
-        """Initialize the direction weights and optional robust kernel.
+        """Initialize the direction weights and the shared LossDistanceHandle.
+
+        The four robust_* settings are validated and held together as
+        ``self.loss_distance_handle``, applied to both directions.
 
         Args:
             source_to_target_weight: weight on D(phi(source) -> target); 0.0 disables it
@@ -208,25 +285,10 @@ class TwoSidedDataTerm(DataTerm):
         self.source_to_target_weight = float(source_to_target_weight)
         self.target_to_source_weight = float(target_to_source_weight)
 
-        if robust_kernel is not None and robust_kernel not in ROBUST_KINDS:
-            raise ValueError(f"unknown robust_kernel {robust_kernel!r}; expected "
-                              f"one of {ROBUST_KINDS} or None")
-        if robust_kernel not in (None, "quadratic") and robust_breakpoint is None:
-            raise ValueError(
-                f"robust_kernel={robust_kernel!r} needs a robust_breakpoint -- the "
-                f"distance at which its behaviour changes from the plain quadratic "
-                f"regime. Pass one, or drop robust_kernel to disable it."
-            )
-        self.robust_kernel = robust_kernel
-        self.robust_breakpoint = robust_breakpoint
-        self.robust_slope = robust_slope
-        self.robust_tau = robust_tau
-        if robust_kernel not in (None, "quadratic"):
-            extra = {"linear": f"slope={robust_slope!r}",
-                     "exponential": f"tau={robust_tau!r}"}.get(robust_kernel, "")
-            print(f"[data_term] robust_kernel={robust_kernel!r} "
-                  f"breakpoint={robust_breakpoint:g} {extra} -- quadratic below the "
-                  f"breakpoint, {robust_kernel!r} above it")
+        self.loss_distance_handle = LossDistanceHandle(
+            robust_kernel, robust_breakpoint, slope=robust_slope, tau=robust_tau)
+        if not self.loss_distance_handle.is_quadratic:
+            print(f"[data_term] {self.loss_distance_handle.describe()}")
 
     def _robustify(self, dist_sq: Tensor) -> Tensor:
         """Apply the configured robust kernel to per-point squared distances.
@@ -239,10 +301,7 @@ class TwoSidedDataTerm(DataTerm):
         argmin gives the identical nearest-neighbour assignment as before, for a
         fraction of the cost.
         """
-        if self.robust_kernel is None or self.robust_kernel == "quadratic":
-            return dist_sq
-        return _robust_penalty(dist_sq, self.robust_kernel, self.robust_breakpoint,
-                                slope=self.robust_slope, tau=self.robust_tau)
+        return self.loss_distance_handle(dist_sq)
 
     def regime_fraction(self, dist_sq: Tensor) -> float:
         """Fraction of points currently beyond the robust breakpoint.
@@ -262,10 +321,7 @@ class TwoSidedDataTerm(DataTerm):
         Returns:
             A python float in [0, 1].
         """
-        if self.robust_kernel is None or self.robust_kernel == "quadratic":
-            return 0.0
-        d = dist_sq.clamp_min(0).sqrt()
-        return (d > self.robust_breakpoint).float().mean().item()
+        return self.loss_distance_handle.regime_fraction(dist_sq)
 
     @property
     def scores_source_to_target(self) -> bool:
