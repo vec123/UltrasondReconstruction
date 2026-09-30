@@ -229,7 +229,7 @@ class ChamferSideCfg:
             world-frame length) -- no FrameTransform conversion needed, since
             it only ever appears as a RATIO against the field's own values.
         loss_distance_handle: this direction's OWN ``{kind, breakpoint, slope,
-            tau}`` block, overriding the data term's shared loss_distance_handle
+            tau, power}`` block, overriding the data term's shared loss_distance_handle
             for this direction alone -- used whole, never mixed with the shared
             block. None (the default) inherits the shared one; ``{kind:
             quadratic}`` forces plain squared distance here even when the shared
@@ -299,8 +299,10 @@ class LossCfg:
     # above it -- e.g. loss_distance_handle: {kind: linear, breakpoint: 0.05,
     # slope: 0.0} caps a far correspondence's pull instead of letting it grow
     # without bound. breakpoint is in the same normalised length units as sigma
-    # below. See data_terms.LossDistanceHandle / _robust_penalty for exactly
-    # what each kind does.
+    # below. Its optional power (default 2) replaces the quadratic below the
+    # breakpoint with d**power -- power: 1 is L1, pulling small residuals as hard
+    # as large ones. See data_terms.LossDistanceHandle / _robust_penalty for
+    # exactly what each kind does.
     #
     # data_name: field_weighted_chamfer and field_weighted_point2plane_chamfer take
     # a DIFFERENT shape: two ChamferSideCfg
