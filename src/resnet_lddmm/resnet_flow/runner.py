@@ -257,7 +257,7 @@ def build_field(cfg, conditioning):
     return Registry.create(
         "field", cfg.field.kind,
         num_blocks=cfg.field.num_steps,
-        width=cfg.field.width,
+        mlp=cfg.field.mlp,
         activation=cfg.field.activation,
         conditioning=conditioning
     )

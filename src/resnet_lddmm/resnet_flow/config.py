@@ -40,7 +40,7 @@ DTYPES = ("float32", "float64")
 class FieldCfg:
     kind: str = "time_varying"              # time_varying | stationary | equivariant_stationary
     num_steps: int = 10                     # K — configured in ONE place
-    width: int = 512                        # block width (ignored by stationary/equivariant_stationary)
+    mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary/equivariant_stationary)
     activation: str = "relu"
     fa: tuple = (64, 64, 64)                # stationary: FA-NN layer widths
     df: tuple = (256, 256, 256, 256, 256)   # DF-NN layer widths
@@ -56,6 +56,31 @@ class FieldCfg:
     # Simple equivariant contextual field (only if kind == "equivariant_contextual_simple")
     hidden_dim: int = 128                   # hidden dimension in MLP layers
     n_layers: int = 3                       # number of MLP layers
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "FieldCfg":
+        d = dict(d)
+        # width: W is the old spelling of mlp: [W] -- the same block, parameter
+        # names included. Translated rather than rejected, because every finished
+        # run's config.json carries width (asdict dumps it for every kind) and
+        # apply must keep rebuilding those models.
+        if "width" in d:
+            if "mlp" in d:
+                raise ValueError(
+                    f"field: width={d['width']} and mlp={d['mlp']} both given; "
+                    f"width: W is the old spelling of mlp: [W]. Keep mlp only."
+                )
+            d["mlp"] = [d.pop("width")]
+        if "mlp" in d:
+            mlp = d["mlp"]
+            if not isinstance(mlp, (list, tuple)) or not mlp \
+                    or not all(isinstance(w, int) and w > 0 for w in mlp):
+                raise ValueError(
+                    f"field.mlp must be a non-empty list of positive layer widths, "
+                    f"e.g. [256, 256, 256]; got {mlp!r}"
+                )
+            d["mlp"] = tuple(mlp)
+        return cls(**d)
 
 
 @dataclass
@@ -380,7 +405,7 @@ class InitCfg:
 
     Restoring is strict: ``load_state_dict`` fails naming the mismatched
     parameters when the config no longer describes the checkpoint, so a changed
-    ``field.width`` is an error rather than a partially-loaded model.
+    ``field.mlp`` is an error rather than a partially-loaded model.
 
     Attributes:
         checkpoint: a ``.pt`` file, or a run's ``checkpoints/`` directory -- see
@@ -505,7 +530,7 @@ class ExperimentCfg:
             )
         use_pose = bool(use_pose if use_pose is not None else (use_encoder_pose or False))
 
-        field_cfg = FieldCfg(**d.get("field", {})) if "field" in d else FieldCfg()
+        field_cfg = FieldCfg.from_dict(d.get("field", {})) if "field" in d else FieldCfg()
         loss_cfg = LossCfg(**d.get("loss", {})) if "loss" in d else LossCfg()
         augmentation_cfg = AugmentationCfg(**d.get("augmentation", {})) if "augmentation" in d else AugmentationCfg()
         train_cfg = TrainCfg(**d.get("train", {})) if "train" in d else TrainCfg()

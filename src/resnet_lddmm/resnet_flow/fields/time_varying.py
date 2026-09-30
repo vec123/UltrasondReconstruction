@@ -1,6 +1,6 @@
 """TimeVaryingField: ResNet-LDDMM velocity field (one block per time step)."""
 
-from typing import Optional
+from typing import Optional, Sequence
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -17,7 +17,7 @@ class TimeVaryingField(VelocityField):
     def __init__(
         self,
         num_blocks: int = 10,
-        width: int = 512,
+        mlp: Sequence[int] = (512,),
         activation: str = "relu",
         conditioning: Optional[Conditioning] = None,
     ):
@@ -25,7 +25,7 @@ class TimeVaryingField(VelocityField):
         self.conditioning = conditioning or NoConditioning()
         in_dim = 3 + self.conditioning.dim
         self.blocks = nn.ModuleList(
-            VelocityBlock(in_dim, width, activation) for _ in range(num_blocks)
+            VelocityBlock(in_dim, mlp, activation) for _ in range(num_blocks)
         )
 
     def forward(

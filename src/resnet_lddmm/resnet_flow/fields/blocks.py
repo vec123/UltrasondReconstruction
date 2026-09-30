@@ -1,30 +1,60 @@
 """Building blocks for velocity fields."""
 
-from typing import List
+from typing import List, Sequence
 import torch
 import torch.nn as nn
 
 
-class VelocityBlock(nn.Module):
-    """
-    Residual block: f(x) = W3·(W2·act(W1·x + b1) + b2).
+class ResidualLayer(nn.Module):
+    """h -> skip(h) + act(W·h + b).
+
+    skip is the identity when the width is unchanged, else a bias-free linear
+    projection (the standard ResNet projection shortcut).
     """
 
-    def __init__(self, in_dim: int, width: int, activation: str = "relu"):
+    def __init__(self, in_dim: int, out_dim: int, act: nn.Module):
         super().__init__()
-        self.lift = nn.Linear(in_dim, width)  # W1, b1
-        self.mix = nn.Linear(width, width)  # W2, b2
-        self.proj = nn.Linear(width, 3, bias=False)  # W3 — no bias
+        self.linear = nn.Linear(in_dim, out_dim)
+        self.skip = nn.Identity() if in_dim == out_dim else nn.Linear(in_dim, out_dim, bias=False)
+        self.act = act
+
+    def forward(self, h: torch.Tensor) -> torch.Tensor:
+        """[..., in_dim] -> [..., out_dim]."""
+        return self.skip(h) + self.act(self.linear(h))
+
+
+class VelocityBlock(nn.Module):
+    """
+    Residual block: f(x) = W3·(W2·R_n(…R_1(act(W1·x + b1))…) + b2).
+
+    ``widths`` are the hidden layer widths: W1 lifts to widths[0], each further
+    width adds one ResidualLayer R_i, and W2 mixes at widths[-1]. ``widths=(w,)``
+    has no R_i -- it is the original single-hidden-layer block with the same
+    parameter names, so checkpoints trained with ``field.width: w`` still load.
+    """
+
+    def __init__(self, in_dim: int, widths: Sequence[int], activation: str = "relu"):
+        super().__init__()
         self.act = {
             "relu": nn.ReLU(),
             "leaky_relu": nn.LeakyReLU(0.2),
         }[activation]
+        self.lift = nn.Linear(in_dim, widths[0])  # W1, b1
+        # Empty for a single width, so it adds no state_dict keys
+        self.hidden = nn.ModuleList(
+            ResidualLayer(a, b, self.act) for a, b in zip(widths[:-1], widths[1:])
+        )
+        self.mix = nn.Linear(widths[-1], widths[-1])  # W2, b2
+        self.proj = nn.Linear(widths[-1], 3, bias=False)  # W3 — no bias
         # Zero-init proj.weight so v ≡ 0 at init ⇒ flow == identity
         nn.init.zeros_(self.proj.weight)
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
         """[B, N, in_dim] -> [B, N, 3]."""
-        return self.proj(self.mix(self.act(self.lift(h))))
+        h = self.act(self.lift(h))
+        for layer in self.hidden:
+            h = layer(h)
+        return self.proj(self.mix(h))
 
 
 class FourierFeatures(nn.Module):
