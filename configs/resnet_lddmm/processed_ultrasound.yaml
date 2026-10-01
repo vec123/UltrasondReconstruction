@@ -13,7 +13,7 @@ output_dir: ./outputs/processed_ultrasound_baby_shape_test
 field:
   kind: stationary
   num_steps: 10
-  width: 246
+  mlp: [246]
   activation: relu
   
 code:

@@ -1,6 +1,7 @@
 """Loss terms for shape registration: data fitting and flow regularization."""
 
 import abc
+import copy
 from typing import Optional
 import torch
 import torch.nn as nn
@@ -319,7 +320,10 @@ class TwoSidedDataTerm(DataTerm):
     and as (flowed target, source), see BidirectionalMappingError -- so the
     weights follow the ARGUMENT POSITION, not the shape, and asymmetry drops the
     first argument's direction in both calls. That is not "one-sided
-    registration"; asymmetry is meant for ``direction: forward``.
+    registration"; asymmetry is meant for ``direction: forward``. The
+    field-weighted terms are the exception: the backward call gets
+    FieldWeightedCDData.mirrored(), which keeps each side's settings with the
+    claim they were configured for.
 
     No renormalisation by the weight sum, deliberately: (1, 1) has to stay
     bit-for-bit what it was. So zeroing a direction also roughly HALVES the data
@@ -726,6 +730,54 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         self.target_to_source_field_transform = ts.field_transform
         self.target_to_source_field_scale = ts.field_scale
 
+        if st.inherit_source_field:
+            raise ValueError(
+                "inherit_source_field is a target_to_source setting: it gives each "
+                "TARGET point the source field at its matched source point. The "
+                "source_to_target side already reads the source field directly."
+            )
+        if ts.inherit_source_field and st.field_name is None:
+            raise ValueError(
+                "target_to_source.inherit_source_field needs a field to inherit: set "
+                "source_to_target.field_name (e.g. landmark_weight)."
+            )
+        self.target_to_source_inherit_source_field = ts.inherit_source_field
+        if ts.inherit_source_field:
+            print(f"[data_term] target_to_source: each target point weighted by "
+                  f"{st.field_name!r} at its nearest deformed source point")
+
+    def _target_to_source_weight(self, pred_w: Optional[Tensor], tgt_w: Optional[Tensor],
+                                 nearest_source: Tensor) -> Optional[Tensor]:
+        """The per-target-point weight target_to_source's mean runs under.
+
+        ``tgt_w`` unchanged unless inherit_source_field is set; then each target
+        point's matched source point's ``pred_w``, times ``tgt_w`` when that is
+        set too. The match is an argmin, so no gradient flows through it -- the
+        weight is a constant for this step, exactly like a configured field.
+
+        Args:
+            pred_w: [1 or B, N] source field at the flowed points, or None
+            tgt_w: [1 or B, M] target weights, or None
+            nearest_source: [B, M] index of each target point's nearest pred point
+
+        Returns:
+            [B, M] (or tgt_w's shape) weights, or None for a plain mean.
+
+        Raises:
+            ValueError: inheriting, but no source field reached the data term.
+        """
+        if not self.target_to_source_inherit_source_field:
+            return tgt_w
+        if pred_w is None:
+            raise ValueError(
+                "target_to_source.inherit_source_field is set, but no source field "
+                "reached the data term (pred_w is None). The source_to_target field "
+                "is resolved in runner._add_field_weighted_chamfer, pair mode only."
+            )
+        batch = nearest_source.shape[0]
+        inherited = pred_w.detach().expand(batch, -1).gather(1, nearest_source)
+        return inherited if tgt_w is None else inherited * tgt_w
+
     def _direction_handle(self, direction: str, side) -> LossDistanceHandle:
         """One direction's LossDistanceHandle, logged as one line.
 
@@ -747,6 +799,45 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         unused = "" if side.weight != 0.0 else " [weight 0: never computed]"
         print(f"[data_term] {direction} ({origin}): {handle.describe()}{unused}")
         return handle
+
+    # The per-side settings forward() reads. field_name/field_source are not
+    # among them: fields reach forward() as pred_w/tgt_w, attached to the points.
+    _SIDE_ATTRS = (("source_to_target_weight", "target_to_source_weight"),
+                   ("source_to_target_sigma", "target_to_source_sigma"),
+                   ("source_to_target_loss_distance_handle",
+                    "target_to_source_loss_distance_handle"))
+
+    def mirrored(self) -> "FieldWeightedCDData":
+        """This term with its two sides exchanged, for the backward half of
+        ``direction: bidirectional``.
+
+        BidirectionalMappingError also scores D(phi^-1(target), source). Called
+        as-is, that would put each side's settings on the OTHER claim, since they
+        follow the argument position (see TwoSidedDataTerm):
+
+            first argument -> second    "the target is explained by the source"
+            second -> first argument    "the source lies on the target"
+
+        i.e. target_to_source's and source_to_target's claims respectively --
+        with the plain call, a source_to_target handle truncated for a partial
+        target would switch off the wrong half, and the untruncated one would pull
+        the whole source onto the patches the scan saw. Swapping the settings
+        keeps each attached to its claim, whichever shape is being flowed.
+
+        The point-weight fields need no swap: the mapping error hands each cloud's
+        own field in alongside its points.
+
+        A shallow copy -- it shares the LossDistanceHandle objects, which hold
+        configuration only, and this term has no parameters.
+
+        Returns:
+            A new instance of the same class; ``self`` is unchanged.
+        """
+        mirror = copy.copy(self)
+        for st, ts in self._SIDE_ATTRS:
+            setattr(mirror, st, getattr(self, ts))
+            setattr(mirror, ts, getattr(self, st))
+        return mirror
 
     @staticmethod
     def _weighted_mean(values: Tensor, weight: Optional[Tensor]) -> Tensor:
@@ -778,8 +869,8 @@ class FieldWeightedCDData(TwoSidedDataTerm):
             pred: [B, N, 3] predicted (flowed source) positions
             target: [B, M, 3] target positions
             pred_w: [B, N] per-source-point precision multiplier (source_to_target
-                direction), or None for a constant field. Supplied by
-                UnidirectionalMappingError once a field is resolved -- see
+                direction), or None for a constant field. Supplied by the
+                mapping error once a field is resolved -- see
                 field_weights.resolve_point_weight_field.
             tgt_w: [B, M] per-target-point precision multiplier (target_to_source
                 direction), or None.
@@ -803,8 +894,10 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
         term2 = None
         if self.scores_target_to_source:
-            d2 = self.target_to_source_loss_distance_handle(dist_sq.min(dim=1)[0])
-            term2 = self._weighted_mean(d2, tgt_w) / (2.0 * self.target_to_source_sigma ** 2)
+            d_min, idx = dist_sq.min(dim=1)                       # [B, M]
+            d2 = self.target_to_source_loss_distance_handle(d_min)
+            w2 = self._target_to_source_weight(pred_w, tgt_w, idx)
+            term2 = self._weighted_mean(d2, w2) / (2.0 * self.target_to_source_sigma ** 2)
 
         return self._combine(term1, term2)
 
@@ -956,7 +1049,8 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             offset = pred.gather(1, gather_idx) - target          # [B, M, 3]
             d_plane = (offset * n).sum(-1).pow(2)                 # target's own normal
             d2 = self.target_to_source_loss_distance_handle((1.0 - a) * d_point + a * d_plane)
-            term2 = self._weighted_mean(d2, tgt_w) / (2.0 * self.target_to_source_sigma ** 2)
+            w2 = self._target_to_source_weight(pred_w, tgt_w, idx)
+            term2 = self._weighted_mean(d2, w2) / (2.0 * self.target_to_source_sigma ** 2)
 
         return self._combine(term1, term2)
 

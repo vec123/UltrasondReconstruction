@@ -4,8 +4,8 @@
 # so later stages can still reference its fields - see scripts/pipeline/cli.py).
 #
 # Run with:
-#   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=1-20s-01
-#
+#   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=SdeFrankterHaar-01
+#    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=2-20s-01
 # REFERENCE_SCAN is the scan (file name without extension) every other scan is
 # aligned onto, e.g. SdeFrankterHaar-01 for SUBJECT_ID=9992.
 
@@ -13,17 +13,17 @@ stages:
 
 #-----------Preprocessing
   - name: nrrd_to_vtp
-    enabled: true
+    enabled: false
   - name: align_to_reference
-    enabled: true
+    enabled: false
   - name: align_to_template
-    enabled: true
+    enabled: false
   - name: roughness_filter
-    enabled: true
+    enabled: false
   - name: landmark_bbox_cut
-    enabled: true
+    enabled: false
   - name: scan_consistency
-    enabled: true
+    enabled: false
 
 
 
@@ -32,11 +32,11 @@ stages:
 #-----------fetus ssm (pre-fusion)
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_mean_shape
-    enabled: true
+    enabled: false
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_times_gaussian
@@ -48,7 +48,7 @@ stages:
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_sum_matern32
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_map
@@ -76,16 +76,16 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_sum_matern32_map
-    enabled: true
+    enabled: false
 
 #-----------baby ssm (pre-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_init_pca
-    enabled: true
+    enabled: false
   # One mean-shape eval for the whole baby pre-fusion sweep.
   - name: recon_target_distance
     id: recon_target_distance_baby_init_mean_shape
-    enabled: true
+    enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_times_gaussian
@@ -97,7 +97,7 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_sum_matern32
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_map
@@ -125,25 +125,25 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_sum_matern32_map
-    enabled: true
+    enabled: false
 
 #-----------scan fusion
   - name: scan_fusion
     id: scan_fusion_ssm
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_scan_fusion_ssm
-    enabled: true
+    enabled: false
 
 #-----------baby ssm (post-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_pca
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_baby_fused_mean_shape
-    enabled: true
+    enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_times_gaussian
@@ -155,7 +155,7 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_sum_matern32
-    enabled: true
+    enabled: false
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_map
@@ -183,7 +183,7 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_sum_matern32_map
-    enabled: true
+    enabled: false
 
 
 
@@ -705,7 +705,8 @@ paths:
 
 #---------------------ResNetLDDMM with from the baby mean to the scan_fusion from the fetus_ssm
   similarity_transform_baby_mean:
-    source_vtp: baby_ssm_fit_pca.outputs.dir +  /init_shape.vtp
+    #source_vtp: baby_ssm_fit_pca.outputs.dir +  /init_shape.vtp
+    source_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
 
@@ -1391,10 +1392,26 @@ hyperparameters:
 
   resnet_lddmm_train:
     field:
-      kind: time_varying
+      kind: time_varying_fourier
       num_steps: 10
-      width: 256
+      mlp: [128,128]
       activation: relu
+      fourier_n_e: 3                   
+      fourier_anneal: {start: 500, end: 900} 
+
+    #field:
+    #  kind: time_varying_local
+    #  num_steps: 20
+    #  mlp: [128,128]
+    #  activation: relu
+    #  fourier_n_e: 0                 # coarse = plain baseline (or 3 + fourier_anneal)
+    #  local:
+    #    landmarks: [aL, aR, acL, acR, prn]
+    #    radius_mm: 5                 # full strength: nose plus room to widen
+    #    falloff_mm: 3                 # zero beyond 18 mm
+    #    mlp: [128, 128]
+    #    fourier_n_e: 5               # detail down to ~8 mm; keep <= 5
+    #    fourier_anneal: {start: 300, end: 800}   # for steps: 1000
     code:
       kind: none
       position_aware: true
@@ -1404,43 +1421,66 @@ hyperparameters:
       #data_name: field_weighted_chamfer
       data_name: field_weighted_point2plane_chamfer
       data_kwargs:
-        #seems to measure how well the target fits the template
+        #seems to measure how well the template fits the target
         source_to_target:
           weight: 1
-          base_sigma: 0.005
-          #field_name: landmark_weight
-          field_name: null
+          base_sigma: 0.01
+          field_name: landmark_weight
+          #field_name: null
           loss_distance_handle:
             kind: truncated
-            breakpoint: 0.08
-        #seems to measure how well the template fits the target
+            breakpoint: 0.1
+            power: 1
+        #seems to measure how well the target fits the template
         target_to_source: 
-          weight: 0.0000001
-          base_sigma: 0.0001
-          #field_name: support
-          field_name: null
+          weight: 1
+          base_sigma: 0.01
+          field_name: support
+          inherit_source_field: false
           loss_distance_handle:
+            power: 2
             kind: quadratic
-            #breakpoint: 0.05
-      kinetic_weight: 300.0
+            breakpoint: 0.1
+      kinetic_weight: 5000.0
+      kinetic_field_weight: 0.0
+      kinetic_field_kwargs:
+        field_name: kinetic_weight
+        normalize: true
+      # Windowed functional-varifold ("fshape") term around the nose, ON TOP of the
+      # chamfer data term: compares the template's transported curvature with the
+      # target's, so crease tissue landing on flat target is penalised. Set
+      # signal: none for the plain-varifold control run. 0 = off. losses/fshape.py
+      fshape_weight: 0.0             # ~0.93 at identity -> ~19, vs data ~100 at start
+      fshape_kwargs:
+        landmarks: [aL, aR, acL, acR, prn, sn]   # window centre = their mean
+        radius_mm: 10                            # full strength
+        falloff_mm: 8                            # zero beyond 18 mm
+        margin_mm: 4                             # template crop beyond the window
+        sigma_mm: [4.0, 2.0]                     # position kernel scales
+        signal: curvedness                       # curvedness | mean_curvature | none
+        signal_normalize: rank                   # compare percentiles: the scan is noisier than the template
+        sigma_signal: 0.3                        # in percentile units
+        curvature_radius_mm: 3.0                 # curvature smoothing scale
+        n_faces: 1500                            # triangles per mesh; ~0.2 s per step on CPU
       code_reg_weight: 0.0
       isometry_weight: 0.0
       isometry_type: det
-      landmark_weight: 1.0
+      landmark_weight: 0.0
       landmark_kwargs:
         label_weights:
           chL: 0.0
           chR: 0.0
           cphL: 0.0
           cphR: 0.0
-          exL: 0.0
-          exR: 0.0
+          
           li: 0.0
           pg: 0.0
           sl: 0.0
           
         hard_precision:
         #n: 1000000
+          exL: 1000000.0
+          exR: 1000000.0
           n:  1000000.0
           ls:  1000000.0
           prn:  1000000.0
@@ -1452,12 +1492,12 @@ hyperparameters:
           enL: 1000000.0
           enR:  1000000.0
 
-      subsample_M: 3000
+      subsample_M: 1000
       save_full: false
       direction: forward
     train:
       mode: pair
-      steps: 2000
+      steps: 1000
       batch: 4
       lr: 0.0001
       seed: 42
@@ -1472,7 +1512,7 @@ hyperparameters:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      mlp: [246]
       activation: relu
     code:
       kind: none
@@ -1542,7 +1582,7 @@ hyperparameters:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      mlp: [246]
       activation: relu
     code:
       kind: none

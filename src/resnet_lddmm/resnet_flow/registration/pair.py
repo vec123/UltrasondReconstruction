@@ -126,6 +126,7 @@ class PairRegistration:
                 code_source=self.code_source,
                 template=template,
                 sample=augmented_sample,
+                template_idx=self.mapping_error.last_template_idx,
             )
             values.update({name: term(ctx) for name, term in self.loss_terms.items()})
 

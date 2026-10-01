@@ -19,6 +19,8 @@ Registry.register("conditioning", "position_aware", "src.resnet_lddmm.resnet_flo
 
 # STEPS T6: VelocityField + TimeVaryingField + StationaryField
 Registry.register("field", "time_varying", "src.resnet_lddmm.resnet_flow.fields.time_varying:TimeVaryingField")
+Registry.register("field", "time_varying_fourier", "src.resnet_lddmm.resnet_flow.fields.fourier:FourierTimeVaryingField")
+Registry.register("field", "time_varying_local", "src.resnet_lddmm.resnet_flow.fields.local:LocalRefinementField")
 Registry.register("field", "stationary", "src.resnet_lddmm.resnet_flow.fields.time_varying:StationaryField")
 
 # SO(3)-equivariant stationary field using e3nn SelfInteraction
@@ -87,6 +89,8 @@ Registry.register("loss_term", "equivariant_deformation_loss", "src.resnet_lddmm
 Registry.register("loss_term", "pose_supervision_loss", "src.resnet_lddmm.resnet_flow.losses.terms:PoseSupervisionLoss")
 Registry.register("loss_term", "flow_rotation_penalty", "src.resnet_lddmm.resnet_flow.losses.terms:FlowRotationPenalty")
 Registry.register("loss_term", "landmark_guidance", "src.resnet_lddmm.resnet_flow.losses.terms:LandmarkGuidanceLoss")
+Registry.register("loss_term", "point_weighted_kinetic", "src.resnet_lddmm.resnet_flow.losses.kinetic:PointWeightedKineticLoss")
+Registry.register("loss_term", "fshape_data", "src.resnet_lddmm.resnet_flow.losses.fshape:FshapeDataTerm")
 
 # Augmentation: random group transformations (SE(3), SO(3), or none)
 Registry.register("augmentation", "none", "src.resnet_lddmm.resnet_flow.augmentation.none:NoAugmentation")

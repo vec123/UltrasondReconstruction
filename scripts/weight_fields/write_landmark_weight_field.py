@@ -67,7 +67,8 @@ def main():
 
     details = ", ".join(_describe(entry) for entry in cfg.entries)
     print(f"[write_landmark_weight_field] {cfg.output_field!r} from {len(cfg.entries)} "
-          f"landmark(s) ({details}), min_weight={cfg.min_weight}: {weight.shape[0]} vertices, "
+          f"landmark(s) ({details}), min_weight={cfg.min_weight}"
+          f"{', INVERTED' if cfg.invert else ''}: {weight.shape[0]} vertices, "
           f"range [{weight.min().item():.4g}, {weight.max().item():.4g}] -> {output_path}")
 
 

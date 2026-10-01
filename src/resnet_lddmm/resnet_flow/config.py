@@ -44,7 +44,14 @@ class FieldCfg:
     activation: str = "relu"
     fa: tuple = (64, 64, 64)                # stationary: FA-NN layer widths
     df: tuple = (256, 256, 256, 256, 256)   # DF-NN layer widths
-    fourier_n_e: int = 3
+    fourier_n_e: int = 3                    # Fourier bands; also time_varying_fourier's, and time_varying_local's COARSE field (0 = plain xyz there)
+    # time_varying_fourier / time_varying_local (coarse field): {start, end} steps over
+    # which the bands open, coarse to fine (callbacks_fourier.FourierAnnealing).
+    # None = all open from step 0.
+    fourier_anneal: Optional[dict] = None
+    # time_varying_local only: the fine field and its region -- see fields/local.py.
+    # {landmarks, radius_mm, falloff_mm, mlp, fourier_n_e, fourier_anneal, heatmap_prefix}
+    local: Optional[dict] = None
     # Equivariant stationary field (only if kind == "equivariant_stationary")
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
     gate_hidden_dim: int = 64               # hidden dim for gating network in SelfInteraction
@@ -72,15 +79,79 @@ class FieldCfg:
                 )
             d["mlp"] = [d.pop("width")]
         if "mlp" in d:
-            mlp = d["mlp"]
-            if not isinstance(mlp, (list, tuple)) or not mlp \
-                    or not all(isinstance(w, int) and w > 0 for w in mlp):
-                raise ValueError(
-                    f"field.mlp must be a non-empty list of positive layer widths, "
-                    f"e.g. [256, 256, 256]; got {mlp!r}"
-                )
-            d["mlp"] = tuple(mlp)
+            d["mlp"] = tuple(_parse_widths(d["mlp"], "field.mlp"))
+        kind = d.get("kind", cls.kind)
+        if d.get("fourier_anneal") is not None:
+            if kind not in ("time_varying_fourier", "time_varying_local"):
+                raise ValueError(f"field.fourier_anneal only applies to kind: time_varying_fourier "
+                                 f"or time_varying_local, not {kind!r}")
+            if kind == "time_varying_local" and int(d.get("fourier_n_e", cls.fourier_n_e)) < 1:
+                raise ValueError("field.fourier_anneal on time_varying_local anneals the COARSE "
+                                 "field's bands, but fourier_n_e is 0 (plain xyz): drop one of them")
+            d["fourier_anneal"] = _parse_anneal(d["fourier_anneal"], "field.fourier_anneal")
+        if kind == "time_varying_local":
+            if int(d.get("fourier_n_e", cls.fourier_n_e)) < 0:
+                raise ValueError("field.fourier_n_e must be >= 0 for time_varying_local (0 = plain coarse field)")
+            d["local"] = _parse_local_field(d.get("local"))
+        elif d.get("local") is not None:
+            raise ValueError(f"field.local only applies to kind: time_varying_local, not {kind!r}")
         return cls(**d)
+
+
+def _parse_widths(mlp, what: str) -> list:
+    """A non-empty list of positive int layer widths, as a list."""
+    if not isinstance(mlp, (list, tuple)) or not mlp \
+            or not all(isinstance(w, int) and w > 0 for w in mlp):
+        raise ValueError(f"{what} must be a non-empty list of positive layer widths, "
+                         f"e.g. [256, 256, 256]; got {mlp!r}")
+    return list(mlp)
+
+
+def _parse_anneal(anneal, what: str) -> dict:
+    """A FourierAnnealing schedule, {start, end} with 0 <= start < end."""
+    if not isinstance(anneal, dict):
+        raise ValueError(f"{what} must be a {{start, end}} mapping, got {anneal!r}")
+    reject_unknown_keys(anneal, {"start", "end"}, what=what)
+    if "start" not in anneal or "end" not in anneal:
+        raise ValueError(f"{what} needs both 'start' and 'end' steps, got {anneal}")
+    start, end = int(anneal["start"]), int(anneal["end"])
+    if start < 0 or end <= start:
+        raise ValueError(f"{what} needs 0 <= start < end, got {anneal}")
+    return {"start": start, "end": end}
+
+
+def _parse_local_field(local) -> dict:
+    """field.local for kind time_varying_local, validated, with defaults filled in.
+
+    Returned as a plain dict so config.json round-trips it unchanged.
+    """
+    if not isinstance(local, dict):
+        raise ValueError("kind: time_varying_local needs a field.local block: "
+                         "{landmarks, radius_mm, falloff_mm, ...}")
+    reject_unknown_keys(local, {"landmarks", "radius_mm", "falloff_mm", "mlp", "fourier_n_e",
+                                "fourier_anneal", "heatmap_prefix"}, what="field.local")
+    landmarks = local.get("landmarks")
+    if not isinstance(landmarks, (list, tuple)) or not landmarks \
+            or not all(isinstance(label, str) for label in landmarks):
+        raise ValueError(f"field.local.landmarks must be a non-empty list of labels whose "
+                         f"mean position is the region's centre; got {landmarks!r}")
+    radius, falloff = local.get("radius_mm"), local.get("falloff_mm")
+    if radius is None or falloff is None or float(radius) < 0 or float(falloff) <= 0:
+        raise ValueError(f"field.local needs radius_mm >= 0 (full-strength ball) and "
+                         f"falloff_mm > 0 (smooth edge); got {radius!r}, {falloff!r}")
+    n_e = int(local.get("fourier_n_e", 5))
+    if n_e < 1:
+        raise ValueError(f"field.local.fourier_n_e must be >= 1, got {n_e}")
+    anneal = local.get("fourier_anneal")
+    return {
+        "landmarks": list(landmarks),
+        "radius_mm": float(radius),
+        "falloff_mm": float(falloff),
+        "mlp": _parse_widths(local.get("mlp", [128, 128]), "field.local.mlp"),
+        "fourier_n_e": n_e,
+        "fourier_anneal": None if anneal is None else _parse_anneal(anneal, "field.local.fourier_anneal"),
+        "heatmap_prefix": str(local.get("heatmap_prefix", "heatmap_")),
+    }
 
 
 @dataclass
@@ -197,8 +268,8 @@ class ChamferSideCfg:
     LossCfg.data_kwargs). They are resolved once, later, at build time (see
     field_weights.resolve_point_weight_field and runner._add_field_weighted_chamfer),
     into a tensor that reaches the data term the same way any other per-point
-    weight already does: as pred_w/tgt_w, supplied by UnidirectionalMappingError
-    on every call.
+    weight already does: as pred_w/tgt_w, supplied by the mapping error on every
+    call.
 
     Attributes:
         weight: how much this direction counts in the combined data loss (same
@@ -236,6 +307,14 @@ class ChamferSideCfg:
             block does not. Kept as the raw block: it is validated where the
             handle is built (data_terms.LossDistanceHandle.from_dict), since
             ROBUST_KINDS lives with the torch code.
+        inherit_source_field: target_to_source ONLY. Each target point takes,
+            as its precision multiplier, the source_to_target field's value at
+            its NEAREST deformed source point -- recomputed every step from the
+            current matches. The target then needs no field of its own: "this
+            target point is explained by the template's nose" makes it a nose
+            point, with no annotation on the target. Multiplies this side's own
+            field when both are set. Needs a source_to_target field_name, and is
+            refused under direction: bidirectional (see FieldWeightedCDData).
     """
     weight: float = 1.0
     base_sigma: float = 0.1
@@ -244,6 +323,7 @@ class ChamferSideCfg:
     field_transform: Optional[str] = None
     field_scale: Optional[float] = None
     loss_distance_handle: Optional[dict] = None
+    inherit_source_field: bool = False
 
     TRANSFORMS = ("gaussian_distance",)
 
@@ -251,7 +331,8 @@ class ChamferSideCfg:
     def from_dict(cls, d: dict) -> "ChamferSideCfg":
         reject_renamed_loss_distance_keys(d, "source_to_target/target_to_source block")
         reject_unknown_keys(d, {"weight", "base_sigma", "field_name", "field_source",
-                                "field_transform", "field_scale", "loss_distance_handle"},
+                                "field_transform", "field_scale", "loss_distance_handle",
+                                "inherit_source_field"},
                             what="chamfer side")
         weight = float(d.get("weight", 1.0))
         base_sigma = float(d.get("base_sigma", 0.1))
@@ -279,7 +360,136 @@ class ChamferSideCfg:
         return cls(weight=weight, base_sigma=base_sigma,
                    field_name=d.get("field_name"), field_source=d.get("field_source"),
                    field_transform=field_transform, field_scale=field_scale,
-                   loss_distance_handle=d.get("loss_distance_handle"))
+                   loss_distance_handle=d.get("loss_distance_handle"),
+                   inherit_source_field=bool(d.get("inherit_source_field", False)))
+
+
+@dataclass
+class FshapeCfg:
+    """loss.fshape_kwargs: the windowed functional-varifold term (losses/fshape.py).
+
+    Attributes:
+        landmarks: template labels whose mean position centres the window.
+        radius_mm: full-strength window radius (world units, mm here).
+        falloff_mm: smooth falloff to zero beyond radius_mm.
+        margin_mm: extra template crop beyond the window, so tissue moving
+            INTO the window during the fit is represented.
+        sigma_mm: position kernel widths (one or several scales, averaged).
+        signal: "curvedness" (unsigned, orientation-free), "mean_curvature"
+            (signed), or "none" for a plain varifold.
+        signal_normalize: "rank" (default) compares percentiles within the
+            window instead of raw curvature -- the scan is systematically
+            curvier than the template (noise), which raw values would penalise
+            everywhere. "none" compares raw 1/mm values.
+        sigma_signal: signal kernel width (percentile units under rank, 1/mm
+            under none); None = half the pooled standard deviation of both
+            meshes' triangle signals.
+        curvature_radius_mm: neighbourhood of the curvature fit, i.e. its
+            smoothing scale.
+        n_faces: triangles sampled per mesh (area-proportional, fixed).
+        seed: for that sample.
+        heatmap_prefix: template landmark fields' prefix.
+    """
+    landmarks: List[str] = dataclass_field(default_factory=lambda: ["aL", "aR", "acL", "acR", "prn", "sn"])
+    radius_mm: float = 10.0
+    falloff_mm: float = 8.0
+    margin_mm: float = 4.0
+    sigma_mm: List[float] = dataclass_field(default_factory=lambda: [4.0, 2.0])
+    signal: str = "curvedness"
+    signal_normalize: str = "rank"
+    sigma_signal: Optional[float] = None
+    curvature_radius_mm: float = 2.5
+    n_faces: int = 1500
+    seed: int = 0
+    heatmap_prefix: str = "heatmap_"
+
+    SIGNALS = ("curvedness", "mean_curvature", "none")
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "FshapeCfg":
+        reject_unknown_keys(d, {f.name for f in cls.__dataclass_fields__.values()},
+                            what="loss.fshape_kwargs")
+        cfg = cls(**d)
+        if not cfg.landmarks or not all(isinstance(label, str) for label in cfg.landmarks):
+            raise ValueError(f"loss.fshape_kwargs.landmarks must be a non-empty list of labels, got {cfg.landmarks!r}")
+        if cfg.radius_mm < 0 or cfg.falloff_mm <= 0 or cfg.margin_mm < 0:
+            raise ValueError("loss.fshape_kwargs needs radius_mm >= 0, falloff_mm > 0, margin_mm >= 0")
+        sigmas = cfg.sigma_mm if isinstance(cfg.sigma_mm, (list, tuple)) else [cfg.sigma_mm]
+        if not sigmas or any(float(s) <= 0 for s in sigmas):
+            raise ValueError(f"loss.fshape_kwargs.sigma_mm must be positive, got {cfg.sigma_mm!r}")
+        cfg.sigma_mm = [float(s) for s in sigmas]
+        if cfg.signal not in cls.SIGNALS:
+            raise ValueError(f"loss.fshape_kwargs.signal must be one of {cls.SIGNALS}, got {cfg.signal!r}")
+        if cfg.signal_normalize not in ("rank", "none"):
+            raise ValueError(f"loss.fshape_kwargs.signal_normalize must be 'rank' or 'none', "
+                             f"got {cfg.signal_normalize!r}")
+        if cfg.sigma_signal is not None and float(cfg.sigma_signal) <= 0:
+            raise ValueError(f"loss.fshape_kwargs.sigma_signal must be > 0 or null, got {cfg.sigma_signal}")
+        if cfg.curvature_radius_mm <= 0 or int(cfg.n_faces) < 100:
+            raise ValueError("loss.fshape_kwargs needs curvature_radius_mm > 0 and n_faces >= 100")
+        return cfg
+
+
+@dataclass
+class PointWeightFieldCfg:
+    """A named per-vertex weight field on the SOURCE, for a term other than the data term.
+
+    Reusable by any term that holds one weight per template vertex (today:
+    loss.kinetic_field_kwargs, see losses/kinetic.py). Resolved once, at build
+    time, by field_weights.resolve_point_weight_field -- the same resolver, and the
+    same field_* keys with the same meaning, as ChamferSideCfg.
+
+    Attributes:
+        field_name: name of the point field to read. Required -- unlike
+            ChamferSideCfg there is no "constant field" default, because a
+            constant field is what the plain term already is.
+        field_source: path to a .vtp carrying the field; None reads it from the
+            run's own source shape. Must describe the same vertices, in the
+            same order.
+        field_transform: None uses the values as-is; "gaussian_distance" treats
+            them as a distance, see ChamferSideCfg.
+        field_scale: required with field_transform, rejected without it.
+        normalize: rescale the resolved field to mean 1 over the full mesh
+            (default). The term's weight then keeps the scale of the unweighted
+            term it extends, and only the field's SHAPE -- where it is high,
+            where low, by what ratio -- carries meaning. False uses the raw
+            values as the multiplier.
+    """
+    field_name: str
+    field_source: Optional[str] = None
+    field_transform: Optional[str] = None
+    field_scale: Optional[float] = None
+    normalize: bool = True
+
+    @classmethod
+    def from_dict(cls, d: dict, what: str = "point weight field") -> "PointWeightFieldCfg":
+        reject_unknown_keys(d, {"field_name", "field_source", "field_transform",
+                                "field_scale", "normalize"}, what=what)
+        field_name = d.get("field_name")
+        if not field_name:
+            raise ValueError(f"{what} needs a 'field_name': the point field to read "
+                             f"from the source (or from field_source).")
+
+        field_transform = d.get("field_transform")
+        field_scale = d.get("field_scale")
+        if field_transform is None:
+            if field_scale is not None:
+                raise ValueError(f"{what}: field_scale is only used with a "
+                                 f"field_transform; set one, or drop field_scale.")
+        else:
+            if field_transform not in ChamferSideCfg.TRANSFORMS:
+                raise ValueError(f"{what}: unknown field_transform {field_transform!r}; "
+                                 f"expected one of {ChamferSideCfg.TRANSFORMS} or null")
+            if field_scale is None:
+                raise ValueError(f"{what}: field_transform={field_transform!r} needs a "
+                                 f"field_scale (same units as the field's own values).")
+            field_scale = float(field_scale)
+            if field_scale <= 0:
+                raise ValueError(f"{what}: field_scale must be > 0, got {field_scale}")
+
+        return cls(field_name=field_name, field_source=d.get("field_source"),
+                   field_transform=field_transform, field_scale=field_scale,
+                   normalize=bool(d.get("normalize", True)))
 
 
 @dataclass
@@ -314,7 +524,11 @@ class LossCfg:
     # field_name/field_source get resolved once the shapes are loaded). A side
     # may also carry its own loss_distance_handle block, overriding the shared
     # one for that direction only -- e.g. truncating source_to_target alone, so
-    # the part of the source a partial target never saw stops pulling.
+    # the part of the source a partial target never saw stops pulling. Under
+    # direction: bidirectional each side's settings stay with the same claim in
+    # the backward half too (FieldWeightedCDData.mirrored), and point-to-plane
+    # projects that half onto the SOURCE's normals, derived from its faces when
+    # the file has none.
     #
     # data_name: none takes NO kwargs -- it is the explicit "no chamfer term at
     # all" opt-out, always zero/no-gradient, for runs where loss.landmark_weight
@@ -324,6 +538,16 @@ class LossCfg:
     direction: str = "forward"              # forward | bidirectional
     sigma: float = 0.1                      # data weight = 1/(2σ²), named per D4
     kinetic_weight: float = 1.0
+    # Extra kinetic energy weighted per TEMPLATE vertex, ON TOP of kinetic_weight's
+    # uniform one (see losses/kinetic.py). 0 = not built. kinetic_field_kwargs is a
+    # PointWeightFieldCfg block: {field_name, field_source, field_transform,
+    # field_scale, normalize}. Resolved in runner._add_kinetic_field_term.
+    kinetic_field_weight: float = 0.0
+    kinetic_field_kwargs: dict = dataclass_field(default_factory=dict)
+    # Windowed functional-varifold data term (losses/fshape.py), added to the main
+    # data term. 0 = not built. fshape_kwargs: FshapeCfg keys.
+    fshape_weight: float = 0.0
+    fshape_kwargs: dict = dataclass_field(default_factory=dict)
     code_reg_weight: float = 0.0
     weight_decay: float = 0.0               # Θ only — see Phase 6
     isometry_weight: float = 0.0            # disabled by default

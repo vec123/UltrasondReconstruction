@@ -1,0 +1,31 @@
+# Bakes a `kinetic_weight` STIFFNESS field onto Templates/baby_mean.vtp: low on
+# the lower nose (alae, alar bases, tip, subnasale), high everywhere else. Used
+# by loss.kinetic_field_weight / kinetic_field_kwargs (losses/kinetic.py), it
+# makes moving the nose cheap and bulging the tissue next to it expensive.
+#
+# invert: true turns the usual max-of-peaks field into a DIP: 0.1 at each
+# listed landmark, rising to 1.0 about 12 mm away. In the training frame one
+# template unit is ~4967 mm, so decay_scale 0.0012 is a ~6 mm halo. Profile
+# around aL: 0-2 mm 0.13 | 2-5 mm 0.24 | 5-8 mm 0.42 | 8-12 mm 0.64 |
+# 12-20 mm 0.90 | beyond 1.0. Stiffness ratio 10:1, mean 0.95.
+#
+# Regenerate with:
+#   python scripts/weight_fields/write_landmark_weight_field.py configs/weight_fields/kinteic_weight_field_templates.yaml
+# then re-run similarity_transform_baby_mean so the field reaches
+# baby_mean_aligned.vtp, the file training actually reads.
+
+vtp: Templates/baby_mean.vtp
+output_field: kinetic_weight
+invert: true
+
+decay_scale: 0.0012
+max_weight: 1.0
+min_weight: 0.1
+
+include:
+  - aL
+  - aR
+  - acL
+  - acR
+  - prn
+  - sn

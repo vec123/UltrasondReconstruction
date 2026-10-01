@@ -18,11 +18,13 @@ import torch
 from src.resnet_lddmm.resnet_flow.checkpoint import checkpoint_step, load_checkpoint, resolve_checkpoint
 from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
 from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAINS,
+                                                 FshapeCfg, PointWeightFieldCfg,
                                                  reject_renamed_loss_distance_keys)
+from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
 from src.resnet_lddmm.resnet_flow.poses import TRANSLATING_KINDS
 from src.resnet_lddmm.resnet_flow.io import load_shape, joint_normalize, export_trajectory, export_shape
-from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs
-from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field
+from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs, resolve_template_points
+from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field, normalize_unit_mean
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
 from src.resnet_lddmm.resnet_flow.flow import NeuralODEFlow, IdentityFlowWrapper
@@ -36,6 +38,7 @@ from src.resnet_lddmm.learning.trainers.E3_end2end import TrainingOrchestrator
 from src.resnet_lddmm.learning.callbacks.base import Callback
 from src.resnet_lddmm.learning.callbacks.checkpointing import CheckpointWriter
 from src.resnet_lddmm.resnet_flow.callbacks import TrajectoryExporter, DiagnosticsCallback, EncoderGraphLogger, GradientLogger, NetworkStructureInspector, RequiresGradMonitor, PoseLogger, PoseShapeExporter, LossLogger
+from src.resnet_lddmm.resnet_flow.callbacks_fourier import FourierAnnealing
 
 # Data terms taking the per-direction ChamferSideCfg config shape
 # ({source_to_target: {...}, target_to_source: {...}} in data_kwargs) and owning
@@ -254,6 +257,30 @@ def build_field(cfg, conditioning):
             layers_cfg=cfg.field.layers,
             conditioning=conditioning
         )
+    if cfg.field.kind == "time_varying_fourier":
+        return Registry.create(
+            "field", "time_varying_fourier",
+            num_blocks=cfg.field.num_steps,
+            mlp=cfg.field.mlp,
+            activation=cfg.field.activation,
+            conditioning=conditioning,
+            n_e=cfg.field.fourier_n_e,
+            annealed=cfg.field.fourier_anneal is not None,
+        )
+    if cfg.field.kind == "time_varying_local":
+        local = cfg.field.local
+        return Registry.create(
+            "field", "time_varying_local",
+            num_blocks=cfg.field.num_steps,
+            mlp=cfg.field.mlp,
+            activation=cfg.field.activation,
+            conditioning=conditioning,
+            coarse_n_e=cfg.field.fourier_n_e,
+            coarse_annealed=cfg.field.fourier_anneal is not None,
+            fine_mlp=local["mlp"],
+            fine_n_e=local["fourier_n_e"],
+            fine_annealed=local["fourier_anneal"] is not None,
+        )
     return Registry.create(
         "field", cfg.field.kind,
         num_blocks=cfg.field.num_steps,
@@ -415,12 +442,248 @@ def _add_landmark_term(cfg, template_shape, transform, composer, loss_terms):
     return loss_terms
 
 
+def _add_kinetic_field_term(cfg, source_norm, transform, composer, loss_terms):
+    """Resolve + attach the point-weighted kinetic term, if cfg.loss.kinetic_field_weight > 0.
+
+    Post-load for the same reason as ``_add_landmark_term``: the weight field is
+    a point field on the NORMALISED source, which does not exist when
+    ``_build_loss_terms`` runs. See losses/kinetic.py for the term itself.
+
+    Args:
+        cfg: ExperimentCfg
+        source_norm: the NORMALISED source Shape, point_fields intact
+        transform: the FrameTransform training runs in, for the sanity export
+        composer: LossComposer; a "kinetic_field" LossTerm is appended in place
+            when enabled
+        loss_terms: {name: module} dict already built
+
+    Returns:
+        ``loss_terms`` unchanged when disabled; otherwise a NEW dict with a
+        "kinetic_field" entry added.
+
+    Raises:
+        ValueError: invalid kinetic_field_kwargs, a missing/misshapen field, or a
+            configured term already named "kinetic_field".
+    """
+    if cfg.loss.kinetic_field_weight <= 0:
+        return loss_terms
+
+    name = "kinetic_field"
+    if loss_terms and name in loss_terms:
+        raise ValueError(f"a loss term is already named {name!r}; rename it so the "
+                         f"two metrics stay distinguishable")
+
+    field_cfg = PointWeightFieldCfg.from_dict(cfg.loss.kinetic_field_kwargs,
+                                              what="loss.kinetic_field_kwargs")
+    vertex_weights = resolve_point_weight_field(
+        field_cfg.field_name, field_cfg.field_source, fallback_shape=source_norm,
+        field_transform=field_cfg.field_transform, field_scale=field_cfg.field_scale,
+        dtype=source_norm.points.dtype,
+    )
+    raw_min, raw_max = vertex_weights.min().item(), vertex_weights.max().item()
+    if field_cfg.normalize:
+        vertex_weights = normalize_unit_mean(vertex_weights, label=f"kinetic field {field_cfg.field_name!r}")
+
+    loss_terms = dict(loss_terms or {})
+    loss_terms[name] = Registry.create("loss_term", "point_weighted_kinetic",
+                                       vertex_weights=vertex_weights)
+    composer.terms.append(LossTerm(name, weight=cfg.loss.kinetic_field_weight))
+
+    lo, hi = vertex_weights.min().item(), vertex_weights.max().item()
+    print(f"[kinetic_field] {field_cfg.field_name!r} over {vertex_weights.shape[0]} "
+          f"vertices: raw range [{raw_min:.4g}, {raw_max:.4g}], used range "
+          f"[{lo:.4g}, {hi:.4g}] (ratio {hi / max(lo, 1e-12):.3g}), "
+          f"weight {cfg.loss.kinetic_field_weight}, on top of kinetic_weight "
+          f"{cfg.loss.kinetic_weight}")
+    if cfg.loss.direction == "bidirectional":
+        print("[kinetic_field] bidirectional: weights the FORWARD trajectory only; "
+              "the backward one starts on the target, which the field does not "
+              "describe, and keeps the plain kinetic term.")
+
+    # Same spirit as field_weighted_chamfer_source.vtp: the weight actually used,
+    # on the full source mesh, colourable by "kinetic_weight" in ParaView.
+    export_shape(source_norm.points[0], source_norm.faces, transform,
+                 os.path.join(cfg.output_dir, "kinetic_field_source.vtp"),
+                 label="PointWeightedKinetic (template)",
+                 point_fields={"kinetic_weight": vertex_weights.detach().cpu().numpy()})
+    return loss_terms
+
+
+def _add_fshape_term(cfg, source_norm, target_norm, transform, composer, loss_terms):
+    """Resolve + attach the windowed fshape data term, if cfg.loss.fshape_weight > 0.
+
+    Post-load for the same reason as the landmark and kinetic-field terms: it
+    needs the NORMALISED meshes, their faces and the template's heatmaps. See
+    losses/fshape.py for the term itself.
+
+    Args:
+        cfg: ExperimentCfg
+        source_norm, target_norm: NORMALISED Shapes with faces and point_fields
+        transform: the run's FrameTransform (mm <-> normalised, sanity exports)
+        composer: LossComposer; an "fshape" LossTerm is appended in place
+        loss_terms: {name: module} dict already built
+
+    Returns:
+        ``loss_terms`` unchanged when disabled, else a NEW dict with "fshape".
+
+    Raises:
+        ValueError: missing faces, invalid fshape_kwargs, a name clash, or a
+            configuration the term cannot honour (augmentation or pose: it
+            compares against the fixed, unaugmented target).
+    """
+    if cfg.loss.fshape_weight <= 0:
+        return loss_terms
+
+    name = "fshape"
+    if loss_terms and name in loss_terms:
+        raise ValueError(f"a loss term is already named {name!r}")
+    if cfg.augmentation.kind != "none" or getattr(cfg, "use_encoder_pose", False):
+        raise ValueError("loss.fshape_weight > 0 compares the deformed template with the FIXED, "
+                         "unaugmented target; it needs augmentation.kind: none and no pose.")
+    for label, shape in (("source", source_norm), ("target", target_norm)):
+        if shape.faces is None or len(shape.faces) == 0:
+            raise ValueError(f"loss.fshape_weight > 0 needs triangles on the {label}, which has none")
+
+    fcfg = FshapeCfg.from_dict(dict(cfg.loss.fshape_kwargs))
+    scale = float(transform.scale)
+    center = resolve_template_points(source_norm, fcfg.landmarks, fcfg.heatmap_prefix).mean(axis=0)
+    kwargs, info = build_fshape_kwargs(
+        source_norm.points[0].detach().cpu().numpy().astype(np.float64), source_norm.faces.cpu().numpy(),
+        target_norm.points[0].detach().cpu().numpy().astype(np.float64), target_norm.faces.cpu().numpy(),
+        center=center, r_in=fcfg.radius_mm / scale, r_out=(fcfg.radius_mm + fcfg.falloff_mm) / scale,
+        margin=fcfg.margin_mm / scale, sigmas=[s / scale for s in fcfg.sigma_mm],
+        n_faces=int(fcfg.n_faces), seed=int(fcfg.seed), signal=fcfg.signal,
+        sigma_signal=fcfg.sigma_signal, curvature_radius_mm=fcfg.curvature_radius_mm,
+        scale=scale, dtype=source_norm.points.dtype, signal_normalize=fcfg.signal_normalize,
+    )
+
+    loss_terms = dict(loss_terms or {})
+    term = Registry.create("loss_term", "fshape_data", **kwargs)
+    loss_terms[name] = term
+    composer.terms.append(LossTerm(name, weight=cfg.loss.fshape_weight))
+
+    with torch.no_grad():
+        initial = term.distance(term.template_vertices[None]).item()
+    kind = "varifold" if fcfg.signal == "none" else f"fshape ({fcfg.signal})"
+    print(f"[fshape] {kind}: window {fcfg.radius_mm:g}+{fcfg.falloff_mm:g} mm around {fcfg.landmarks}; "
+          f"template {info['template_faces']} of {info['template_crop_faces']} cropped triangles, "
+          f"target {info['target_faces']} of {info['target_window_faces']}; sigma_mm {fcfg.sigma_mm}; "
+          f"relative distance at identity {initial:.4g} (x weight {cfg.loss.fshape_weight:g} "
+          f"= {initial * cfg.loss.fshape_weight:.4g})")
+    if fcfg.signal != "none":
+        s_med, s_95, t_med, t_95 = info["signal_stats"]
+        print(f"[fshape] {fcfg.signal} (1/mm, r={fcfg.curvature_radius_mm:g} mm): template median "
+              f"{s_med:.3g} p95 {s_95:.3g}, target median {t_med:.3g} p95 {t_95:.3g}; compared as "
+              f"{'percentiles' if fcfg.signal_normalize == 'rank' else 'raw values'}, sigma_signal "
+              f"{info['sigma_signal']:.3g}; undetermined vertices set flat {info['missing']}"
+              f"{'; target sign flipped to match orientation' if info['sign_flipped'] else ''}")
+
+    # What the term actually compares, colourable by "fshape_signal" in ParaView.
+    for label, (points, faces, signal) in (("template", info["template_export"]),
+                                           ("target", info["target_export"])):
+        fields = None if signal is None else {"fshape_signal": np.asarray(signal, dtype=np.float32)}
+        export_shape(torch.as_tensor(points, dtype=source_norm.points.dtype), torch.as_tensor(faces).long(),
+                     transform, os.path.join(cfg.output_dir, f"fshape_{label}.vtp"),
+                     label=f"Fshape ({label})", point_fields=fields)
+    return loss_terms
+
+
+def _place_local_mask(cfg, source_norm, transform, flow):
+    """Place time_varying_local's region: centred on the template's own landmarks.
+
+    The centre is the mean of ``field.local.landmarks`` on the NORMALISED
+    template (heatmap argmax, as everywhere else), the radii are converted from
+    world units (mm here) with the run's FrameTransform scale. Training only:
+    apply restores the placement from the checkpoint's buffers instead.
+
+    Args:
+        cfg: ExperimentCfg
+        source_norm: the NORMALISED source Shape, point_fields intact
+        transform: the run's FrameTransform (normalised = (world - center) / scale)
+        flow: the built flow; its field's mask is placed IN PLACE
+    """
+    if cfg.field.kind != "time_varying_local":
+        return
+
+    local = cfg.field.local
+    points = resolve_template_points(source_norm, local["landmarks"], local["heatmap_prefix"])
+    center = torch.tensor(points.mean(axis=0), dtype=source_norm.points.dtype)
+    scale = float(transform.scale)
+    r_in = local["radius_mm"] / scale
+    r_out = (local["radius_mm"] + local["falloff_mm"]) / scale
+    mask = flow.field.mask
+    mask.place(center, r_in, r_out)
+
+    with torch.no_grad():
+        values = mask(source_norm.points[0])[:, 0]
+    world_center = transform.invert(center[None])[0].tolist()
+    print(f"[local_field] region centred on mean of {local['landmarks']} at "
+          f"{[round(c, 2) for c in world_center]} (world); full strength within "
+          f"{local['radius_mm']:g} mm, zero beyond {local['radius_mm'] + local['falloff_mm']:g} mm; "
+          f"template vertices: {(values >= 1.0).float().mean().item():.1%} full, "
+          f"{(values > 0).float().mean().item():.1%} touched")
+
+    # Same spirit as landmarks_template.vtp: where the fine field acts, on the mesh.
+    export_shape(source_norm.points[0], source_norm.faces, transform,
+                 os.path.join(cfg.output_dir, "local_field_mask.vtp"),
+                 label="LocalRefinementField mask (template)",
+                 point_fields={"local_mask": values.cpu().numpy()})
+
+
+def _ensure_source_normals(cfg, source_norm):
+    """Give the source per-vertex normals, derived from its faces if its file has none.
+
+    The backward half of ``direction: bidirectional`` projects onto the SOURCE's
+    tangent planes, as the forward half does onto the target's. Derived here
+    rather than demanded from the file: the source is typically a template the
+    pipeline rewrites every run (similarity_transform), so an array baked onto it
+    by hand would not survive, and a template mesh's face normals are exact.
+    joint_normalize's single uniform scale leaves their directions untouched.
+
+    Args:
+        cfg: ExperimentCfg, for the file name in messages
+        source_norm: the NORMALISED source Shape; gets .normals set IN PLACE when
+            it has none
+
+    Raises:
+        ValueError: the source has neither normals nor faces, or its normals
+            are non-finite.
+    """
+    if source_norm.normals is None:
+        if source_norm.faces is None or source_norm.faces.numel() == 0:
+            raise ValueError(
+                f"direction='bidirectional' with data_name={cfg.loss.data_name!r} "
+                f"needs normals on the source ({cfg.source}), which has neither a "
+                "'normal' point array nor faces to derive one from."
+            )
+        # Local import: geometry pulls in heavier deps than this module's own.
+        from src.geometry import mesh_vertex_normals
+        normals = mesh_vertex_normals(verts=source_norm.points[0].detach().cpu().numpy(),
+                                      faces=source_norm.faces.cpu().numpy())
+        source_norm.normals = torch.tensor(normals, dtype=source_norm.points.dtype).unsqueeze(0)
+        n_zero = int((source_norm.normals[0].norm(dim=-1) < 1e-6).sum())
+        print(f"[field_weighted_chamfer] source normals derived from "
+              f"{source_norm.faces.shape[0]} faces ({n_zero} zero-length: no "
+              "tangent plane, point-to-point only there)")
+
+    if not torch.isfinite(source_norm.normals).all():
+        raise ValueError(
+            f"the source's 'normal' array has non-finite rows ({cfg.source}). A NaN "
+            "normal silently destroys the whole data term; drop the array to have "
+            "it derived from faces, or re-bake it with scripts/write_surface_normals.py."
+        )
+
+
 def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mapping_error, data_term):
     """Resolve each direction's point-weight field (if any) and attach it to mapping_error.
 
     A no-op whenever cfg.loss.data_name is not in FIELD_WEIGHTED_DATA_NAMES -- the
     field_name/field_source keys only exist in THAT data term's own config shape
     (ChamferSideCfg), so nothing here applies to any other data_name.
+
+    Under ``direction: bidirectional`` it also hands the mapping error the
+    mirrored data term for the backward half (see FieldWeightedCDData.mirrored),
+    and for point-to-plane makes sure the source has normals.
 
     Lives here rather than in _build_loss_terms because, like landmark
     resolution, it needs the NORMALISED shapes and cannot run until after
@@ -433,28 +696,17 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
             intact -- pass the Shape itself, not a stripped batch wrapper)
         transform: the run's FrameTransform, forwarded to the sanity-check
             export so the visualised mesh lands back in world coordinates
-        mapping_error: the already-built UnidirectionalMappingError for this
-            run; gets its point-weight fields attached IN PLACE
+        mapping_error: the already-built mapping error for this run, either
+            direction; gets its point-weight fields attached IN PLACE
         data_term: the already-built FieldWeightedCDData, read back only for
             its already-validated field_name/field_source/field_transform/
             field_scale attributes -- avoids re-parsing cfg.loss.data_kwargs a
             second time.
-
-    Raises:
-        ValueError: cfg.loss.direction == "bidirectional" -- BidirectionalMappingError
-            has no field-gathering path yet.
     """
     if cfg.loss.data_name not in FIELD_WEIGHTED_DATA_NAMES:
         return
 
-    if cfg.loss.direction == "bidirectional":
-        raise ValueError(
-            f"data_name={cfg.loss.data_name!r} is not supported under "
-            "loss.direction='bidirectional' yet -- BidirectionalMappingError has "
-            "no field-gathering path (and no normal-gathering path either). Use "
-            "direction='forward' (the default), or drop field_name/field_source "
-            "from both directions."
-        )
+    bidirectional = isinstance(mapping_error, BidirectionalMappingError)
 
     # Fail at BUILD time, not at the first training step: the target's normals are
     # a static input, so "the file has none" is knowable before a single gradient
@@ -487,6 +739,22 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
                 "vertices as the ZERO vector instead (scored as zero plane-distance, "
                 "falling back to the point-to-point component)."
             )
+        if bidirectional:
+            _ensure_source_normals(cfg, source_norm)
+
+    # The mirrored backward half would put the inheritance on the OTHER claim
+    # (source points taking the target's field), which is not what was configured.
+    if bidirectional and data_term.target_to_source_inherit_source_field:
+        raise NotImplementedError(
+            "target_to_source.inherit_source_field is not supported under "
+            "direction='bidirectional' yet: the mirrored backward half has no "
+            "defined meaning for it. Use direction='forward', or drop the key."
+        )
+
+    if bidirectional:
+        mapping_error.set_backward_data_term(data_term.mirrored())
+        print("[field_weighted_chamfer] bidirectional: D(phi^-1(target), source) is "
+              "scored with the sides mirrored -- each side's settings stay with its claim")
 
     template_field = resolve_point_weight_field(
         data_term.source_to_target_field_name, data_term.source_to_target_field_source,
@@ -783,6 +1051,9 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
     # landmark resolution needs -- do this before it gets wrapped into the
     # field-stripping SimpleBatch below.
     loss_terms = _add_landmark_term(cfg, source_norm, transform, composer, loss_terms)
+    loss_terms = _add_kinetic_field_term(cfg, source_norm, transform, composer, loss_terms)
+    loss_terms = _add_fshape_term(cfg, source_norm, target_norm, transform, composer, loss_terms)
+    _place_local_mask(cfg, source_norm, transform, flow)
 
     # Create mapping error strategy after knowing source size
     subsample_n = cfg.loss.resolve_subsample_count(source_norm.points.shape[1])
@@ -838,6 +1109,28 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
             "cohort mode has no single template Shape to resolve heatmap_<label> "
             "landmarks against (see landmarks.py). Use mode='pair', or drop "
             "landmark_weight."
+        )
+
+    if cfg.loss.fshape_weight > 0:
+        raise NotImplementedError(
+            "loss.fshape_weight > 0 is not supported under train.mode='cohort': the term "
+            "is built from one template mesh and one target (see runner._add_fshape_term). "
+            "Use mode='pair', or drop fshape_weight."
+        )
+
+    if cfg.field.kind == "time_varying_local":
+        raise NotImplementedError(
+            "field.kind='time_varying_local' is not supported under train.mode='cohort': "
+            "its region is placed from a single template's landmarks (see "
+            "runner._place_local_mask). Use mode='pair'."
+        )
+
+    if cfg.loss.kinetic_field_weight > 0:
+        raise NotImplementedError(
+            "loss.kinetic_field_weight > 0 is not supported under train.mode='cohort': "
+            "the weight field is resolved against a single template Shape, which "
+            "cohort mode does not have (see runner._add_kinetic_field_term). Use "
+            "mode='pair', or drop kinetic_field_weight."
         )
 
     if cfg.loss.data_name in FIELD_WEIGHTED_DATA_NAMES:
@@ -1020,6 +1313,18 @@ def run(cfg: ExperimentCfg, callbacks=None):
         # trajectory export, since both write .vtp and are read the same way.
         callbacks.append(PoseShapeExporter(every_n_steps=save_every,
                                            export_shapes=export_shapes or 2))
+
+    # Coarse-to-fine Fourier bands. After CheckpointWriter, so a checkpoint keeps the
+    # alpha its weights were trained with; before LossLogger, so fourier/alpha is logged.
+    if cfg.field.kind == "time_varying_fourier" and cfg.field.fourier_anneal is not None:
+        callbacks.append(FourierAnnealing(stepper.flow.field.encoding, **cfg.field.fourier_anneal))
+    if cfg.field.kind == "time_varying_local":
+        field = stepper.flow.field
+        if cfg.field.fourier_anneal is not None:
+            callbacks.append(FourierAnnealing(field.coarse.encoding, **cfg.field.fourier_anneal))
+        if cfg.field.local["fourier_anneal"] is not None:
+            callbacks.append(FourierAnnealing(field.fine.encoding, **cfg.field.local["fourier_anneal"],
+                                              metric="fourier/alpha_local"))
 
     # The loss breakdown as JSON. LAST in the list on purpose: metrics is one dict
     # shared by every callback, so running last is what lets DiagnosticsCallback's

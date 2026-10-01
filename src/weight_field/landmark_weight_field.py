@@ -49,7 +49,7 @@ DEFAULT_HEATMAP_PREFIX = "heatmap_"
 DEFAULT_OUTPUT_FIELD = "landmark_weight"
 
 _ALLOWED_KEYS = {"vtp", "include", "decay_scale", "max_weight", "min_weight",
-                 "output_field", "heatmap_prefix", "output"}
+                 "output_field", "heatmap_prefix", "output", "invert"}
 
 
 @dataclass
@@ -74,6 +74,12 @@ class LandmarkWeightFieldCfg:
         output_field: name of the point field this run writes.
         heatmap_prefix: prefix of the per-label fields ``entries`` are looked
             up under.
+        invert: flip the field to ``max(max_weight) + min_weight - weight``:
+            a smooth DIP at the included landmarks on a flat high background,
+            same range. The max-of-peaks field can only raise a region above
+            its floor; this is how to LOWER one below everything else -- e.g.
+            a kinetic stiffness field that leaves the nose free to move while
+            the rest of the face stays stiff.
     """
 
     vtp: str
@@ -82,6 +88,7 @@ class LandmarkWeightFieldCfg:
     output_field: str = DEFAULT_OUTPUT_FIELD
     heatmap_prefix: str = DEFAULT_HEATMAP_PREFIX
     output: Optional[str] = None  # None = overwrite `vtp` in place
+    invert: bool = False
 
     @property
     def include(self) -> List[str]:
@@ -124,6 +131,7 @@ class LandmarkWeightFieldCfg:
             output_field=d.get("output_field", cls.output_field),
             heatmap_prefix=d.get("heatmap_prefix", cls.heatmap_prefix),
             output=d.get("output"),
+            invert=bool(d.get("invert", False)),
         )
 
 
@@ -150,7 +158,8 @@ def compute_landmark_weight_field(shape: Shape, cfg: LandmarkWeightFieldCfg) -> 
 
     Returns:
         [N] tensor, one weight per vertex, in
-        ``[cfg.min_weight, max(entry.max_weight for entry in cfg.entries)]``.
+        ``[cfg.min_weight, max(entry.max_weight for entry in cfg.entries)]`` --
+        the same range whether or not ``cfg.invert`` flips it.
     """
     landmark_points = resolve_template_points(shape, cfg.include, cfg.heatmap_prefix)  # [L, 3]
     landmarks = torch.tensor(landmark_points, dtype=torch.float32)
@@ -163,5 +172,8 @@ def compute_landmark_weight_field(shape: Shape, cfg: LandmarkWeightFieldCfg) -> 
         for i, entry in enumerate(cfg.entries)
     ], dim=1)  # [N, L]
 
-    weight = combine_peaked_gaussians(distance, cfg.entries)  # [N]
-    return weight.clamp_min(cfg.min_weight)
+    weight = combine_peaked_gaussians(distance, cfg.entries).clamp_min(cfg.min_weight)  # [N]
+    if cfg.invert:
+        top = max(entry.max_weight for entry in cfg.entries)
+        weight = (top + cfg.min_weight) - weight
+    return weight

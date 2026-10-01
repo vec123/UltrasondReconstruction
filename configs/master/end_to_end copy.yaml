@@ -565,7 +565,7 @@ hyperparameters:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      mlp: [246]
       activation: relu
     code:
       kind: none
@@ -637,7 +637,7 @@ hyperparameters:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      mlp: [246]
       activation: relu
     code:
       kind: none
@@ -703,7 +703,7 @@ hyperparameters:
     field:
       kind: time_varying
       num_steps: 10
-      width: 246
+      mlp: [246]
       activation: relu
     code:
       kind: none

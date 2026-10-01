@@ -130,6 +130,29 @@ def _take_normals(normals: Optional[Tensor], idx: Optional[Tensor],
     return normals[:, idx, :]
 
 
+def _gather_field(field: Optional[Tensor], idx: Optional[Tensor]) -> Optional[Tensor]:
+    """field, restricted to this step's subsample draw, as a [1, K] weight.
+
+    Mirrors _take_vertices's own idx==None passthrough, so a field lines up
+    with its cloud's points whether or not subsampling is active.
+    """
+    if field is None:
+        return None
+    gathered = field if idx is None else field[idx]
+    return gathered.unsqueeze(0)
+
+
+def _combine_weights(weights: Optional[Tensor], field_w: Optional[Tensor]) -> Optional[Tensor]:
+    """A fixed cloud's tgt_w: its "area" weights and its point-weight field.
+
+    Independent signals (see field_weights.py), so when both are present they
+    COMBINE multiplicatively rather than one silently overriding the other.
+    """
+    if field_w is None:
+        return weights
+    return field_w if weights is None else weights * field_w
+
+
 def _draw_pair_indices(template_points: Tensor, sample_points: Tensor,
                        n_subsample: Optional[int]) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Index draws for the template and sample clouds of one step.
@@ -219,6 +242,7 @@ class UnidirectionalMappingError:
         # requires_grad filter below, so a term can never apply an element the data
         # term dropped.
         self.last_template_points = None
+        self.last_template_idx = None  # the draw template_points came from; None = whole template
         self.last_sample_points = None
         self.last_effective_pose = (None, None)
         # Full-mesh per-vertex precision fields (see field_weights.py), gathered
@@ -228,6 +252,7 @@ class UnidirectionalMappingError:
         # and only for the data_names in runner.FIELD_WEIGHTED_DATA_NAMES.
         self.template_field = None
         self.sample_field = None
+        self.last_code = None  # the code the trajectory was flowed with, for diagnostics
 
     def set_point_weight_fields(self, template_field: Optional[Tensor] = None,
                                 sample_field: Optional[Tensor] = None) -> None:
@@ -242,18 +267,6 @@ class UnidirectionalMappingError:
         """
         self.template_field = template_field
         self.sample_field = sample_field
-
-    @staticmethod
-    def _gather_field(field: Optional[Tensor], idx: Optional[Tensor]) -> Optional[Tensor]:
-        """field, restricted to this step's subsample draw, as a [1, K] weight.
-
-        Mirrors _take_vertices's own idx==None passthrough, so a field lines up
-        with template_points/sample_points whether or not subsampling is active.
-        """
-        if field is None:
-            return None
-        gathered = field if idx is None else field[idx]
-        return gathered.unsqueeze(0)
 
     def __call__(self, flow, data_term, template, sample, code, encoder_pose=None) -> Tuple[Tensor, Tensor]:
         """Compute unidirectional mapping error.
@@ -283,7 +296,8 @@ class UnidirectionalMappingError:
         )
         template_points, _ = _take_vertices(template.points, None, template_idx, "template")
         self.last_subsample_vertices = template_points.shape[1]
-        pred_w = self._gather_field(self.template_field, template_idx)
+        self.last_code = code
+        pred_w = _gather_field(self.template_field, template_idx)
 
         # Broadcast template to match code batch size (cohort: template [1,N,3], code [B,n_z])
         if template_points.shape[0] == 1 and code is not None and code.shape[0] > 1:
@@ -318,6 +332,7 @@ class UnidirectionalMappingError:
         # The points actually flowed, posed or not -- configured terms must reuse
         # these or their reference frame disagrees with the trajectory's.
         self.last_template_points = template_points
+        self.last_template_idx = template_idx
         pred = fwd.end
 
         # "post": the flow output is rotated into the augmented frame for comparison.
@@ -346,14 +361,7 @@ class UnidirectionalMappingError:
         )
         self.last_sample_points = sample_points  # what configured terms must reuse
 
-        # sample.weights ("area") and self.sample_field (a point-weight field, see
-        # field_weights.py) are independent signals; when both are present they
-        # COMBINE multiplicatively rather than one silently overriding the other.
-        sample_field_w = self._gather_field(self.sample_field, sample_idx)
-        if sample_field_w is not None:
-            tgt_w = sample_field_w if sample_weights is None else sample_weights * sample_field_w
-        else:
-            tgt_w = sample_weights
+        tgt_w = _combine_weights(sample_weights, _gather_field(self.sample_field, sample_idx))
 
         data = data_term(pred, sample_points, pred_w=pred_w, tgt_w=tgt_w,
                          normals=sample_normals)
@@ -497,6 +505,13 @@ class BidirectionalMappingError:
     both template and sample are subsampled to subsample_n points before data-term computation,
     but flows are computed on subsampled points. Tracks full and subsampled vertex counts.
     Optionally computes and stores full trajectories when save_full=True.
+
+    Each half follows UnidirectionalMappingError's argument rules, with the roles
+    of the two clouds swapped for the backward one: pred_w is the FLOWED cloud's
+    point-weight field, tgt_w the FIXED cloud's "area" weights times its field,
+    and normals are the fixed cloud's -- the sample's forward, the template's
+    backward. A cloud without normals passes None, which only the point-to-plane
+    term refuses.
     """
 
     pose_call_counter = 0  # Counter for pose transformation debugging
@@ -520,8 +535,37 @@ class BidirectionalMappingError:
         self.last_bwd_traj_full = None
         # Inputs configured loss terms read back (see losses/terms.py)
         self.last_template_points = None
+        self.last_template_idx = None  # the draw template_points came from; None = whole template
         self.last_sample_points = None
         self.last_effective_pose = (None, None)
+        self.last_code = None  # the code the trajectories were flowed with, for diagnostics
+        # See UnidirectionalMappingError; set via set_point_weight_fields, by
+        # runner._add_field_weighted_chamfer only.
+        self.template_field = None
+        self.sample_field = None
+        # None scores the backward half with the data term itself. Set via
+        # set_backward_data_term, for terms whose sides must be mirrored.
+        self.backward_data_term = None
+
+    def set_point_weight_fields(self, template_field: Optional[Tensor] = None,
+                                sample_field: Optional[Tensor] = None) -> None:
+        """Attach per-vertex precision fields; see UnidirectionalMappingError's.
+
+        Each travels with its own cloud's points: template_field is pred_w in
+        the forward call and part of tgt_w in the backward one, and sample_field
+        the other way round.
+        """
+        self.template_field = template_field
+        self.sample_field = sample_field
+
+    def set_backward_data_term(self, data_term) -> None:
+        """Score D(phi^-1(sample), template) with ``data_term`` instead of the forward one.
+
+        Args:
+            data_term: typically FieldWeightedCDData.mirrored() -- see there for
+                why an asymmetric term needs its sides swapped for this half.
+        """
+        self.backward_data_term = data_term
 
     def __call__(self, flow, data_term, template, sample, code, encoder_pose=None) -> Tuple[Tensor, Tensor]:
         """Compute bidirectional mapping error.
@@ -556,6 +600,17 @@ class BidirectionalMappingError:
             sample.points, sample.weights, sample_idx, "sample"
         )
         self.last_sample_points = sample_points  # what configured terms must reuse
+        self.last_code = code
+
+        # Normals and fields ride the SAME draw as their cloud's points.
+        template_normals = _take_normals(
+            getattr(template, "normals", None), template_idx, "template"
+        )
+        sample_normals = _take_normals(
+            getattr(sample, "normals", None), sample_idx, "sample"
+        )
+        template_field_w = _gather_field(self.template_field, template_idx)
+        sample_field_w = _gather_field(self.sample_field, sample_idx)
 
         if self.subsample_n is not None and self.subsample_n > 0:
             self.last_subsample_vertices = self.subsample_n
@@ -574,6 +629,7 @@ class BidirectionalMappingError:
         self.last_fwd_traj = fwd  # Store for reuse (avoid double-computation in cohort.py)
         self.last_bwd_traj = bwd
         self.last_template_points = template_points  # what configured terms must reuse
+        self.last_template_idx = template_idx
         self.last_effective_pose = (None, None)
 
         # Optionally compute full trajectories for export if save_full=True
@@ -608,9 +664,14 @@ class BidirectionalMappingError:
                 BidirectionalMappingError._log_pose_transform("BiDirectional bwd", bwd_end_before, rotation, translation, bwd_end)
 
         # Data term: forward distance + backward distance (both on subsampled points)
+        backward_data_term = data_term if self.backward_data_term is None else self.backward_data_term
         data = (
-            data_term(fwd_end, sample_points, tgt_w=sample_weights)
-            + data_term(bwd_end, template_points, tgt_w=template_weights)
+            data_term(fwd_end, sample_points, pred_w=template_field_w,
+                      tgt_w=_combine_weights(sample_weights, sample_field_w),
+                      normals=sample_normals)
+            + backward_data_term(bwd_end, template_points, pred_w=sample_field_w,
+                                 tgt_w=_combine_weights(template_weights, template_field_w),
+                                 normals=template_normals)
         )
 
         # Kinetic energy: sum over both trajectories

@@ -44,6 +44,10 @@ class LossContext:
     code_source: Any = None
     template: Any = None                               # unsubsampled batch (faces, weights)
     sample: Any = None                                 # augmented batch
+    # [n] draw into the FULL template that produced template_points, or None when
+    # the whole template was flowed. What a term holding a per-template-vertex
+    # tensor gathers with, to stay row-for-row with fwd_traj.
+    template_idx: Optional[Tensor] = None
 
     @property
     def field(self):

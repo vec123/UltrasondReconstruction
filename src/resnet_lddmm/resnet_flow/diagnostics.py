@@ -154,29 +154,23 @@ def lipschitz_bound(field):
 
 
 def inverse_residual(trajectory_forward, trajectory_inverse):
-    """Measure ‖φ⁻¹(φ(q)) - q‖ — the numerical invertibility error.
+    """Measure ‖φ⁻¹(φ(q)) - q‖ per point — the numerical invertibility error.
 
     Comparing forward trajectory end with inverse trajectory end gives a sense
     of how well the integrator pairs: φ⁻¹ ∘ φ ≈ identity.
 
     Args:
         trajectory_forward: Trajectory from forward integration
-        trajectory_inverse: Trajectory from inverse integration (or None if not available)
+        trajectory_inverse: Trajectory from inverse integration, started at
+            trajectory_forward.end
 
     Returns:
-        torch.Tensor: norm of the error, or raises if inverse is not available
-
-    Raises:
-        NotImplementedError: if inverse trajectory is None (T21 not yet done)
+        torch.Tensor: [B, N] per-point distances, in the trajectory's own
+        (normalised) length units -- comparable to a loss_distance_handle
+        breakpoint, unlike a norm over the whole cloud, which grows with N.
     """
-    if trajectory_inverse is None:
-        raise NotImplementedError("Inverse integration not yet implemented (T21)")
-
     # Compare endpoints: inverse(forward(q0)) should equal q0
     q_start = trajectory_forward.points[0]  # [B, N, 3]
     q_end_forward_then_inverse = trajectory_inverse.points[-1]  # [B, N, 3]
 
-    residual = q_end_forward_then_inverse - q_start
-    error = torch.norm(residual, p=2)
-
-    return error
+    return (q_end_forward_then_inverse - q_start).norm(dim=-1)

@@ -121,3 +121,29 @@ def resolve_point_weight_field(field_name: Optional[str], field_source: Optional
         return torch.exp(-0.5 * (values / field_scale) ** 2)
 
     raise ValueError(f"unknown field_transform {field_transform!r}")
+
+
+def normalize_unit_mean(values: torch.Tensor, label: str = "weight field") -> torch.Tensor:
+    """Rescale a non-negative weight field to mean 1 over all its vertices.
+
+    Keeps the field's SHAPE -- its ratios between vertices -- and drops its
+    absolute scale, so a term weighted by it stays on the scale of its
+    unweighted counterpart. Also what makes a uniform random subset's mean an
+    unbiased estimate of the full-mesh mean of 1.
+
+    Args:
+        values: [N] non-negative weights
+        label: name used in the error message
+
+    Returns:
+        [N] weights with mean exactly 1.
+
+    Raises:
+        ValueError: the field's mean is not positive (all zeros), so there is
+            no scale to divide out.
+    """
+    mean = values.mean()
+    if not mean > 0:
+        raise ValueError(f"{label} has mean {mean.item():.4g}; cannot rescale a field "
+                         f"that is zero everywhere to mean 1.")
+    return values / mean

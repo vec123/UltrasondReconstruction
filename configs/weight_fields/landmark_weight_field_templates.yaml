@@ -11,22 +11,22 @@ vtp: Templates/baby_mean.vtp
 include:
   # nose -- wide halo AND higher importance than the rest
   - label: aL
-    decay_scale: 0.0004
-    max_weight: 4
+    decay_scale: 0.001
+    max_weight: 80
   - label: aR
-    decay_scale: 0.0004
-    max_weight: 4
+    decay_scale: 0.001
+    max_weight: 80
   - label: acL
-    decay_scale: 0.0004
-    max_weight: 4
+    max_weight: 80
+    decay_scale: 0.001
   - label: acR
-    decay_scale: 0.0004
-    max_weight: 4
+    max_weight: 80
+    decay_scale: 0.001
   - label: n
     decay_scale: 0.004
     max_weight: 3
   - label: prn
-    decay_scale: 0.0008
+    decay_scale: 0.001
     max_weight: 50
   - label: sn
     decay_scale: 0.004
@@ -49,5 +49,5 @@ include:
   - ls
 
 decay_scale: 0.002
-min_weight: 0.1
+min_weight: 0.5
 output_field: landmark_weight

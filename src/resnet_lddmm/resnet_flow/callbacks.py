@@ -6,7 +6,7 @@ import torch
 import numpy as np
 
 from src.resnet_lddmm.learning.callbacks.base import Callback
-from src.resnet_lddmm.resnet_flow.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound
+from src.resnet_lddmm.resnet_flow.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound, inverse_residual
 from src.resnet_lddmm.resnet_flow.flow import IdentityFlowWrapper
 from src.resnet_lddmm.resnet_flow.io import export_trajectory, export_reference_shapes, export_shape, Shape, FrameTransform
 
@@ -221,6 +221,7 @@ class DiagnosticsCallback(Callback):
     - Jacobian determinants (invertibility check)
     - Triangle flips (topology check)
     - Lipschitz bound (Lipschitz continuity check)
+    - Inverse residual ‖φ⁻¹(φ(q)) - q‖ (inverse-integrator accuracy)
     """
 
     def __init__(self, every_n_steps=100):
@@ -274,6 +275,19 @@ class DiagnosticsCallback(Callback):
             if flow is not None:
                 bound = lipschitz_bound(flow)
                 metrics["diag/lipschitz_bound"] = bound
+        except Exception:
+            pass
+
+        # Inverse residual: ModifiedEuler only approximates φ⁻¹, and under
+        # direction: bidirectional the backward data term trains THROUGH it, so its
+        # accuracy is watched rather than assumed. Same units as a breakpoint.
+        try:
+            code = getattr(ctx.stepper.mapping_error, "last_code", None)
+            with torch.no_grad():
+                back = ctx.stepper.flow.inverse(traj.end.detach(), code)
+            dist = inverse_residual(traj, back)
+            metrics["diag/inverse_residual_mean"] = dist.mean().item()
+            metrics["diag/inverse_residual_max"] = dist.max().item()
         except Exception:
             pass
 
