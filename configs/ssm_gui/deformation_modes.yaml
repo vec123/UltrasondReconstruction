@@ -1,0 +1,46 @@
+# Configuration for scripts/GUIs/edit_deformation_modes.py  ->  src.GUIs.deformation_modes.DeformationModesApp
+#
+#   python scripts/GUIs/edit_deformation_modes.py --config configs/ssm_gui/deformation_modes.yaml
+#
+# Authors user-specified deformation modes on a template: axes (direction rules
+# from the template's landmarks), constraint sets (anchor / slide / rigid
+# regions) and modes (displacement along an axis, or strain in a local frame),
+# with a live preview of each mode's generated field. The result is a YAML
+# spec (src/deformation_modes/spec.py) that stores every region as the recipe
+# that made it.
+#
+# Controls (also shown at the bottom of the window):
+#   Up / Down         select an item (settings, axes, constraint sets, modes)
+#   Left / Right      select a property of it in the inspector
+#   [ ]  or  , .      change that property (cycle a choice, toggle, nudge a number)
+#   a / c / n         new axis / constraint set / mode (asks for a name)
+#   Enter             rename          Delete   delete the item
+#   Ctrl+click        brush a geodesic patch onto the item's region (on an axis:
+#                     snap the focused start/end/center to the nearest landmark)
+#   Ctrl+Shift+click  erase a patch   + / -    brush radius
+#   k                 add patches around landmarks (type e.g. "aL aR")
+#   f                 add vertices by a point field (type e.g. "kinetic_weight>0.8")
+#   m                 mirror the region across the facial midline
+#   Backspace         drop the region's last step
+#   p / e             compile the selected mode / every stale mode
+#   sliders (left)    deform the mesh by each compiled mode; 0 resets them
+#   h                 cycle colouring (landmark heatmap, uniform, curvature, point fields, field)
+#   l / b / t         landmark markers / midline plane / light-dark theme
+#   u / y             undo / redo     s   save     r   camera     q   quit (saves if changed)
+
+template: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+spec: ${PROJECT_ROOT}/Templates/deformation_modes/baby_mean.yaml
+
+window_size: [1500, 950]
+theme: light
+
+# Fractions of the template's bounding radius (BabyFM: radius ~0.0085 units).
+brush_radius: 0.08     # initial brush
+sigma: 0.07            # kernel width of a NEW spec - the scale a mode's field varies over
+
+visible_rows: 6        # amplitude sliders on screen
+slider_range: 3.0      # slider travel; 1 = the mode's peak moves reference_fraction x radius
+reference_fraction: 0.05
+arrow_count: 250
+pick_tolerance: 0.005
+verbose: true
