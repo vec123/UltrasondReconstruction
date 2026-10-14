@@ -1,4 +1,4 @@
-"""Entry point for the landmark picker: config -> PlaceLandmarksRunner."""
+"""Entry point for the landmark picker: config -> SetLandmarksApp (src/GUIs/set_landmarks)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ load_dotenv()
 
 from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import PlaceLandmarksConfig
-from src.SSM.runners import PlaceLandmarksRunner
+from src.GUIs.set_landmarks import SetLandmarksApp
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "place_landmarks.yaml"
 
@@ -30,7 +30,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     config = ConfigClient().load(args.config, PlaceLandmarksConfig)
-    result = PlaceLandmarksRunner(config).run()
+    result = SetLandmarksApp(config).run()
 
     print(f"\n----------Done, {len(result.landmarks)}/{len(result.names)} landmark(s) placed, "
           f"saved to {config.landmarks_json}")

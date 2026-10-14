@@ -1296,7 +1296,7 @@ class PlaceLandmarksConfig:
     # side of the shape, where the raw vertices stay visible from anywhere.
     point_size: float = 4.0
     # Geodesic shooting resolution when 'l' toggles the sliders onto the LDDMM
-    # parametrization (an atlas only - see PlaceLandmarksRunner.load_model()).
+    # parametrization (an atlas only - see src.GUIs.set_landmarks.shape_space).
     # 6 is converged to ~0.14 mm for the fetus atlas, same default as
     # ShapeModelSource.lddmm_time_points in sample_shapes.yaml.
     lddmm_time_points: int = 6

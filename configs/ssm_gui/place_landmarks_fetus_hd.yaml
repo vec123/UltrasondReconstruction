@@ -1,4 +1,4 @@
-# Configuration for scripts/place_landmarks.py  ->  src.runners.PlaceLandmarksRunner
+# Configuration for scripts/SSM/place_landmarks.py  ->  src.GUIs.set_landmarks.SetLandmarksApp
 #
 #   python scripts/place_landmarks.py --config configs/ssm_gui/place_landmarks_fetus_hd.yaml
 #
