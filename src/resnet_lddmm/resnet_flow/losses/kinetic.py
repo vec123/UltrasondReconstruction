@@ -36,6 +36,9 @@ def weighted_kinetic_energy(trajectory: Trajectory, weights: Tensor) -> Tensor:
     sum over steps, times dt -- so ``weights = 1`` reproduces it exactly and a
     mean-1 field keeps the two terms on one scale.
 
+    Charges ``free_velocities``, like ``Trajectory.kinetic_energy``: designed
+    modes are priced by ``ModeKineticLoss`` instead.
+
     Args:
         trajectory: velocities [K, B, N, 3] and dt
         weights: [N] or [B, N] non-negative weight per trajectory point, in the
@@ -44,7 +47,7 @@ def weighted_kinetic_energy(trajectory: Trajectory, weights: Tensor) -> Tensor:
     Returns:
         Scalar tensor.
     """
-    velocities = trajectory.velocities
+    velocities = trajectory.free_velocities
     weights = weights.to(device=velocities.device, dtype=velocities.dtype)
     speed_sq = velocities.pow(2).sum(-1)                        # [K, B, N]
     return 0.5 * (speed_sq * weights).mean(dim=(1, 2)).sum() * trajectory.dt
@@ -132,3 +135,22 @@ class PointWeightedKineticLoss(nn.Module):
                 f"describes a different mesh than the one flowed."
             )
         return weighted_kinetic_energy(ctx.fwd_traj, weights)
+
+
+class ModeKineticLoss(nn.Module):
+    """Kinetic energy of the designed modes' part of the flow (fields/modes.py).
+
+    ``Trajectory.kinetic_energy`` leaves that part out, so this is its whole
+    price. The runner weights it as ``discount * kinetic_weight``: a discount
+    below 1 is what makes moving along a designed mode cheaper than moving any
+    other way. Both trajectories are charged under ``direction: bidirectional``,
+    as the plain kinetic term charges both.
+    """
+
+    def forward(self, ctx: LossContext) -> Optional[Tensor]:
+        """Mode kinetic energy of ``ctx.fwd_traj`` (+ ``ctx.bwd_traj``), or None without modes."""
+        trajectories = [t for t in (ctx.fwd_traj, ctx.bwd_traj)
+                        if t is not None and t.mode_velocities is not None]
+        if not trajectories:
+            return None
+        return sum(t.mode_kinetic_energy() for t in trajectories)

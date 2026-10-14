@@ -10,6 +10,19 @@ from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
 from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
 
 
+def _velocity(field: VelocityField, q: Tensor, step: int, code: Optional[Tensor]):
+    """(velocity, its designed-mode part or None) -- see fields/modes.py ModalField.split."""
+    split = getattr(field, "split", None)
+    if split is None:
+        return field(q, step=step, code=code), None
+    return split(q, step=step, code=code)
+
+
+def _trajectory(points, velocities, modal, dt) -> Trajectory:
+    return Trajectory(torch.stack(points), torch.stack(velocities), dt,
+                      torch.stack(modal) if modal and modal[0] is not None else None)
+
+
 class Integrator(abc.ABC):
     """Abstract integrator: steps a velocity field to produce a trajectory."""
 
@@ -62,18 +75,16 @@ class ForwardEuler(Integrator):
         q = q0
         points = [q0]
         velocities = []
+        modal = []
 
         for k in range(num_steps):
-            v = field(q, step=k, code=code)
+            v, v_mode = _velocity(field, q, k, code)
             q = q + dt * v
             points.append(q)
             velocities.append(v)
+            modal.append(v_mode)
 
-        return Trajectory(
-            torch.stack(points),
-            torch.stack(velocities),
-            dt,
-        )
+        return _trajectory(points, velocities, modal, dt)
 
 
 class ModifiedEuler(Integrator):
@@ -112,6 +123,7 @@ class ModifiedEuler(Integrator):
         q = qT
         points = [qT]
         velocities = []
+        modal = []
 
         # Reversed step order for time-varying fields: K-1, K-2, ..., 0
         for k in reversed(range(num_steps)):
@@ -120,14 +132,11 @@ class ModifiedEuler(Integrator):
             q_pred = q - dt * v_hat
 
             # Corrector step: velocity at predicted location (Picard iteration)
-            v = field(q_pred, step=k, code=code)
+            v, v_mode = _velocity(field, q_pred, k, code)
             q = q - dt * v
 
             points.append(q)
             velocities.append(v)
+            modal.append(v_mode)
 
-        return Trajectory(
-            torch.stack(points),
-            torch.stack(velocities),
-            dt,
-        )
+        return _trajectory(points, velocities, modal, dt)
