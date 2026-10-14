@@ -4,26 +4,32 @@
 # so later stages can still reference its fields - see scripts/pipeline/cli.py).
 #
 # Run with:
-#   python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=SdeFrankterHaar-01
-#    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=1 --set REFERENCE_SCAN=2-20s-01
+#    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=9992 --set REFERENCE_SCAN=SdeFrankterHaar-01 --set LANDMARKS_FRAME=LPS
+#    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=9999 --set "REFERENCE_SCAN=Cleft lip HMar CESO1830724001-12s-03" --set LANDMARKS_FRAME=RAS
+#    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=14 --set REFERENCE_SCAN=14-20s-01 --set LANDMARKS_FRAME=RAS
 # REFERENCE_SCAN is the scan (file name without extension) every other scan is
-# aligned onto, e.g. SdeFrankterHaar-01 for SUBJECT_ID=9992.
+# aligned onto, e.g. SdeFrankterHaar-01 for SUBJECT_ID=9992. It must have a
+# landmark CSV, else align_to_reference silently picks another scan and the
+# ${REFERENCE_SCAN} paths below do not exist. Quote it when it has spaces.
+# LANDMARKS_FRAME is the frame the raw landmark CSVs are written in (RAS or
+# LPS), see align_to_reference below. It has no default on purpose: a wrong
+# frame does not fail, it only misaligns the meshes.
 
 stages:
 
 #-----------Preprocessing
   - name: nrrd_to_vtp
-    enabled: false
+    enabled: true
   - name: align_to_reference
-    enabled: false
+    enabled: true
   - name: align_to_template
-    enabled: false
+    enabled: true
   - name: roughness_filter
-    enabled: false
+    enabled: true
   - name: landmark_bbox_cut
-    enabled: false
+    enabled: true
   - name: scan_consistency
-    enabled: false
+    enabled: true
 
 
 
@@ -32,11 +38,11 @@ stages:
 #-----------fetus ssm (pre-fusion)
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_mean_shape
-    enabled: false
+    enabled: true
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_times_gaussian
@@ -48,7 +54,7 @@ stages:
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_sum_matern32
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_map
@@ -76,16 +82,16 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_fetus_init_pca_sum_matern32_map
-    enabled: false
+    enabled: true
 
 #-----------baby ssm (pre-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_init_pca
-    enabled: false
+    enabled: true
   # One mean-shape eval for the whole baby pre-fusion sweep.
   - name: recon_target_distance
     id: recon_target_distance_baby_init_mean_shape
-    enabled: false
+    enabled: true
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_times_gaussian
@@ -97,7 +103,7 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_sum_matern32
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_map
@@ -125,25 +131,25 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_init_pca_sum_matern32_map
-    enabled: false
+    enabled: true
 
 #-----------scan fusion
   - name: scan_fusion
     id: scan_fusion_ssm
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_scan_fusion_ssm
-    enabled: false
+    enabled: true
 
 #-----------baby ssm (post-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_pca
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_baby_fused_mean_shape
-    enabled: false
+    enabled: true
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_times_gaussian
@@ -155,7 +161,7 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_sum_matern32
-    enabled: false
+    enabled: true
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_map
@@ -183,7 +189,7 @@ stages:
 
   - name: recon_target_distance
     id: recon_target_distance_baby_pca_sum_matern32_map
-    enabled: false
+    enabled: true
 
 
 
@@ -1035,11 +1041,12 @@ hyperparameters:
       crop: false
       crop_threshold: 0
       crop_margin: 0
+      four_d: skip  # 4D (x, y, z, t) volumes: skip (with a warning) | mean | median | <frame index>
 
   align_to_reference:
     reference_subject_id: ${REFERENCE_SCAN}  # scan every other scan is aligned onto; the REFERENCE_SCAN paths read its outputs
     with_scale: true
-    landmarks_frame: LPS  # frame the landmark CSVs are written in: Lmks_Antonia (subjects 1, 2, 14) is RAS, 9992's Lmks is LPS
+    landmarks_frame: ${LANDMARKS_FRAME}  # frame the landmark CSVs are written in: Lmks_Antonia (subjects 1, 2, 14) is RAS, 9992's Lmks is LPS, 9999's LMKS is RAS
 
   align_to_template:
     heatmap_prefix: heatmap_
@@ -1390,14 +1397,14 @@ hyperparameters:
     landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
     with_scale: true
 
-  resnet_lddmm_train:
-    field:
+  resnet_lddmm_train: &resnet_lddmm_train
+    field: &resnet_lddmm_field
       kind: time_varying_fourier
-      num_steps: 10
+      num_steps: 20
       mlp: [128,128]
       activation: relu
-      fourier_n_e: 3                   
-      fourier_anneal: {start: 500, end: 900} 
+      fourier_n_e: 3
+      fourier_anneal: {start: 500, end: 900}
 
     #field:
     #  kind: time_varying_local
@@ -1441,7 +1448,7 @@ hyperparameters:
             power: 2
             kind: quadratic
             breakpoint: 0.1
-      kinetic_weight: 5000.0
+      kinetic_weight: 2000.0
       kinetic_field_weight: 0.0
       kinetic_field_kwargs:
         field_name: kinetic_weight
@@ -1465,7 +1472,7 @@ hyperparameters:
       code_reg_weight: 0.0
       isometry_weight: 0.0
       isometry_type: det
-      landmark_weight: 0.0
+      landmark_weight: 1.0
       landmark_kwargs:
         label_weights:
           chL: 0.0
@@ -1506,6 +1513,27 @@ hyperparameters:
       val_every: 0
       export_shapes: 2
       export_strategy: sequential
+
+  # baby_mean = the run above + designed deformation modes (resnet_flow/fields/modes.py),
+  # drawn in scripts/GUIs/edit_deformation_modes.py. The network's motion pays
+  # kinetic_weight as always; the modes' motion pays discount x kinetic_weight, so a
+  # small discount makes "widen the nose this way" much cheaper than any other way of
+  # moving the same tissue. Logged as modes/<name>_mm (~ peak displacement) and
+  # mode_kinetic; deformation_modes_source.vtp shows each field on the template.
+  # Delete the modes block (or this whole entry) for the plain run.
+  #resnet_lddmm_train_baby_mean:
+  #  <<: *resnet_lddmm_train
+  #  field:
+  #    <<: *resnet_lddmm_field
+  #    modes:
+  #      spec: ${PROJECT_ROOT}/Templates/deformation_modes/baby_mean.yaml
+  #      template: ${PROJECT_ROOT}/Templates/baby_mean.vtp   # the source must be a posed copy of it
+  #      names: [ mode_alar_strain]
+  #      discount: 0.000002     # 1 = no cheaper than the network, 0 = free; 0.02 = 50x cheaper
+  #      lr: 0.05           # amplitude learning rate: mm of peak displacement per step
+  #      # After training: <output_dir>/mode_decomposition/ - the flow split into network and modes.
+  #      # trajectories = end shapes + every Euler step (~150 MB), ends = end shapes only, none = skip
+  #      decompose: trajectories
 
 
   resnet_lddmm_train_fetus_ssm:
