@@ -51,7 +51,7 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.config.US.schema import EchotextureConfig as Config
-from src.nrrd.preprocess import load_and_preprocess_volume
+from src.nrrd.preprocess import load_and_preprocess_volume, volume_dimension
 from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
@@ -70,6 +70,7 @@ def process_one(vtp, nrrd_path, cfg: Config):
         crop=cfg.crop,
         crop_threshold=cfg.crop_threshold,
         crop_margin=cfg.crop_margin,
+        four_d=cfg.four_d,
     )
 
     points = vtk_to_numpy(vtp.GetPoints().GetData())
@@ -122,6 +123,11 @@ def run(cfg: Config):
 
     output_paths = []
     for subject_id in common_ids:
+        if cfg.four_d == "skip" and volume_dimension(nrrd_map[subject_id]) == 4:
+            print(f"  warning: skipping 4D (x, y, z, t) volume '{subject_id}' - set four_d like "
+                  f"nrrd_to_vtp's volume.four_d to sample it.")
+            continue
+
         print(f"Processing: {subject_id}")
         vtp = load_vtp(vtp_map[subject_id])
         vtp = process_one(vtp, nrrd_map[subject_id], cfg)

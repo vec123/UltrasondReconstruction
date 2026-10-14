@@ -27,7 +27,7 @@ from src.geometry import (
     mesh_vertex_normals,
     to_basis,
 )
-from src.nrrd.preprocess import convert_single_nrrd
+from src.nrrd.preprocess import convert_single_nrrd, volume_dimension
 from src.vtk.extract import get_vtp_faces, get_vtp_vertices, threshold_vtp_by_point_field
 from src.vtk.fields import add_point_field
 from src.vtk.io import save_vtp
@@ -50,6 +50,7 @@ def process_one(nrrd_path, cfg: Config):
         crop=cfg.volume.crop,
         crop_threshold=cfg.volume.crop_threshold,
         crop_margin=cfg.volume.crop_margin,
+        four_d=cfg.volume.four_d,
     )
 
     print("clean mesh vtp")
@@ -133,12 +134,24 @@ def run(cfg: Config) -> List[str]:
     output_paths = []
     for nrrd_path in nrrd_files:
         base_name = os.path.splitext(os.path.basename(nrrd_path))[0]
+        output_path = os.path.join(cfg.output_dir, f"{base_name}.vtp")
+
+        if cfg.volume.four_d == "skip" and volume_dimension(nrrd_path) == 4:
+            print(f"  warning: skipping 4D (x, y, z, t) volume '{base_name}' - set volume.four_d "
+                  f"to 'mean', 'median' or a frame index to load it as one scan.")
+            # Later stages glob output_dir, so a mesh left from an earlier run would still go in.
+            if os.path.exists(output_path):
+                os.remove(output_path)
+                print(f"  warning: removed its old mesh '{output_path}'.")
+            continue
+
         print(f"Processing: {base_name}")
 
         vtp = process_one(nrrd_path, cfg)
 
-        output_path = os.path.join(cfg.output_dir, f"{base_name}.vtp")
         save_vtp(vtp, output_path)
         output_paths.append(output_path)
 
+    if not output_paths:
+        raise ValueError(f"Every .nrrd file in {cfg.input_dir} is 4D and volume.four_d is 'skip'.")
     return output_paths

@@ -8,6 +8,54 @@ from vtk.util import numpy_support
 
 # == NRRD / volume preprocessing (SimpleITK + VTK)
 
+FOUR_D_MODES = ("skip", "mean", "median")  # or an int: keep only that time frame
+
+
+def volume_dimension(nrrd_path):
+    """Returns the number of image axes of `nrrd_path` (3 for x, y, z; 4 for a
+    x, y, z, t time series), reading only the header, not the voxel data."""
+    reader = sitk.ImageFileReader()
+    reader.SetFileName(nrrd_path)
+    reader.ReadImageInformation()
+    return reader.GetDimension()
+
+
+def reduce_4d_volume(sitk_image, four_d):
+    """
+    Turns a 4D (x, y, z, t) ultrasound time series into one 3D (x, y, z)
+    volume, so it can go through the same 3D pipeline as a single scan.
+
+      - "mean" / "median": voxel-wise mean / median over all time frames.
+        Reduces speckle, but blurs whatever moves between frames.
+      - int: keeps only that time frame (negative counts from the end).
+
+    The result keeps the spacing/origin/direction of the input's three
+    spatial axes. "skip" is refused here: a caller that wants to skip 4D
+    volumes checks volume_dimension() before loading one.
+    """
+    size = list(sitk_image.GetSize())
+    n_frames = size[3]
+    frame_size = size[:3] + [0]  # size 0 along t collapses that axis
+
+    if isinstance(four_d, int) and not isinstance(four_d, bool):
+        if not -n_frames <= four_d < n_frames:
+            raise ValueError(f"four_d frame {four_d} is out of range for a volume with {n_frames} time frames.")
+        return sitk.Extract(sitk_image, frame_size, [0, 0, 0, four_d % n_frames])
+
+    if four_d not in ("mean", "median"):
+        raise ValueError(f"Cannot load a 4D volume with four_d={four_d!r}; expected 'mean', 'median' or a frame index.")
+
+    arr = sitk.GetArrayFromImage(sitk_image)  # (t, z, y, x)
+    if four_d == "mean":
+        reduced = arr.mean(axis=0, dtype=np.float32)
+    else:
+        reduced = np.median(arr, axis=0).astype(np.float32)
+
+    reduced_image = sitk.GetImageFromArray(reduced)
+    reduced_image.CopyInformation(sitk.Extract(sitk_image, frame_size, [0, 0, 0, 0]))
+    return reduced_image
+
+
 def preprocess_volume(sitk_image, denoise="median", radius=1,
                       normalize=True, clip_percentiles=(1.0, 99.0), out_max=255.0):
     """
@@ -144,9 +192,12 @@ def otsu_threshold(array, nbins=256):
 def convert_single_nrrd(nrrd_path, contour_value=None, auto_contour=False, preprocess=True,
                         denoise="median", denoise_radius=1,
                         normalize=True, clip_percentiles=(1.0, 99.0), out_max=255.0,
-                        crop=False, crop_threshold=0, crop_margin=0):
+                        crop=False, crop_threshold=0, crop_margin=0, four_d="skip"):
     """
     Converts a single NRRD file to a VTP file.
+
+    A 4D (x, y, z, t) volume is first reduced to one 3D volume as `four_d`
+    says (see reduce_4d_volume); with four_d="skip" it raises instead.
 
     When crop=True the volume is first cropped to its content bounding box (plus
     crop_margin trimmed off each side). When preprocess=True the volume is then
@@ -162,7 +213,7 @@ def convert_single_nrrd(nrrd_path, contour_value=None, auto_contour=False, prepr
     np_array, spacing, origin = load_and_preprocess_volume(
         nrrd_path, preprocess=preprocess, denoise=denoise, denoise_radius=denoise_radius,
         normalize=normalize, clip_percentiles=clip_percentiles, out_max=out_max,
-        crop=crop, crop_threshold=crop_threshold, crop_margin=crop_margin,
+        crop=crop, crop_threshold=crop_threshold, crop_margin=crop_margin, four_d=four_d,
     )
 
     if auto_contour:
@@ -202,11 +253,15 @@ def convert_single_nrrd(nrrd_path, contour_value=None, auto_contour=False, prepr
 
 def load_and_preprocess_volume(nrrd_path, preprocess=True, denoise="median", denoise_radius=1,
                                normalize=True, clip_percentiles=(1.0, 99.0), out_max=255.0,
-                               crop=False, crop_threshold=0, crop_margin=0):
+                               crop=False, crop_threshold=0, crop_margin=0, four_d="skip"):
     """
-    Loads a NRRD file and applies the same crop -> denoise/normalize pipeline
-    `convert_single_nrrd` uses before contouring, returning the array together
-    with the spacing/origin of the frame its voxel indices live in.
+    Loads a NRRD file and applies the same 4D-reduce -> crop -> denoise/normalize
+    pipeline `convert_single_nrrd` uses before contouring, returning the array
+    together with the spacing/origin of the frame its voxel indices live in.
+
+    A 4D (x, y, z, t) volume is reduced to 3D as `four_d` says (see
+    reduce_4d_volume). Anything that is not a 3D scalar volume afterwards
+    raises, instead of being contoured with scrambled axes.
 
     Factored out so any other code that needs to map a WORLD-space point (e.g.
     a `convert_single_nrrd`-derived surface vertex) back to a voxel index -
@@ -217,6 +272,14 @@ def load_and_preprocess_volume(nrrd_path, preprocess=True, denoise="median", den
     Returns (np_array [z, y, x], spacing (sx, sy, sz), origin (ox, oy, oz)).
     """
     sitk_image = sitk.ReadImage(nrrd_path)
+
+    if sitk_image.GetDimension() == 4:
+        sitk_image = reduce_4d_volume(sitk_image, four_d)
+    if sitk_image.GetDimension() != 3 or sitk_image.GetNumberOfComponentsPerPixel() != 1:
+        raise ValueError(
+            f"'{nrrd_path}' is not a 3D scalar volume (dimension {sitk_image.GetDimension()}, "
+            f"{sitk_image.GetNumberOfComponentsPerPixel()} component(s) per voxel)."
+        )
 
     # Crop first so spacing/origin below reflect the cropped volume.
     if crop:

@@ -29,6 +29,9 @@ class VolumeConfig:
     crop: bool = False
     crop_threshold: int = 0
     crop_margin: float = 0
+    # 4D (x, y, z, t) volumes: "skip" = skip with a warning; "mean" | "median" = reduce
+    # over time to one 3D scan; int = keep only that time frame (see reduce_4d_volume)
+    four_d: Union[str, int] = "skip"
 
 
 @dataclasses.dataclass
@@ -64,6 +67,7 @@ class EchotextureConfig:
     crop: bool = False
     crop_threshold: int = 0
     crop_margin: float = 0
+    four_d: Union[str, int] = "skip"  # must mirror nrrd_to_vtp's volume.four_d, else a 4D scan is sampled in another volume
 
     # What signal to measure; independent of the coordinate frame above.
     denoise: Optional[str] = None  # "median" | "curvature" | None
