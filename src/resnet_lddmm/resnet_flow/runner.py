@@ -30,6 +30,7 @@ from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_fiel
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
 from src.resnet_lddmm.resnet_flow.flow import NeuralODEFlow, IdentityFlowWrapper
+from src.resnet_lddmm.resnet_flow.fields.modes import ModalField, network_of
 from src.resnet_lddmm.resnet_flow.integrators import ForwardEuler, ModifiedEuler
 from src.resnet_lddmm.resnet_flow.losses import UnidirectionalMappingError, BidirectionalMappingError
 from src.resnet_lddmm.resnet_flow import registrations  #  Side effect: registers all component Load component registrations
@@ -38,6 +39,9 @@ from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm
 from src.resnet_lddmm.learning.loader.loaders import OneBatchLoader, CohortBatchLoader
 from src.resnet_lddmm.learning.trainers.E3_end2end import TrainingOrchestrator
 from src.resnet_lddmm.resnet_flow.callbacks.deformation import DiagnosticsCallback, TrajectoryExporter
+from src.resnet_lddmm.resnet_flow.callbacks.deformation.modes import (
+    DecompositionExporter, ModeAmplitudeLogger,
+)
 from src.resnet_lddmm.resnet_flow.callbacks.encoder import EncoderGraphLogger, PoseLogger, PoseShapeExporter
 from src.resnet_lddmm.resnet_flow.callbacks.gradient_logs import (
     GradientLogger, NetworkStructureInspector, RequiresGradMonitor,
@@ -275,8 +279,12 @@ def build_flow(cfg):
     Returns:
         NeuralODEFlow, wrapped in IdentityFlowWrapper when the config freezes it
     """
+    field = build_field(cfg, build_conditioning(cfg))
+    if cfg.field.modes is not None:
+        # Placed later (_place_modes) or restored from the checkpoint's buffers.
+        field = ModalField(field, cfg.field.modes["names"], cfg.field.num_steps)
     flow = NeuralODEFlow(
-        field=build_field(cfg, build_conditioning(cfg)),
+        field=field,
         direct=ForwardEuler(),
         inverse=ModifiedEuler(),
         num_steps=cfg.field.num_steps
@@ -581,7 +589,7 @@ def _place_local_mask(cfg, source_norm, transform, flow):
     scale = float(transform.scale)
     r_in = local["radius_mm"] / scale
     r_out = (local["radius_mm"] + local["falloff_mm"]) / scale
-    mask = flow.field.mask
+    mask = network_of(flow.field).mask
     mask.place(center, r_in, r_out)
 
     with torch.no_grad():
@@ -598,6 +606,106 @@ def _place_local_mask(cfg, source_norm, transform, flow):
                  os.path.join(cfg.output_dir, "local_field_mask.vtp"),
                  label="LocalRefinementField mask (template)",
                  point_fields={"local_mask": values.cpu().numpy()})
+
+
+def _place_modes(cfg, source_norm, transform, flow):
+    """Place field.modes' designed fields on the source, in the training frame.
+
+    The modes are compiled on the template their spec was drawn on and carried
+    onto the source by the similarity that maps one onto the other -- the source
+    must be a posed copy of that template, as similarity_transform writes (see
+    src/deformation_modes/transport.py). Each field is scaled so its peak over
+    the source is 1 world unit (mm) per unit time, so an amplitude reads as mm.
+    Training only: apply restores the fields from the checkpoint's buffers.
+
+    Args:
+        cfg: ExperimentCfg
+        source_norm: the NORMALISED source Shape
+        transform: the run's FrameTransform (normalised = (world - center) / scale)
+        flow: the built flow; its ModalField's basis is placed IN PLACE
+
+    Raises:
+        ValueError / SpecError: the source is not a posed copy of the spec's
+            template, or the spec lacks a named mode.
+    """
+    modes_cfg = cfg.field.modes
+    if modes_cfg is None:
+        return
+    # Local import: compiling pulls in the geodesic solver, which only mode runs need.
+    from src.deformation_modes import transport_modes
+
+    field = flow.field
+    scale = float(transform.scale)
+    vertices = source_norm.points[0].detach().cpu().double().numpy()
+    transported, similarity = transport_modes(modes_cfg["spec"], modes_cfg["template"],
+                                              modes_cfg["names"], vertices, unit=1.0 / scale)
+    field.basis.place([mode.expansion for mode in transported])
+
+    with torch.no_grad():
+        values = field.basis(source_norm.points[:1].to(field.amplitude.dtype))[0]   # [N, M, 3]
+    print(f"[modes] {len(transported)} designed mode(s) from {os.path.basename(modes_cfg['spec'])}, "
+          f"carried from {os.path.basename(modes_cfg['template'])} onto the source (scale "
+          f"{similarity.scale:.4g}, fit residual {similarity.rms:.2g}); kinetic price "
+          f"{modes_cfg['discount']:g} x kinetic_weight, amplitude lr {modes_cfg['lr']:g}")
+    fields = {}
+    for m, mode in enumerate(transported):
+        speed = values[:, m].norm(dim=-1) * scale                                     # mm per unit amplitude
+        print(f"[modes]   {mode.name}: {len(mode.expansion.centers)} kernel centres, sigma "
+              f"{mode.expansion.sigma * scale:.3g} mm; moves {(speed > 0.1).float().mean().item():.1%} "
+              f"of the source by > 10% of its peak")
+        for warning in mode.warnings:
+            print(f"[modes]   {mode.name}: spec warning - {warning}")
+        fields[f"mode_{mode.name}"] = (values[:, m] * scale).cpu().numpy()
+        fields[f"mode_{mode.name}_speed"] = speed.cpu().numpy()
+
+    # Same spirit as local_field_mask.vtp: each mode's field (mm per unit amplitude) on the source.
+    export_shape(source_norm.points[0], source_norm.faces, transform,
+                 os.path.join(cfg.output_dir, "deformation_modes_source.vtp"),
+                 label="Designed deformation modes (template)", point_fields=fields)
+
+
+def _add_mode_kinetic_term(cfg, composer, loss_terms):
+    """Charge the designed modes' kinetic energy at ``discount * kinetic_weight``.
+
+    ``Trajectory.kinetic_energy`` leaves the modes' part out, so without this term
+    they would be free. Dropped like any zero-weight term when the price is 0.
+
+    Returns:
+        ``loss_terms`` unchanged without modes; else a NEW dict with "mode_kinetic".
+
+    Raises:
+        ValueError: a configured term is already named "mode_kinetic".
+    """
+    if cfg.field.modes is None:
+        return loss_terms
+    name = "mode_kinetic"
+    if loss_terms and name in loss_terms:
+        raise ValueError(f"a loss term is already named {name!r}; rename it so the "
+                         f"two metrics stay distinguishable")
+    weight = cfg.field.modes["discount"] * cfg.loss.kinetic_weight
+    if weight <= 0:
+        print("[modes] discount 0: moving along the designed modes is free")
+        return loss_terms
+    loss_terms = dict(loss_terms or {})
+    loss_terms[name] = Registry.create("loss_term", "mode_kinetic")
+    composer.terms.append(LossTerm(name, weight=weight))
+    return loss_terms
+
+
+def _flow_param_groups(cfg, flow):
+    """Optimizer groups for the flow: the network (with weight decay), the mode amplitudes apart.
+
+    The amplitudes get their own learning rate (field.modes.lr, in mm per step)
+    and no decay: decay would pull them to zero, a second price on top of the
+    discounted kinetic one.
+    """
+    field = flow.field
+    if not isinstance(field, ModalField):
+        return [{"params": list(flow.parameters()), "weight_decay": cfg.loss.weight_decay}]
+    amplitude = field.amplitude
+    network = [p for p in flow.parameters() if p is not amplitude]
+    return [{"params": network, "weight_decay": cfg.loss.weight_decay},
+            {"params": [amplitude], "weight_decay": 0.0, "lr": cfg.field.modes["lr"]}]
 
 
 def _ensure_source_normals(cfg, source_norm):
@@ -799,6 +907,11 @@ def build(cfg: ExperimentCfg):
         )
 
     pose_application = getattr(cfg, 'pose_application', 'post')
+    if cfg.field.modes is not None and pose_application == "pre" and use_encoder_pose:
+        raise ValueError(
+            "field.modes with pose_application='pre': the pose would move the template "
+            "before the flow, away from where its designed modes are placed. Use 'post'."
+        )
     if pose_application == "pre":
         if cfg.loss.direction == "bidirectional":
             raise ValueError(
@@ -1023,7 +1136,9 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
     loss_terms = _add_landmark_term(cfg, source_norm, transform, composer, loss_terms)
     loss_terms = _add_kinetic_field_term(cfg, source_norm, transform, composer, loss_terms)
     loss_terms = _add_fshape_term(cfg, source_norm, target_norm, transform, composer, loss_terms)
+    loss_terms = _add_mode_kinetic_term(cfg, composer, loss_terms)
     _place_local_mask(cfg, source_norm, transform, flow)
+    _place_modes(cfg, source_norm, transform, flow)
 
     # Create mapping error strategy after knowing source size
     subsample_n = cfg.loss.resolve_subsample_count(source_norm.points.shape[1])
@@ -1056,10 +1171,13 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
     # Decaying a POSE would pull it toward the identity rather than regularise it,
     # and pose bounds already constrain those parameters. For a code source with no
     # parameters -- every config before poses existed -- the second group is empty
-    # and this is exactly the single-group optimizer it replaces.
+    # and this is exactly the single-group optimizer it replaces. Designed-mode
+    # amplitudes, when configured, are a third group (_flow_param_groups).
+    flow_groups = _flow_param_groups(cfg, flow)
     optimizer = torch.optim.Adam([
-        {"params": list(flow.parameters()), "weight_decay": cfg.loss.weight_decay},
+        flow_groups[0],
         {"params": list(code_source.parameters()), "weight_decay": 0.0},
+        *flow_groups[1:],
     ], lr=cfg.train.lr)
 
     # Create stepper
@@ -1093,6 +1211,13 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
             "field.kind='time_varying_local' is not supported under train.mode='cohort': "
             "its region is placed from a single template's landmarks (see "
             "runner._place_local_mask). Use mode='pair'."
+        )
+
+    if cfg.field.modes is not None:
+        raise NotImplementedError(
+            "field.modes is not supported under train.mode='cohort': the modes are placed "
+            "on a single source (runner._place_modes) and their amplitudes are one set per "
+            "run, not per shape. Use mode='pair'."
         )
 
     if cfg.loss.kinetic_field_weight > 0:
@@ -1258,10 +1383,15 @@ def default_callbacks(cfg) -> list:
 def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
     """``callbacks`` plus everything this run's model and config call for, in running order.
 
-    The encoder / pose loggers and the Fourier schedules are added as the
-    config enables them; LossLogger comes after every callback that writes
-    metrics, and every exporter that wants the frame transform gets it.
-    Returns a new list; ``callbacks`` is not modified.
+    The encoder / pose loggers, the Fourier schedules and the designed-mode
+    amplitudes are added as the config enables them; LossLogger comes after
+    every callback that writes metrics, and every exporter that wants the frame
+    transform gets it. The mode decomposition (field.modes.decompose), which
+    acts only at train end, is last. Returns a new list; ``callbacks`` is not
+    modified.
+
+    Raises:
+        ValueError: field.modes.decompose with a per-shape code (code.kind != none).
     """
     callbacks = list(callbacks)
     save_every = getattr(cfg.train, 'save_every', 100)
@@ -1286,14 +1416,17 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
     # Coarse-to-fine Fourier bands. After CheckpointWriter, so a checkpoint keeps the
     # alpha its weights were trained with; before LossLogger, so fourier/alpha is logged.
     if cfg.field.kind == "time_varying_fourier" and cfg.field.fourier_anneal is not None:
-        callbacks.append(FourierAnnealing(stepper.flow.field.encoding, **cfg.field.fourier_anneal))
+        callbacks.append(FourierAnnealing(network_of(stepper.flow.field).encoding, **cfg.field.fourier_anneal))
     if cfg.field.kind == "time_varying_local":
-        field = stepper.flow.field
+        field = network_of(stepper.flow.field)
         if cfg.field.fourier_anneal is not None:
             callbacks.append(FourierAnnealing(field.coarse.encoding, **cfg.field.fourier_anneal))
         if cfg.field.local["fourier_anneal"] is not None:
             callbacks.append(FourierAnnealing(field.fine.encoding, **cfg.field.local["fourier_anneal"],
                                               metric="fourier/alpha_local"))
+    # Before LossLogger, so modes/<name>_mm lands in the same record.
+    if isinstance(stepper.flow.field, ModalField):
+        callbacks.append(ModeAmplitudeLogger(stepper.flow.field))
 
     # The loss breakdown as JSON. LAST in the list on purpose: metrics is one dict
     # shared by every callback, so running last is what lets DiagnosticsCallback's
@@ -1301,6 +1434,18 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
     # (re-read the cadence rather than reusing log_every: that name only exists on
     # the branch that builds the default list, not when callbacks were passed in)
     callbacks.append(LossLogger(every_n_steps=getattr(cfg.train, 'log_every', 50)))
+
+    # The trained flow split into network and modes, as .vtp files. At train end
+    # only, and AFTER CheckpointWriter and LossLogger: if the export fails, the
+    # weights and the logs are already written.
+    decompose = cfg.field.modes["decompose"] if cfg.field.modes is not None else "none"
+    if decompose != "none":
+        if cfg.code.kind != "none":
+            raise ValueError(f"field.modes.decompose with code.kind={cfg.code.kind!r}: the decomposition "
+                             f"runs the network without a code; set decompose: none")
+        source, target, _ = load_pair(cfg)       # with landmarks (the loader's copies have none)
+        callbacks.append(DecompositionExporter(source, target, transform,
+                                               trajectories=decompose == "trajectories"))
 
     # Hand the frame transform to every exporter that wants one. This runs AFTER all
     # appends above: PoseShapeExporter is added conditionally further up, and assigning

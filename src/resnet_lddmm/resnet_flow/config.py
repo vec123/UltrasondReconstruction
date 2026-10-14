@@ -46,12 +46,15 @@ class FieldCfg:
     df: tuple = (256, 256, 256, 256, 256)   # DF-NN layer widths
     fourier_n_e: int = 3                    # Fourier bands; also time_varying_fourier's, and time_varying_local's COARSE field (0 = plain xyz there)
     # time_varying_fourier / time_varying_local (coarse field): {start, end} steps over
-    # which the bands open, coarse to fine (callbacks_fourier.FourierAnnealing).
+    # which the bands open, coarse to fine (callbacks/schedules/fourier.py FourierAnnealing).
     # None = all open from step 0.
     fourier_anneal: Optional[dict] = None
     # time_varying_local only: the fine field and its region -- see fields/local.py.
     # {landmarks, radius_mm, falloff_mm, mlp, fourier_n_e, fourier_anneal, heatmap_prefix}
     local: Optional[dict] = None
+    # Designed deformation modes added to the field at a discounted kinetic cost --
+    # see fields/modes.py. {spec, template, names, discount, lr, decompose}; None = no modes.
+    modes: Optional[dict] = None
     # Equivariant stationary field (only if kind == "equivariant_stationary")
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
     gate_hidden_dim: int = 64               # hidden dim for gating network in SelfInteraction
@@ -95,7 +98,60 @@ class FieldCfg:
             d["local"] = _parse_local_field(d.get("local"))
         elif d.get("local") is not None:
             raise ValueError(f"field.local only applies to kind: time_varying_local, not {kind!r}")
+        if d.get("modes") is not None:
+            if kind not in MODE_FIELD_KINDS:
+                raise ValueError(f"field.modes is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
+            d["modes"] = _parse_modes(d["modes"])
         return cls(**d)
+
+
+# Field kinds a ModalField can wrap: pointwise ones. The contextual kinds read the
+# whole template (set_template), which the wrapper does not pass through.
+MODE_FIELD_KINDS = ("time_varying", "time_varying_fourier", "time_varying_local", "stationary")
+# field.modes.decompose: what DecompositionExporter writes after training.
+MODE_DECOMPOSITIONS = ("trajectories", "ends", "none")
+
+
+def _parse_modes(modes) -> dict:
+    """field.modes, validated, with defaults filled in -- a plain dict so config.json round-trips it.
+
+    spec       the mode spec written by the deformation-mode editor (YAML)
+    template   the mesh that spec was drawn on; the run's source must be a posed
+               (similarity) copy of it, as similarity_transform writes
+    names      which of the spec's modes to add, in order
+    discount   the modes' kinetic price relative to the network's: their energy is
+               charged at discount * kinetic_weight. 1 = no cheaper than any
+               other motion, 0 = free. Default 0.1.
+    lr         Adam learning rate of the amplitudes, which are in mm of peak
+               speed: roughly how many mm per step a mode can open up. Default 0.05.
+    decompose  after training, split the trained flow into network and modes and
+               write it to <output_dir>/mode_decomposition/ (DecompositionExporter):
+               trajectories = end shapes and every Euler step (~150 MB),
+               ends = end shapes only, none = nothing (default; the
+               scripts/LDDMM/decompose_modes.py CLI does it for a finished run).
+    """
+    if not isinstance(modes, dict):
+        raise ValueError(f"field.modes must be a mapping {{spec, template, names, ...}}, got {modes!r}")
+    reject_unknown_keys(modes, {"spec", "template", "names", "discount", "lr", "decompose"}, what="field.modes")
+    for key in ("spec", "template"):
+        if not isinstance(modes.get(key), str) or not modes[key]:
+            raise ValueError(f"field.modes.{key} must be a file path, got {modes.get(key)!r}")
+    names = modes.get("names")
+    if not isinstance(names, (list, tuple)) or not names \
+            or not all(isinstance(n, str) and n for n in names) or len(set(names)) != len(names):
+        raise ValueError(f"field.modes.names must be a non-empty list of distinct mode names, "
+                         f"got {names!r}")
+    discount = float(modes.get("discount", 0.1))
+    lr = float(modes.get("lr", 0.05))
+    if discount < 0:
+        raise ValueError(f"field.modes.discount must be >= 0, got {discount}")
+    if lr <= 0:
+        raise ValueError(f"field.modes.lr must be > 0, got {lr}")
+    decompose = modes.get("decompose", "none")
+    if decompose not in MODE_DECOMPOSITIONS:
+        raise ValueError(f"field.modes.decompose must be one of {MODE_DECOMPOSITIONS}, got {decompose!r}")
+    return {"spec": modes["spec"], "template": modes["template"], "names": list(names),
+            "discount": discount, "lr": lr, "decompose": decompose}
 
 
 def _parse_widths(mlp, what: str) -> list:
