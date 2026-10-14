@@ -23,7 +23,7 @@ from typing import Optional, Tuple
 
 import torch
 
-from src.resnet_lddmm.resnet_flow.checkpoint import (
+from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import (
     CheckpointRef,
     checkpoint_step,
     load_checkpoint,

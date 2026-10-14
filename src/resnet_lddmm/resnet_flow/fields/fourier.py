@@ -19,7 +19,7 @@ progress value ``alpha`` passes k:
 At alpha = 0 every band is zero and the field sees plain xyz -- the current
 ``time_varying`` model's input, up to dead weights -- so training fits the
 coarse shape first and the finer bands fade in on a schedule set by
-``callbacks_fourier.FourierAnnealing``. ``alpha`` is a buffer: it is saved in
+``callbacks.schedules.FourierAnnealing``. ``alpha`` is a buffer: it is saved in
 every checkpoint, so apply reproduces exactly the bandwidth that was trained.
 
 Higher bands make the velocity field steeper, and with a fixed number of Euler

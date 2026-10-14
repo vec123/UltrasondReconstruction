@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     # Only used as a type annotation below (postponed by `from __future__ import
     # annotations`), so this stays out of ApplyCfg's own import - which torch-free
     # callers (e.g. the pipeline registry, which imports config_cls eagerly but
-    # defers the run itself) rely on staying cheap. checkpoint.py pulls in torch.
-    from src.resnet_lddmm.resnet_flow.checkpoint import CheckpointRef
+    # defers the run itself) rely on staying cheap. callbacks/checkpoints pulls in torch.
+    from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import CheckpointRef
 
 # The coordinate frames an export can be written in.
 #

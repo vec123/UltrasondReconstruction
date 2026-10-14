@@ -7,10 +7,9 @@ import numpy as np
 from dataclasses import dataclass
 
 from src.resnet_lddmm.learning.callbacks.base import Callback
-from src.resnet_lddmm.resnet_flow.io import FrameTransform, Shape
+from src.resnet_lddmm.resnet_flow.io import FrameTransform
 from src.vtk.create import create_polydata
 from src.vtk.io import save_vtp
-from src.vtk.fields import add_point_field
 
 
 @dataclass

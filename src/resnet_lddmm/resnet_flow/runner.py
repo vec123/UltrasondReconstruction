@@ -15,7 +15,9 @@ import dataclasses
 import numpy as np
 import torch
 
-from src.resnet_lddmm.resnet_flow.checkpoint import checkpoint_step, load_checkpoint, resolve_checkpoint
+from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import (
+    CheckpointWriter, checkpoint_step, load_checkpoint, resolve_checkpoint,
+)
 from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
 from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAINS,
                                                  FshapeCfg, PointWeightFieldCfg,
@@ -35,10 +37,13 @@ from src.resnet_lddmm.learning.registry import Registry
 from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm
 from src.resnet_lddmm.learning.loader.loaders import OneBatchLoader, CohortBatchLoader
 from src.resnet_lddmm.learning.trainers.E3_end2end import TrainingOrchestrator
-from src.resnet_lddmm.learning.callbacks.base import Callback
-from src.resnet_lddmm.learning.callbacks.checkpointing import CheckpointWriter
-from src.resnet_lddmm.resnet_flow.callbacks import TrajectoryExporter, DiagnosticsCallback, EncoderGraphLogger, GradientLogger, NetworkStructureInspector, RequiresGradMonitor, PoseLogger, PoseShapeExporter, LossLogger
-from src.resnet_lddmm.resnet_flow.callbacks_fourier import FourierAnnealing
+from src.resnet_lddmm.resnet_flow.callbacks.deformation import DiagnosticsCallback, TrajectoryExporter
+from src.resnet_lddmm.resnet_flow.callbacks.encoder import EncoderGraphLogger, PoseLogger, PoseShapeExporter
+from src.resnet_lddmm.resnet_flow.callbacks.gradient_logs import (
+    GradientLogger, NetworkStructureInspector, RequiresGradMonitor,
+)
+from src.resnet_lddmm.resnet_flow.callbacks.loss import LossLogger, VerboseCallback
+from src.resnet_lddmm.resnet_flow.callbacks.schedules import FourierAnnealing
 
 # Data terms taking the per-direction ChamferSideCfg config shape
 # ({source_to_target: {...}, target_to_source: {...}} in data_kwargs) and owning
@@ -120,41 +125,6 @@ def _build_encoder_code_source(encoder_config, graph_spec, n_z):
     )
 
     return code_source
-
-
-class VerboseCallback(Callback):
-    """Log loss progression during training."""
-
-    def __init__(self, log_every=1, pose_only_mode=False):
-        super().__init__(every_n_steps=log_every)
-        self.pose_only_mode = pose_only_mode
-
-    def on_train_start(self, ctx):
-        """Print training mode info at startup."""
-        if self.pose_only_mode:
-            print("[POSE-ONLY MODE] Flow is frozen at identity; encoder learns pose only.")
-
-    def on_step_end(self, ctx, step, metrics, batch, pred):
-        """Print loss at cadence."""
-        if not self._due(step):
-            return
-        loss = metrics.get("loss", 0.0)
-        # Against the LAST step number, not the count: a resumed run starts at
-        # ctx.start_step, and "Step 1301/2000" for 2000 further steps reads as a
-        # run that is nearly over when it has barely begun.
-        last_step = ctx.start_step + ctx.num_steps
-        progress = f"Step {step+1:4d}/{last_step} | loss: {loss:.6f}"
-
-        # Add any other metrics
-        for key in sorted(metrics.keys()):
-            if key != "loss" and not key.startswith("diag/"):
-                progress += f" | {key}: {metrics[key]:.6f}"
-
-        print(progress)
-
-    def _due(self, step):
-        """Check if we should log this step."""
-        return step % self.every_n_steps == 0 or step == 0
 
 
 def seed_everything(seed):
@@ -1250,53 +1220,52 @@ def _dump_config(cfg, mode):
         json.dump({"mode": mode, **dataclasses.asdict(cfg)}, f, indent=2)
 
 
-def run(cfg: ExperimentCfg, callbacks=None):
-    """Load config, build stepper, run orchestrator.
+def default_callbacks(cfg) -> list:
+    """The callbacks every run gets unless the caller passes its own list.
 
-    Args:
-        cfg: ExperimentCfg instance
-        callbacks: optional list of callbacks (default: VerboseCallback + TrajectoryExporter + DiagnosticsCallback)
-
-    Returns:
-        TrainingContext from orchestrator.run
+    Logging, gradient stats, trajectory export, diagnostics and checkpoints;
+    ``complete_callbacks`` adds what depends on the built model and the config.
     """
-    if callbacks is None:
-        # Default callbacks: verbose logging, trajectory export, diagnostics
-        log_every = getattr(cfg.train, 'log_every', 50)
-        save_every = getattr(cfg.train, 'save_every', 100)
-        export_shapes = getattr(cfg.train, 'export_shapes', 0)
-        export_strategy = getattr(cfg.train, 'export_strategy', 'sequential')
-        freeze_flow_at_identity = getattr(cfg, 'freeze_flow_at_identity', False)
-        # Seed rng for export strategy if seed is set
-        export_rng = None
-        if cfg.train.seed is not None:
-            export_rng = torch.Generator(device="cpu")
-            export_rng.manual_seed(cfg.train.seed)
-        callbacks = [
-            NetworkStructureInspector(),
-            VerboseCallback(log_every=log_every, pose_only_mode=freeze_flow_at_identity),
-            GradientLogger(every_n_steps=log_every),
-            RequiresGradMonitor(every_n_steps=log_every),
-            TrajectoryExporter(every_n_steps=save_every, export_shapes=export_shapes,
-                             export_strategy=export_strategy, rng=export_rng),
-            DiagnosticsCallback(every_n_steps=save_every),
-            # The weights themselves, to output_dir/checkpoints. Everything else in
-            # this list writes something DERIVED from the model -- geometry, metrics,
-            # gradient stats -- none of which can reconstruct it, so without this a
-            # finished run leaves nothing to evaluate or resume from. Saves
-            # {step, flow, codes, optimizer} (the encoder rides along inside `codes`,
-            # which is an nn.Module holding it), plus a final.pt on train end so the
-            # last weights survive a run that doesn't stop on the cadence.
-            CheckpointWriter(every_n_steps=save_every),
-        ]
+    log_every = getattr(cfg.train, 'log_every', 50)
+    save_every = getattr(cfg.train, 'save_every', 100)
+    export_shapes = getattr(cfg.train, 'export_shapes', 0)
+    export_strategy = getattr(cfg.train, 'export_strategy', 'sequential')
+    freeze_flow_at_identity = getattr(cfg, 'freeze_flow_at_identity', False)
+    # Seed rng for export strategy if seed is set
+    export_rng = None
+    if cfg.train.seed is not None:
+        export_rng = torch.Generator(device="cpu")
+        export_rng.manual_seed(cfg.train.seed)
+    return [
+        NetworkStructureInspector(),
+        VerboseCallback(log_every=log_every, pose_only_mode=freeze_flow_at_identity),
+        GradientLogger(every_n_steps=log_every),
+        RequiresGradMonitor(every_n_steps=log_every),
+        TrajectoryExporter(every_n_steps=save_every, export_shapes=export_shapes,
+                         export_strategy=export_strategy, rng=export_rng),
+        DiagnosticsCallback(every_n_steps=save_every),
+        # The weights themselves, to output_dir/checkpoints. Everything else in
+        # this list writes something DERIVED from the model -- geometry, metrics,
+        # gradient stats -- none of which can reconstruct it, so without this a
+        # finished run leaves nothing to evaluate or resume from. Saves
+        # {step, flow, codes, optimizer} (the encoder rides along inside `codes`,
+        # which is an nn.Module holding it), plus a final.pt on train end so the
+        # last weights survive a run that doesn't stop on the cadence.
+        CheckpointWriter(every_n_steps=save_every),
+    ]
 
-    stepper, loader, transform = build(cfg)
 
-    # Weights, if the config names a checkpoint to start from. AFTER build (the
-    # modules and optimizer have to exist to load into) and BEFORE the callback
-    # list is finalised, so a bad init.checkpoint fails before any output is
-    # written rather than a few steps in.
-    start_step = restore_from(cfg, stepper)
+def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
+    """``callbacks`` plus everything this run's model and config call for, in running order.
+
+    The encoder / pose loggers and the Fourier schedules are added as the
+    config enables them; LossLogger comes after every callback that writes
+    metrics, and every exporter that wants the frame transform gets it.
+    Returns a new list; ``callbacks`` is not modified.
+    """
+    callbacks = list(callbacks)
+    save_every = getattr(cfg.train, 'save_every', 100)
+    export_shapes = getattr(cfg.train, 'export_shapes', 0)
 
     # Add EncoderGraphLogger if using encoder
     if cfg.code.kind == "encoder":
@@ -1340,6 +1309,31 @@ def run(cfg: ExperimentCfg, callbacks=None):
     for cb in callbacks:
         if isinstance(cb, (TrajectoryExporter, PoseShapeExporter)):
             cb.transform = transform
+    return callbacks
+
+
+def run(cfg: ExperimentCfg, callbacks=None):
+    """Load config, build stepper, run orchestrator.
+
+    Args:
+        cfg: ExperimentCfg instance
+        callbacks: optional base list of callbacks (default: ``default_callbacks``);
+            ``complete_callbacks`` adds the ones the model and config need
+
+    Returns:
+        TrainingContext from orchestrator.run
+    """
+    if callbacks is None:
+        callbacks = default_callbacks(cfg)
+
+    stepper, loader, transform = build(cfg)
+
+    # Weights, if the config names a checkpoint to start from. AFTER build (the
+    # modules and optimizer have to exist to load into) and BEFORE the callback
+    # list is finalised, so a bad init.checkpoint fails before any output is
+    # written rather than a few steps in.
+    start_step = restore_from(cfg, stepper)
+    callbacks = complete_callbacks(cfg, callbacks, stepper, transform)
 
     orchestrator = TrainingOrchestrator(
         stepper=stepper,

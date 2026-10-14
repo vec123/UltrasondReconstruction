@@ -5,9 +5,10 @@ run ends, into ``<output_dir>/checkpoints``. This module is the reader for that
 layout: everything that knows those filenames lives here, so a change to the
 naming is a change to one file.
 
-It sits at package level rather than under ``apply/`` because BOTH entry points
-read checkpoints -- apply, to reconstruct a finished model, and training, to
-resume or warm-start from one (``init:`` in the experiment config). ``apply`` is
+It sits with the training callbacks (``callbacks/checkpoints``, next to the
+writer) rather than under ``apply/`` because BOTH entry points read checkpoints
+-- apply, to reconstruct a finished model, and training, to resume or
+warm-start from one (``init:`` in the experiment config). ``apply`` is
 downstream of training, so training importing it from there would invert the
 layering.
 """
