@@ -1,0 +1,456 @@
+# Deformation modes - written by src/GUIs/deformation_modes; hand edits are
+# fine (comments are not preserved). See src/deformation_modes/spec.py.
+schema_version: 1
+description: ''
+template: baby_mean.vtp
+mesh: {n_vertices: 31027, faces_sha1: e329056fe5336b5026632dcf97b699e6533ec723}
+defaults: {sigma: 0.0005922732128003302, spacing: 0.5, nu: 0.0001}
+axes:
+- {name: lateral, rule: between, start: aR, end: prn}
+- {name: away_from_midline, rule: away_from_midline}
+- {name: normal, rule: surface_normal}
+constraint_sets:
+- name: face_anchor
+  kind: slide
+  weight: 16.0
+  select:
+  - {op: brush, vertex: 12913, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12187, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12178, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11886, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12023, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12735, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13889, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15057, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16674, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18694, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20117, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18851, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20550, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19434, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19153, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18732, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17877, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 21136, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 21683, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 21815, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 21534, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20708, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20014, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20013, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20287, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19697, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17255, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17831, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17253, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15687, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15248, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14664, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16430, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9632, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10047, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10462, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8432, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8546, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8554, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9486, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 6197, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6940, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8622, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 12985, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18085, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3884, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5016, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 25016, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 4491, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16169, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15482, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15475, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15616, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15713, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15562, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15558, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15733, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15587, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15640, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15789, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 23799, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7428, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 13874, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13582, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18107, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19542, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19400, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17679, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12008, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11297, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11573, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11428, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13279, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14434, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12420, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18237, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19245, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19671, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16939, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12645, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12211, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20166, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18611, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 8853, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7663, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9983, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5656, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 9526, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10347, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10487, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10068, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10204, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9528, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9385, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9385, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9383, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9929, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8704, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9105, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: mirror}
+- name: check_slide
+  kind: slide
+  weight: 1.0
+  select:
+  - {op: brush, vertex: 18708, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18567, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18855, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19140, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18278, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18133, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18141, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18145, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19006, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19002, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18718, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18432, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19146, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19290, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19425, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19711, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19712, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 19281, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18992, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18561, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 18273, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 17697, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 17262, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 16680, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 16535, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 15061, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13746, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13316, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13032, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13036, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12894, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12753, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12611, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12324, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12321, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12461, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12460, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12460, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12459, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12455, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12455, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12597, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13171, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13311, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12027, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12028, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12168, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12735, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13024, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13310, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 14179, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12450, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12032, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 12038, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 11749, radius: 0.00027725155195773186}
+  - {op: mirror}
+  - {op: brush, vertex: 18437, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19158, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19012, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19012, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 19440, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20423, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15835, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17003, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17871, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15378, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15520, radius: 0.0006768836717718059}
+  - {op: mirror}
+- name: large_anchor
+  kind: slide
+  weight: 1.0
+  select:
+  - {op: brush, vertex: 16163, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15715, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15702, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15845, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15821, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15817, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16425, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15981, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15812, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15798, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15784, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15623, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15911, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14578, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13270, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12840, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11140, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10166, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9759, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9631, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9099, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 1191, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 1569, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6789, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11358, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12075, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12368, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12799, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9567, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9954, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12164, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13029, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12880, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11727, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11465, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12898, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13196, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12906, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11604, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14480, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13337, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13624, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14320, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13578, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14589, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13157, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14332, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14927, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13342, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13649, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14220, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10785, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11191, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11177, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11563, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13722, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14758, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14616, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14627, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13908, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14492, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14637, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14307, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13302, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13012, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12870, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14605, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15035, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15038, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12422, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11713, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11457, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11477, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13358, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13658, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14387, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14082, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14365, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14938, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15085, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15087, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12347, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11201, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9395, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9379, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10186, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3824, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3501, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3496, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 2982, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8368, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12958, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9445, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 9578, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14107, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9988, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10820, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11949, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10522, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8074, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7574, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7567, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7661, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6906, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8033, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6120, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3667, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 9017, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8871, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10082, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10344, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8191, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10748, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10732, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20385, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 20540, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 18966, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17662, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 10950, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 4492, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7335, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7986, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8249, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5923, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5796, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5661, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6020, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6627, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6875, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8547, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9882, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12974, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6897, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7911, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6689, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5934, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6552, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7911, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7024, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11409, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13570, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13423, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12293, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 12291, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11404, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 11693, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 4461, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8281, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 8400, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5240, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 4135, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 4857, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5959, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 4251, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 5275, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 7247, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15007, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 17786, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 9872, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 2692, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3061, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 3261, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 4634, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 6045, radius: 0.0006768836717718059}
+  - {op: mirror}
+modes:
+- name: mode_alar_width
+  kind: strain
+  axis: away_from_midline
+  stretch: [1.0, 0.0, 0.0]
+  constraints: [face_anchor, check_slide]
+  sigma: 0.0009254268950005163
+  sites:
+  - op: near_landmarks
+    labels: [aL, aR]
+    radius: 0.00027725155195773186
+  - {op: brush, vertex: 14195, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 14492, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 13907, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 14488, radius: 0.00027725155195773186}
+  - {op: brush, vertex: 14635, radius: 0.00027725155195773186}
+  - {op: mirror}
+  - {op: brush, vertex: 16832, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16691, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16695, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15670, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15513, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 16985, radius: 0.0006768836717718059}
+- name: mode_alar_strain
+  kind: strain
+  axis: away_from_midline
+  stretch: [0.5, 0.0, 0.0]
+  constraints: [large_anchor]
+  sigma: 0.000925426895000516
+  sites:
+  - {op: brush, vertex: 15376, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14928, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14048, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15368, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16107, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16836, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16833, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16847, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16707, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15384, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14793, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 13913, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14337, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15981, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15382, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15382, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15382, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16123, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 15537, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 15838, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 15838, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 20436, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 17146, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 13776, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 15831, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14354, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 16849, radius: 0.0006768836717718059}
+  - {op: mirror}
+  - {op: brush, vertex: 15392, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 16564, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 17722, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 13486, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 14358, radius: 0.0006768836717718059, subtract: true}
+  - {op: mirror}
+  - {op: brush, vertex: 15674, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 15665, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 13190, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 18148, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 15065, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 16100, radius: 0.0006768836717718059, subtract: true}
+  - {op: mirror}
+  - {op: brush, vertex: 14643, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 14635, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 13753, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 14041, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 14931, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 16846, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 17415, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 16677, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 17118, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 16693, radius: 0.0006768836717718059, subtract: true}
+  - {op: brush, vertex: 17415, radius: 0.0006768836717718059}
+  - {op: brush, vertex: 14193, radius: 0.0006768836717718059}
+  - {op: mirror}
