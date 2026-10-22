@@ -86,9 +86,12 @@ class ApplyCfg:
         output_dir: where to write. None means <training output_dir>/apply, which
             keeps a run's inference next to the run that produced it. A PINNED
             checkpoint adds a subdirectory naming it either way -- see resolved().
-        template: the shape to deform. None means the training config's source,
-            which is the usual case: the SAME template the run was fitted to,
-            now at full resolution because nothing subsamples at inference.
+        template: the shape to deform. None means the template the run was fitted
+            to -- the training config's source in pair mode, its target in cohort
+            mode -- now at full resolution because nothing subsamples at inference.
+        shapes: cohort runs only: the members (file names without extension, as in
+            the training source folder) whose learned code the template is deformed
+            with, each written to <output_dir>/<name>. None means every member.
         device: torch device string for the flow and the points.
         chunk_size: split the cloud into chunks of this many points and integrate
             them separately, to bound peak memory on a large template. 0 disables.
@@ -104,13 +107,14 @@ class ApplyCfg:
     device: str = "cpu"
     chunk_size: int = 0
     export: ExportCfg = dataclass_field(default_factory=ExportCfg)
+    shapes: Optional[Tuple[str, ...]] = None
 
     @classmethod
     def from_dict(cls, d: dict) -> "ApplyCfg":
         """Create an ApplyCfg from a parsed YAML mapping, erroring on unknown keys."""
         reject_unknown_keys(d, {
             "train_config", "checkpoint", "step", "output_dir", "template", "device",
-            "chunk_size", "export",
+            "chunk_size", "export", "shapes",
         }, what="apply config")
 
         for required in ("train_config", "checkpoint"):
@@ -139,6 +143,7 @@ class ApplyCfg:
             device=d.get("device", "cpu"),
             chunk_size=chunk_size,
             export=ExportCfg.from_dict(d.get("export", {})),
+            shapes=None if d.get("shapes") is None else tuple(d["shapes"]),
         )
 
     def resolved(self, train_cfg: ExperimentCfg, checkpoint: CheckpointRef) -> "ApplyCfg":
@@ -171,7 +176,8 @@ class ApplyCfg:
             self,
             step=self.step if self.step is not None else checkpoint.step,
             output_dir=output_dir,
-            template=self.template or train_cfg.source,
+            template=self.template or (train_cfg.target if train_cfg.train.mode == "cohort"
+                                       else train_cfg.source),
         )
 
 

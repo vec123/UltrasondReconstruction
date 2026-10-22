@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace as dataclass_replace
 from typing import Optional, Tuple
 
 import torch
@@ -45,7 +46,13 @@ from src.resnet_lddmm.resnet_flow.io import (
     load_shape,
 )
 from src.resnet_lddmm.resnet_flow import registrations  # Side effect: registers all components
-from src.resnet_lddmm.resnet_flow.runner import build_code_source, load_pair, set_default_dtype
+from src.resnet_lddmm.resnet_flow.runner import (
+    build_code_source,
+    build_code_source_cohort,
+    load_cohort,
+    load_pair,
+    set_default_dtype,
+)
 
 DEFORMED_NAME = "deformed.vtp"
 MANIFEST_NAME = "apply.json"
@@ -74,6 +81,9 @@ def run(apply_cfg: ApplyCfg):
     # and the checkpoint will not take.
     set_default_dtype(train_cfg)
 
+    if train_cfg.train.mode == "cohort":
+        return run_cohort(cfg, train_cfg, ref)
+
     # The frame is recomputed from the two TRAINING files, so it is bit-for-bit the
     # one the weights were fitted in -- see runner.load_pair. The normalised source
     # it returns is the training template; the template actually deformed is loaded
@@ -100,6 +110,66 @@ def run(apply_cfg: ApplyCfg):
 
     print(f"[apply] wrote {len(written)} file(s) to {cfg.output_dir}")
     return deformation, manifest
+
+
+def run_cohort(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef):
+    """Apply a cohort run: deform its template once per selected member, with that member's code.
+
+    Each member's result goes to <output_dir>/<member name>, laid out as a pair
+    run's output. Only auto-decoder codes (one learned code per member) and
+    unconditioned runs are supported; the frame is the cohort's, recomputed from
+    the training files by runner.load_cohort.
+
+    Args:
+        cfg: RESOLVED ApplyCfg
+        train_cfg: the run's ExperimentCfg (train.mode == "cohort")
+        ref: the resolved CheckpointRef
+
+    Returns:
+        {member name: (deformation, manifest)}
+    """
+    kind = train_cfg.code.kind
+    if kind not in ("none", "auto_decoder"):
+        raise ValueError(f"cohort apply supports code.kind 'none' and 'auto_decoder', not {kind!r}")
+
+    paths, cohort_norm, _, transform = load_cohort(train_cfg)
+    names = [os.path.splitext(os.path.basename(p))[0] for p in paths]
+    selected = list(cfg.shapes) if cfg.shapes is not None else names
+    unknown = sorted(set(selected) - set(names))
+    if unknown:
+        raise ValueError(f"shapes {unknown} are not members of the cohort in {train_cfg.source}")
+
+    checkpoint = load_checkpoint(ref, map_location=cfg.device)
+    codes = None
+    if kind == "auto_decoder":
+        code_source = build_code_source_cohort(len(paths), kind, train_cfg.code)
+        code_source.load_state_dict(checkpoint["codes"])
+        codes = code_source.codes.weight.detach()
+
+    template = load_shape(cfg.template)
+    template_norm = _normalized(template, transform)
+    print(f"[apply] {cfg.template}: {template.points.shape[1]} points, "
+          f"{len(selected)} of {len(names)} cohort member(s)")
+
+    results = {}
+    for name in selected:
+        i = names.index(name)
+        member_cfg = dataclass_replace(cfg, output_dir=os.path.join(cfg.output_dir, name))
+        client = DeformationClient.from_checkpoint(
+            train_cfg, checkpoint, transform,
+            code=None if codes is None else codes[i:i + 1],
+            pose=(None, None), device=cfg.device, chunk_size=cfg.chunk_size,
+        )
+        deformation = client.deform(template)
+        written = export(deformation, member_cfg, template_norm=template_norm,
+                         sample_norm=cohort_norm[i])
+        manifest = write_manifest(member_cfg, train_cfg, ref, checkpoint, deformation, written)
+        manifest["cohort_member"] = {"name": name, "index": i, "path": paths[i]}
+        with open(os.path.join(member_cfg.output_dir, MANIFEST_NAME), "w") as f:
+            json.dump(manifest, f, indent=2)
+        results[name] = (deformation, manifest)
+        print(f"[apply] {name} (code {i}) -> {member_cfg.output_dir}")
+    return results
 
 
 def resolve_conditioning(train_cfg: ExperimentCfg, checkpoint: dict, sample: Shape):
