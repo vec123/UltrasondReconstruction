@@ -31,6 +31,13 @@ class DiagnosticsCallback(Callback):
         traj = pred
         template, _ = batch
         faces = template.faces if hasattr(template, "faces") else None
+        if isinstance(faces, list):  # cohort batches carry one entry per template
+            faces = faces[0] if len(faces) == 1 else None
+        # A subsampled trajectory doesn't carry every vertex the faces index. On
+        # CPU that indexing raises (and is swallowed below); on CUDA it is a
+        # device-side assert that kills the context, so skip the face terms.
+        if faces is not None and len(faces) > 0 and int(faces.max()) >= traj.points.shape[-2]:
+            faces = None
 
         # Log subsampling info
         try:

@@ -257,7 +257,7 @@ def build_fshape_kwargs(source_points: np.ndarray, source_faces: np.ndarray,
 
     tgt_centers = target_points[target_faces].mean(1)
     with torch.no_grad():
-        tgt_window = window(torch.as_tensor(tgt_centers, dtype=torch.float32))[:, 0].numpy()
+        tgt_window = window(torch.as_tensor(tgt_centers, dtype=torch.float32))[:, 0].cpu().numpy()
     keep = tgt_window > 0
     tgt_keep, tgt_window = target_faces[keep], tgt_window[keep]
     tgt_areas = _triangle_areas(target_points, tgt_keep)
@@ -304,7 +304,7 @@ def build_fshape_kwargs(source_points: np.ndarray, source_faces: np.ndarray,
             # (window 0 at the start) are mapped through the same reference.
             s_centers = source_points[src_crop[src_idx]].mean(1)
             with torch.no_grad():
-                inside = window(torch.as_tensor(s_centers, dtype=torch.float32))[:, 0].numpy() > 0
+                inside = window(torch.as_tensor(s_centers, dtype=torch.float32))[:, 0].cpu().numpy() > 0
             s_face = _empirical_cdf(s_face[inside], s_face)
             t_face = _empirical_cdf(t_face, t_face)
         if sigma_signal is None:

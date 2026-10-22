@@ -754,6 +754,11 @@ class TrainCfg:
     val_every: int = 0
     export_shapes: int = 0                  # 0 = all shapes (pair: always 1, cohort: min(batch_size, cohort_size))
     export_strategy: str = "sequential"     # sequential | random
+    device: str = "cpu"                     # cpu | cuda | cuda:<n> - where the flow trains
+    # Train the codes only: the flow (restored through `init`) gets no gradient and
+    # is left out of the optimizer. Cohort mode; this is how a trained flow is fitted
+    # to new targets with its own training loss.
+    freeze_flow: bool = False
 
 
 @dataclass

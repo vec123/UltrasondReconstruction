@@ -1468,6 +1468,13 @@ def run(cfg: ExperimentCfg, callbacks=None):
     Returns:
         TrainingContext from orchestrator.run
     """
+    # Every tensor the build and the training loop create lands on train.device
+    # (torch's default-device context); data read from numpy is moved there explicitly.
+    with torch.device(cfg.train.device):
+        return _run(cfg, callbacks)
+
+
+def _run(cfg: ExperimentCfg, callbacks=None):
     if callbacks is None:
         callbacks = default_callbacks(cfg)
 
