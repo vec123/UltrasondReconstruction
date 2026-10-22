@@ -38,14 +38,14 @@ DTYPES = ("float32", "float64")
 
 @dataclass
 class FieldCfg:
-    kind: str = "time_varying"              # time_varying | stationary | equivariant_stationary
+    kind: str = "time_varying"              # time_varying | time_varying_fourier | time_varying_local | stationary | stationary_fourier | equivariant_stationary
     num_steps: int = 10                     # K — configured in ONE place
     mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary/equivariant_stationary)
     activation: str = "relu"
     fa: tuple = (64, 64, 64)                # stationary: FA-NN layer widths
     df: tuple = (256, 256, 256, 256, 256)   # DF-NN layer widths
-    fourier_n_e: int = 3                    # Fourier bands; also time_varying_fourier's, and time_varying_local's COARSE field (0 = plain xyz there)
-    # time_varying_fourier / time_varying_local (coarse field): {start, end} steps over
+    fourier_n_e: int = 3                    # Fourier bands; also time_varying_fourier's, stationary_fourier's, and time_varying_local's COARSE field (0 = plain xyz there)
+    # time_varying_fourier / stationary_fourier / time_varying_local (coarse field): {start, end} steps over
     # which the bands open, coarse to fine (callbacks/schedules/fourier.py FourierAnnealing).
     # None = all open from step 0.
     fourier_anneal: Optional[dict] = None
@@ -85,8 +85,8 @@ class FieldCfg:
             d["mlp"] = tuple(_parse_widths(d["mlp"], "field.mlp"))
         kind = d.get("kind", cls.kind)
         if d.get("fourier_anneal") is not None:
-            if kind not in ("time_varying_fourier", "time_varying_local"):
-                raise ValueError(f"field.fourier_anneal only applies to kind: time_varying_fourier "
+            if kind not in FOURIER_FIELD_KINDS + ("time_varying_local",):
+                raise ValueError(f"field.fourier_anneal only applies to kinds {FOURIER_FIELD_KINDS} "
                                  f"or time_varying_local, not {kind!r}")
             if kind == "time_varying_local" and int(d.get("fourier_n_e", cls.fourier_n_e)) < 1:
                 raise ValueError("field.fourier_anneal on time_varying_local anneals the COARSE "
@@ -107,7 +107,11 @@ class FieldCfg:
 
 # Field kinds a ModalField can wrap: pointwise ones. The contextual kinds read the
 # whole template (set_template), which the wrapper does not pass through.
-MODE_FIELD_KINDS = ("time_varying", "time_varying_fourier", "time_varying_local", "stationary")
+MODE_FIELD_KINDS = ("time_varying", "time_varying_fourier", "time_varying_local", "stationary",
+                    "stationary_fourier")
+# Field kinds with ONE Fourier encoding of xyz, as ``.encoding``: what field.fourier_anneal
+# opens (runner.complete_callbacks). time_varying_local has two, handled apart.
+FOURIER_FIELD_KINDS = ("time_varying_fourier", "stationary_fourier")
 # field.modes.decompose: what DecompositionExporter writes after training.
 MODE_DECOMPOSITIONS = ("trajectories", "ends", "none")
 

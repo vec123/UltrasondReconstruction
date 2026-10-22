@@ -20,6 +20,7 @@ from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import (
 )
 from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
 from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAINS,
+                                                 FOURIER_FIELD_KINDS,
                                                  FshapeCfg, PointWeightFieldCfg,
                                                  reject_renamed_loss_distance_keys)
 from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
@@ -241,6 +242,15 @@ def build_field(cfg, conditioning):
         return Registry.create(
             "field", "time_varying_fourier",
             num_blocks=cfg.field.num_steps,
+            mlp=cfg.field.mlp,
+            activation=cfg.field.activation,
+            conditioning=conditioning,
+            n_e=cfg.field.fourier_n_e,
+            annealed=cfg.field.fourier_anneal is not None,
+        )
+    if cfg.field.kind == "stationary_fourier":
+        return Registry.create(
+            "field", "stationary_fourier",
             mlp=cfg.field.mlp,
             activation=cfg.field.activation,
             conditioning=conditioning,
@@ -1561,7 +1571,7 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
 
     # Coarse-to-fine Fourier bands. After CheckpointWriter, so a checkpoint keeps the
     # alpha its weights were trained with; before LossLogger, so fourier/alpha is logged.
-    if cfg.field.kind == "time_varying_fourier" and cfg.field.fourier_anneal is not None:
+    if cfg.field.kind in FOURIER_FIELD_KINDS and cfg.field.fourier_anneal is not None:
         callbacks.append(FourierAnnealing(network_of(stepper.flow.field).encoding, **cfg.field.fourier_anneal))
     if cfg.field.kind == "time_varying_local":
         field = network_of(stepper.flow.field)

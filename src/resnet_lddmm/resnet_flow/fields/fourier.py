@@ -144,3 +144,32 @@ class FourierTimeVaryingField(VelocityField):
         features = self.encoding(x)
         h = features if zbar is None else torch.cat([features, zbar], dim=-1)
         return self.blocks[step](h)
+
+
+class FourierStationaryField(FourierTimeVaryingField):
+    """Stationary velocity field: ONE ``FourierTimeVaryingField`` block, reused at every step.
+
+    v(x, z), not v(x, z, t): the same encoded-xyz MLP for all Euler steps, so the
+    flow integrates a single field. Not the AD-SVFD ``StationaryField`` (kind
+    ``stationary``), which Fourier-encodes learned FA-NN features rather than xyz
+    and has no annealing. Same state_dict layout as a one-step
+    ``FourierTimeVaryingField`` (``blocks.0.*``, ``encoding.alpha``), and the same
+    ``.encoding`` for a FourierAnnealing callback to open.
+    """
+
+    def __init__(
+        self,
+        mlp: Sequence[int] = (512,),
+        activation: str = "relu",
+        conditioning: Optional[Conditioning] = None,
+        n_e: int = 4,
+        annealed: bool = False,
+    ):
+        """Initialize the field; arguments as for FourierTimeVaryingField, without num_blocks."""
+        super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed)
+
+    def forward(
+        self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
+    ) -> Tensor:
+        """Compute velocity; ``step`` is ignored (the field does not vary in time)."""
+        return super().forward(x, step=0, code=code)
