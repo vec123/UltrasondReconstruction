@@ -756,6 +756,12 @@ class InitCfg:
             restarting at 0. On by default so a resumed run's checkpoints and
             exports do not overwrite the ones it resumed from. ``train.steps``
             means "run this many MORE steps" either way.
+        code_init: "mean" starts every code of this run at the mean of the
+            checkpoint's codes (the centre of the learned code space), for fitting
+            new targets to a trained flow; None leaves the fresh initialisation.
+        code_prior: "mean" centres the code penalty on the checkpoint's code mean
+            instead of zero, so a fit is pulled towards the learned code space
+            rather than towards the zero code (a different face on a direct grid).
     """
 
     # The keys CheckpointWriter puts in the file, which are exactly the keys the
@@ -767,11 +773,19 @@ class InitCfg:
     step: Optional[int] = None
     parts: tuple = PARTS
     continue_step_count: bool = True
+    code_init: Optional[str] = None
+    code_prior: Optional[str] = None
+
+    CODE_INITS = ("mean",)
 
     @classmethod
     def from_dict(cls, d: dict) -> "InitCfg":
-        reject_unknown_keys(d, {"checkpoint", "step", "parts", "continue_step_count"},
-                            what="init")
+        reject_unknown_keys(d, {"checkpoint", "step", "parts", "continue_step_count", "code_init",
+                                "code_prior"}, what="init")
+        code_init, code_prior = d.get("code_init"), d.get("code_prior")
+        for key, value in (("code_init", code_init), ("code_prior", code_prior)):
+            if value is not None and value not in cls.CODE_INITS:
+                raise ValueError(f"unknown init.{key} {value!r}; expected one of {list(cls.CODE_INITS)}")
         if "checkpoint" not in d:
             raise ValueError(
                 "init needs a 'checkpoint': a .pt file, or a run's checkpoints/ "
@@ -796,7 +810,9 @@ class InitCfg:
         return cls(checkpoint=d["checkpoint"],
                    step=d.get("step"),
                    parts=parts,
-                   continue_step_count=bool(d.get("continue_step_count", True)))
+                   continue_step_count=bool(d.get("continue_step_count", True)),
+                   code_init=code_init,
+                   code_prior=code_prior)
 
 
 @dataclass
@@ -835,6 +851,10 @@ class ExperimentCfg:
     # Where the run's weights come from. None -- the default -- is a fresh model.
     init: Optional[InitCfg] = dataclass_field(default=None)
     centering: str = "box"                  # box | origin — see CENTERING_DOMAINS
+    # Cohort mode: a folder of shapes that, with the template, defines the normalised
+    # frame instead of `source`. Set it to a trained run's source when fitting new
+    # targets to its flow, so they enter the frame the flow was trained in.
+    frame_source: Optional[str] = None
     dtype: str = "float32"                  # float32 | float64 — see DTYPES
     # Apply the code source's learned pose to the flow output (unidirectional only).
     # Named `use_pose` in configs; `use_encoder_pose` is the original spelling and
@@ -859,6 +879,7 @@ class ExperimentCfg:
             "source", "target", "output_dir", "landmarks", "field", "code", "loss",
             "augmentation", "train", "init", "centering", "dtype", "use_pose",
             "use_encoder_pose", "freeze_flow_at_identity", "pose_application",
+            "frame_source",
         })
 
         # Two spellings of one flag. Conflicting values are a mistake worth naming
@@ -915,6 +936,7 @@ class ExperimentCfg:
             train=train_cfg,
             init=init_cfg,
             centering=centering,
+            frame_source=d.get("frame_source"),
             dtype=dtype,
             use_encoder_pose=use_pose,
             freeze_flow_at_identity=d.get("freeze_flow_at_identity", False),

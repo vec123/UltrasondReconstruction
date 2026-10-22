@@ -24,7 +24,7 @@ from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAIN
                                                  reject_renamed_loss_distance_keys)
 from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
 from src.resnet_lddmm.resnet_flow.poses import TRANSLATING_KINDS
-from src.resnet_lddmm.resnet_flow.io import load_shape, joint_normalize, export_trajectory, export_shape
+from src.resnet_lddmm.resnet_flow.io import Shape, load_shape, joint_normalize, export_trajectory, export_shape
 from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs, resolve_template_points
 from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
 from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field, normalize_unit_mean
@@ -317,6 +317,49 @@ def load_pair(cfg):
         domain=_normalization_domain(cfg),
     )
     return normalized[0], normalized[1], transform
+
+
+def cohort_paths(cfg):
+    """The cohort member files in cfg.source, in the order their codes are indexed."""
+    return _shape_files(cfg.source)
+
+
+def _shape_files(folder):
+    """The shape files (.obj, then .ply, then .vtp, each sorted) in `folder`."""
+    paths = sorted(glob.glob(os.path.join(folder, "*.obj"))) + \
+            sorted(glob.glob(os.path.join(folder, "*.ply"))) + \
+            sorted(glob.glob(os.path.join(folder, "*.vtp")))
+    if not paths:
+        raise ValueError(f"No shape files found in {folder} (.obj, .ply, or .vtp)")
+    return paths
+
+
+def load_cohort(cfg):
+    """cfg.source (a folder of cohort members) + cfg.target (the template) -> one shared frame.
+
+    The cohort counterpart of load_pair: the frame is a pure function of the FILES,
+    so apply recomputes exactly the frame the weights were trained in.
+
+    Args:
+        cfg: ExperimentCfg in cohort mode
+
+    Returns:
+        (paths, cohort_norm, template_norm, transform), member i of cohort_norm
+        being paths[i] and holding code i
+    """
+    paths = cohort_paths(cfg)
+    shapes = [load_shape(p) for p in paths] + [load_shape(cfg.target)]
+    frame_source = getattr(cfg, "frame_source", None)
+    if frame_source is None:
+        normalized, transform = joint_normalize(shapes, domain=_normalization_domain(cfg))
+    else:
+        # The frame of another cohort (a trained run's source), so new targets enter
+        # the frame its flow was trained in; then this cohort is moved into it.
+        frame_shapes = [load_shape(p) for p in _shape_files(frame_source)] + [load_shape(cfg.target)]
+        _, transform = joint_normalize(frame_shapes, domain=_normalization_domain(cfg))
+        normalized = [Shape(points=transform.apply(s.points), faces=s.faces, weights=s.weights,
+                            normals=s.normals, point_fields=s.point_fields) for s in shapes]
+    return paths, normalized[:-1], normalized[-1], transform
 
 
 def _build_loss_terms(loss_cfg):
@@ -1190,6 +1233,9 @@ def build_code_source_cohort(num_shapes, kind, code_cfg):
 
 def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_encoder_pose=False, loss_terms=None):
     """Build PairRegistration stepper."""
+    if cfg.train.freeze_flow:
+        raise NotImplementedError("train.freeze_flow is for train.mode='cohort' (fitting codes "
+                                  "to a trained flow); a pair run has no codes to train.")
     # Load and normalize shapes
     source_norm, target_norm, transform = load_pair(cfg)
 
@@ -1315,21 +1361,7 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
             "but not their normals."
         )
 
-    # Load all cohort shapes from directory
-    cohort_paths = sorted(glob.glob(os.path.join(cfg.source, "*.obj"))) + \
-                   sorted(glob.glob(os.path.join(cfg.source, "*.ply"))) + \
-                   sorted(glob.glob(os.path.join(cfg.source, "*.vtp")))
-    if not cohort_paths:
-        raise ValueError(f"No shape files found in {cfg.source} (.obj, .ply, or .vtp)")
-
-    cohort_shapes = [load_shape(p) for p in cohort_paths]
-    target_shape = load_shape(cfg.target)
-
-    # Normalize cohort + template together
-    normalized, transform = joint_normalize(cohort_shapes + [target_shape],
-                                           domain=_normalization_domain(cfg))
-    cohort_norm = normalized[:-1]
-    target_norm = normalized[-1]
+    _, cohort_norm, target_norm, transform = load_cohort(cfg)
 
     # Create mapping error strategy after knowing source size (use first shape)
     subsample_n = cfg.loss.resolve_subsample_count(cohort_norm[0].points.shape[1])
@@ -1349,12 +1381,22 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
 
     # Build code source (handles none, auto_decoder, encoder with cohort-specific logic)
     code_source = build_code_source_cohort(len(cohort_norm), cfg.code.kind, cfg.code)
+    if cfg.code.kind == "auto_decoder" and cfg.code.position_aware and cfg.code.grid_direct:
+        _set_grid_penalty_weights(cfg, cohort_norm, target_norm, code_source)
 
-    # Create optimizer with two param groups: flow with weight_decay, codes without
-    optimizer = torch.optim.Adam([
-        {"params": flow.parameters(), "weight_decay": cfg.loss.weight_decay},
-        {"params": code_source.parameters(), "weight_decay": 0.0},
-    ], lr=cfg.train.lr)
+    # Create optimizer with two param groups: flow with weight_decay, codes without.
+    # A frozen flow (fitting new targets to a trained one) gets no gradient and no group.
+    if cfg.train.freeze_flow:
+        for param in flow.parameters():
+            param.requires_grad = False
+        groups = [{"params": code_source.parameters(), "weight_decay": 0.0}]
+        print("[freeze_flow] the flow is frozen; only the codes are trained")
+    else:
+        groups = [
+            {"params": flow.parameters(), "weight_decay": cfg.loss.weight_decay},
+            {"params": code_source.parameters(), "weight_decay": 0.0},
+        ]
+    optimizer = torch.optim.Adam(groups, lr=cfg.train.lr)
 
     # Create stepper
     stepper = CohortRegistration(flow, code_source, data_term, mapping_error, composer, optimizer, iso_loss=iso_loss, augmentation=augmentation, use_encoder_pose=use_encoder_pose, loss_terms=loss_terms)
@@ -1407,6 +1449,23 @@ def restore_from(cfg, stepper):
         )
 
     stepper.load_state_dict({p: state[p] for p in init.parts})
+
+    if "mean" in (init.code_init, init.code_prior):
+        if "codes" not in state:
+            raise ValueError(f"init.code_init / code_prior 'mean' needs codes in {ref.path}")
+        mean = state["codes"]["codes.weight"].mean(dim=0)
+        table = stepper.code_source.codes.weight
+        if table.shape[1] != mean.shape[0]:
+            raise ValueError(f"init 'mean': the checkpoint's codes have {mean.shape[0]} "
+                             f"entries, this run's {table.shape[1]}")
+        count = state["codes"]["codes.weight"].shape[0]
+        if init.code_init == "mean":
+            with torch.no_grad():
+                table.copy_(mean.to(table).expand_as(table))
+            print(f"[INIT] {table.shape[0]} code(s) start at the mean of the checkpoint's {count} codes")
+        if init.code_prior == "mean":
+            stepper.code_source.set_penalty_center(mean)
+            print(f"[INIT] the code penalty pulls towards the mean of the checkpoint's {count} codes")
 
     written_at = checkpoint_step(state)
     start_step = (written_at + 1) if (init.continue_step_count and written_at is not None) else 0
