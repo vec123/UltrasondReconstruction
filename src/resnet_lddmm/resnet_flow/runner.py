@@ -201,6 +201,9 @@ def build_field(cfg, conditioning):
     if cfg.field.kind == "stationary":
         return Registry.create(
             "field", "stationary",
+            fa=tuple(cfg.field.fa),
+            df=tuple(cfg.field.df),
+            fourier_n_e=cfg.field.fourier_n_e,
             activation=cfg.field.activation,
             conditioning=conditioning
         )
