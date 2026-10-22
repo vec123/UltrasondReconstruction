@@ -72,6 +72,7 @@ RECONSTRUCTIONS = [
     ("Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted kin10000 cherry-tree", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin10000_cherry/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted kinetic field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kinfield/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
+    ("Cohort LDDMM fw direct g8 C2 location weighted stationary field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
 ]
 REFERENCE_LANDMARKS = "resnet_lddmm_baby_mean/{case}/{week}/apply/eval/reference_landmarks.vtp"
 ALIGNED_LANDMARKS = "{case}/{week}/aligned/aligned_landmarks/*_landmarks.csv"
