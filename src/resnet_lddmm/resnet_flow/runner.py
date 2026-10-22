@@ -867,7 +867,67 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
         export_shape(shape.points[0], shape.faces, transform,
                      os.path.join(cfg.output_dir, filename),
                      label=f"FieldWeightedChamfer ({label})",
-                     point_fields={"chamfer_weight": field.numpy()})
+                     point_fields={"chamfer_weight": field.cpu().numpy()})
+
+
+def _add_cohort_field_weighted_chamfer(cfg, cohort_norm, template_norm, mapping_error, data_term):
+    """_add_field_weighted_chamfer for a cohort: one template field, one field per member.
+
+    In cohort mode the template is cfg.target and the members are cfg.source, so the
+    data term's source_to_target side is the TEMPLATE's and its target_to_source side
+    each MEMBER's. The template's field is attached to the mapping error as in pair
+    mode; each member's field becomes that member's per-vertex weight (times its
+    "area" weights, if any), which CohortBatchLoader stacks and the mapping error
+    gathers on the same draw as its points -- the same product _combine_weights forms
+    in pair mode. A no-op for data terms outside FIELD_WEIGHTED_DATA_NAMES.
+
+    Args:
+        cfg: ExperimentCfg in cohort mode
+        cohort_norm: the NORMALISED members (point_fields intact); their .weights
+            are set IN PLACE
+        template_norm: the NORMALISED template
+        mapping_error: gets the template field attached IN PLACE
+        data_term: the already-built FieldWeightedCDData
+    """
+    if cfg.loss.data_name not in FIELD_WEIGHTED_DATA_NAMES:
+        return
+
+    if cfg.loss.data_name == "field_weighted_point2plane_chamfer":
+        for path, member in zip(cohort_paths(cfg), cohort_norm):
+            if member.normals is None or not torch.isfinite(member.normals).all():
+                raise ValueError(
+                    f"data_name={cfg.loss.data_name!r} needs finite 'normal' point arrays "
+                    f"on every cohort member; {path} has none or non-finite ones. Bake "
+                    "them with scripts/write_surface_normals.py."
+                )
+
+    template_field = resolve_point_weight_field(
+        data_term.source_to_target_field_name, data_term.source_to_target_field_source,
+        fallback_shape=template_norm,
+        field_transform=data_term.source_to_target_field_transform,
+        field_scale=data_term.source_to_target_field_scale,
+    )
+    mapping_error.set_point_weight_fields(template_field=template_field, sample_field=None)
+
+    for member in cohort_norm:
+        field = resolve_point_weight_field(
+            data_term.target_to_source_field_name, data_term.target_to_source_field_source,
+            fallback_shape=member,
+            field_transform=data_term.target_to_source_field_transform,
+            field_scale=data_term.target_to_source_field_scale,
+        )
+        if field is not None:
+            field = field.to(member.points.dtype).unsqueeze(0)
+            member.weights = field if member.weights is None else member.weights * field
+
+    member_fields = [m.weights for m in cohort_norm if m.weights is not None]
+    for label, fields in (("source_to_target (template)", [] if template_field is None else [template_field]),
+                          (f"target_to_source ({len(cohort_norm)} members)", member_fields)):
+        if not fields:
+            print(f"[field_weighted_chamfer] {label}: no field configured (constant)")
+        else:
+            print(f"[field_weighted_chamfer] {label}: range "
+                  f"[{min(f.min().item() for f in fields):.4g}, {max(f.max().item() for f in fields):.4g}]")
 
 
 def build(cfg: ExperimentCfg):
@@ -1243,21 +1303,16 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
             "run, not per shape. Use mode='pair'."
         )
 
-    if cfg.loss.kinetic_field_weight > 0:
+    if cfg.loss.data_name in FIELD_WEIGHTED_DATA_NAMES and cfg.loss.direction == "bidirectional":
         raise NotImplementedError(
-            "loss.kinetic_field_weight > 0 is not supported under train.mode='cohort': "
-            "the weight field is resolved against a single template Shape, which "
-            "cohort mode does not have (see runner._add_kinetic_field_term). Use "
-            "mode='pair', or drop kinetic_field_weight."
+            f"data_name={cfg.loss.data_name!r} under train.mode='cohort' supports "
+            "direction='forward' only."
         )
-
-    if cfg.loss.data_name in FIELD_WEIGHTED_DATA_NAMES:
+    if cfg.loss.data_name == "field_weighted_point2plane_chamfer" and cfg.augmentation.kind != "none":
         raise NotImplementedError(
-            f"data_name={cfg.loss.data_name!r} is not supported under "
-            "train.mode='cohort' yet: field resolution runs only from _build_pair "
-            "(see runner._add_field_weighted_chamfer), so pred_w/tgt_w would "
-            "silently stay None here even with field_name configured. Use "
-            "mode='pair', or drop field_name/field_source from both directions."
+            "field_weighted_point2plane_chamfer under train.mode='cohort' needs "
+            "augmentation.kind='none': the cohort stepper augments the members' points "
+            "but not their normals."
         )
 
     # Load all cohort shapes from directory
@@ -1282,6 +1337,12 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
         mapping_error = BidirectionalMappingError(subsample_n=subsample_n if subsample_n > 0 else None, save_full=cfg.loss.save_full)
     else:  # default to forward
         mapping_error = UnidirectionalMappingError(subsample_n=subsample_n if subsample_n > 0 else None, save_full=cfg.loss.save_full, pose_application=cfg.pose_application)
+
+    _add_cohort_field_weighted_chamfer(cfg, cohort_norm, target_norm, mapping_error, data_term)
+    # The cohort's flowed shape is its single template (target_norm), so the kinetic
+    # weight field is read from it exactly as a pair run reads it from its source;
+    # the stepper passes each step's subsample draw as LossContext.template_idx.
+    loss_terms = _add_kinetic_field_term(cfg, target_norm, transform, composer, loss_terms)
 
     # Create loader for cohort
     loader = CohortBatchLoader(cohort_norm, target_norm, batch_size=cfg.train.batch)

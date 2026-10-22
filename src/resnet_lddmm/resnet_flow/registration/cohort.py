@@ -68,6 +68,8 @@ class CohortRegistration:
             shape_ids=sample_batch.shape_ids,
             weights=sample_batch.weights,
             faces=sample_batch.faces,
+            # Unrotated: point-to-plane under cohort refuses rotating augmentations (runner._build_cohort).
+            normals=getattr(sample_batch, "normals", None),
         )
 
         # Store augmented sample batch for logger access

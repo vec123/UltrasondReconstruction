@@ -162,11 +162,12 @@ class ResamplingGraphLoader:
 
 @dataclass
 class CohortBatch:
-    """Batch of shapes with points, shape_ids, optional weights, and per-shape faces."""
+    """Batch of shapes with points, shape_ids, optional weights and normals, and per-shape faces."""
     points: torch.Tensor
     shape_ids: torch.Tensor
     weights: torch.Tensor = None
     faces: list = None  # List of [F, 3] face tensors, one per shape in batch
+    normals: torch.Tensor = None  # [B, N, 3] per-vertex normals, or None
 
 
 class CohortBatchLoader:
@@ -208,10 +209,13 @@ class CohortBatchLoader:
             points = torch.stack([s.points.squeeze(0) for s in selected_shapes], dim=0)  # [B, N, 3]
             shape_ids = torch.arange(len(selected_shapes), dtype=torch.long)  # [B] = [0, 1, 2, ...]
 
-            # Optionally stack weights
+            # Optionally stack weights and normals
             weights = None
             if selected_shapes[0].weights is not None:
                 weights = torch.stack([s.weights.squeeze(0) for s in selected_shapes], dim=0)
+            normals = None
+            if selected_shapes[0].normals is not None:
+                normals = torch.stack([s.normals.squeeze(0) for s in selected_shapes], dim=0)
 
             # Collect per-shape faces (one per shape in batch)
             sample_faces = [s.faces if hasattr(s, 'faces') else None for s in selected_shapes]
@@ -224,5 +228,6 @@ class CohortBatchLoader:
                 faces=[self.template.faces if hasattr(self.template, 'faces') else None]
             )
 
-            sample_batch = CohortBatch(points=points, shape_ids=shape_ids, weights=weights, faces=sample_faces)
+            sample_batch = CohortBatch(points=points, shape_ids=shape_ids, weights=weights, faces=sample_faces,
+                                       normals=normals)
             yield template_batch, sample_batch
