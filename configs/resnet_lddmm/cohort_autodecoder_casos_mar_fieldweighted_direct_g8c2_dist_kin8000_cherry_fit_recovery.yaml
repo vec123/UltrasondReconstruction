@@ -1,0 +1,80 @@
+# Fits NEW codes with the cherry-tree flow frozen (cohort_autodecoder_casos_mar_fieldweighted_direct_g8c2_dist_kin8000_cherry.yaml):
+# 41_26 and 44_20, two cherry-tree TRAINING members: the recovery test,
+# their fitted faces should match the cherry run's reconstructions of them.
+# Same loss as the cherry training; the flow is restored from its final checkpoint
+# and frozen, the codes start at the mean of its 30 codes, and the frame is the
+# cherry run's (frame_source). code_reg_weight is scaled by 30/2: training averages
+# the data term over its 30 members but sums the code penalty, so per member the
+# balance stays as in training.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/resnet_lddmm/cohort_autodecoder_casos_mar_fieldweighted_direct_g8c2_dist_kin8000_cherry_fit_recovery.yaml
+
+stage: resnet_lddmm_train
+
+source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096_fields_fit_recovery
+frame_source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096_fields_cherry_tree
+target: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp
+output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_fit_recovery
+
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 1024
+  position_aware: true
+  grid: 8
+  grid_channels: 2
+  grid_direct: true
+  grid_reg:
+    kind: distance
+    low: 0.0               # nodes near the face: free, as without regularisation
+    high: 1.0              # nodes towards the boundary
+    near: 0.5              # cells from the template up to which a node gets low
+    far: 1.0               # cells from the template from which a node gets high
+
+loss:
+  # As the pair runs (end_to_end_casos_mar.yaml, resnet_lddmm_train).
+  data_name: field_weighted_point2plane_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: landmark_weight
+      loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
+    target_to_source:
+      weight: 1
+      base_sigma: 0.01
+      field_name: support
+      inherit_source_field: false
+      loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
+  kinetic_weight: 8000.0
+  code_reg_weight: 0.15    # 0.01 * 30 / 2, see the header
+  landmark_weight: 0.0
+  subsample_M: 1000
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 1000
+  batch: 1000            # >= cohort size: every step uses every target with its own code
+  lr: 0.001              # codes only: higher than in training
+  seed: 42
+  log_every: 10
+  save_every: 500
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda
+  freeze_flow: true
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry/checkpoints/final.pt
+  parts: [flow]
+  continue_step_count: false
+  code_init: mean
