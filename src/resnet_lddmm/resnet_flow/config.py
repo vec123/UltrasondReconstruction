@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dataclass_field, replace as dataclass_replace
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Tuple
 
 from src.core.config import reject_unknown_keys
 
@@ -257,6 +257,61 @@ class PoseCfg:
 
 
 @dataclass
+class GridRegCfg:
+    """Per-node weights of the code L2 penalty on a direct grid (code.grid_direct).
+
+    Each node's code entries are penalised with a weight between ``low`` and
+    ``high``, so some regions of the grid are held at the mean (zero code) harder
+    than others. Only acts when loss.code_reg_weight > 0, and only on a direct grid,
+    where each code entry belongs to one node -- see conditioning/grid_regularization.
+
+    coverage: per member and node, from that member's own target. A node the
+        target's points reach with at least ``full_support`` trilinear weight gets
+        ``low``; a node they do not reach gets ``high``; linear in between. A
+        partial target's empty regions are thereby pulled to the mean face.
+    region: the same for every member. Nodes at the corners of the grid cells that
+        hold the template landmarks ``labels`` get ``low``, all others ``high``.
+    distance: the same for every member, from each node's distance to the template
+        surface, in grid cells: ``low`` up to ``near``, ``high`` from ``far`` on,
+        linear in between. Nodes near the face stay free and the ones towards the
+        boundary, which hardly touch the face, are held at the mean.
+    face_distance: the same for every member, from each node's distance to the
+        nearest template landmark of ``labels``, in grid cells: ``low`` up to
+        ``near``, ``high`` from ``far`` on, linear in between. With the central
+        face landmarks as labels, the cheeks, temples and the outer region get
+        ``high`` and the face centre ``low``.
+    """
+
+    kind: str = "coverage"                  # coverage | region | distance | face_distance
+    low: float = 0.1                        # weight of a covered / in-region node
+    high: float = 1.0                       # weight of an uncovered / out-of-region node
+    full_support: float = 20.0              # coverage: point weight at which a node is fully covered
+    labels: Tuple[str, ...] = ()            # region, face_distance: template landmark labels (heatmap_<label> fields)
+    near: float = 0.5                       # distance, face_distance: nodes up to this many cells away get low
+    far: float = 1.0                        # distance, face_distance: nodes from this many cells on get high
+
+    KINDS = ("coverage", "region", "distance", "face_distance")
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "GridRegCfg":
+        reject_unknown_keys(d, {"kind", "low", "high", "full_support", "labels", "near", "far"},
+                            what="code.grid_reg")
+        cfg = cls(kind=d.get("kind", "coverage"), low=float(d.get("low", 0.1)),
+                  high=float(d.get("high", 1.0)), full_support=float(d.get("full_support", 20.0)),
+                  labels=tuple(d.get("labels", ())), near=float(d.get("near", 0.5)),
+                  far=float(d.get("far", 1.0)))
+        if cfg.kind not in cls.KINDS:
+            raise ValueError(f"unknown code.grid_reg kind {cfg.kind!r}; expected one of {list(cls.KINDS)}")
+        if cfg.kind in ("region", "face_distance") and not cfg.labels:
+            raise ValueError(f"code.grid_reg kind {cfg.kind!r} needs landmark labels")
+        if cfg.kind in ("distance", "face_distance") and not cfg.far > cfg.near >= 0:
+            raise ValueError(f"code.grid_reg {cfg.kind} needs far > near >= 0, got near {cfg.near}, far {cfg.far}")
+        if cfg.full_support <= 0:
+            raise ValueError(f"code.grid_reg full_support must be > 0, got {cfg.full_support}")
+        return cfg
+
+
+@dataclass
 class CodeCfg:
     kind: str = "none"                      # none | auto_decoder | encoder
     n_z: int = 256
@@ -264,6 +319,8 @@ class CodeCfg:
     conditioning_method: str = "concat"     # concat | film — how to apply features to velocity
     grid: int = 2                           # g — grid resolution (only if position_aware=True)
     grid_channels: int = 32                 # C — grid-head output per corner (only if position_aware=True)
+    grid_direct: bool = False               # the code IS the grid (n_z = g³·C), not decoded into it
+    grid_reg: GridRegCfg = dataclass_field(default_factory=GridRegCfg)  # per-node penalty weights (direct grid)
 
     # Encoder-specific config (only used if kind == "encoder")
     encoder_config: Optional[EncoderConfig] = dataclass_field(default=None)
@@ -878,6 +935,7 @@ def _parse_code_config(code_dict: dict) -> CodeCfg:
     encoder_cfg_dict = code_dict.pop("encoder_config", {})
     graph_cfg_dict = code_dict.pop("graph_spec", {})
     pose_cfg = PoseCfg.from_dict(code_dict.pop("pose", {}))
+    grid_reg_cfg = GridRegCfg.from_dict(code_dict.pop("grid_reg", {}))
 
     # Parse encoder_config if provided and kind is encoder
     encoder_cfg = None
@@ -917,5 +975,5 @@ def _parse_code_config(code_dict: dict) -> CodeCfg:
         from src.spec import GraphSpec
         graph_spec = GraphSpec(**graph_cfg_dict) if graph_cfg_dict else GraphSpec()
 
-    return CodeCfg(encoder_config=encoder_cfg, graph_spec=graph_spec, pose=pose_cfg,
+    return CodeCfg(encoder_config=encoder_cfg, graph_spec=graph_spec, pose=pose_cfg, grid_reg=grid_reg_cfg,
                    **code_dict)

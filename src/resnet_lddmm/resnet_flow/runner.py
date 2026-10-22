@@ -26,6 +26,7 @@ from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
 from src.resnet_lddmm.resnet_flow.poses import TRANSLATING_KINDS
 from src.resnet_lddmm.resnet_flow.io import load_shape, joint_normalize, export_trajectory, export_shape
 from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs, resolve_template_points
+from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
 from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field, normalize_unit_mean
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
@@ -179,7 +180,9 @@ def build_conditioning(cfg):
             "conditioning", "position_aware",
             n_z=cfg.code.n_z,
             g=cfg.code.grid,
-            channels=cfg.code.grid_channels
+            channels=cfg.code.grid_channels,
+            domain=_normalization_domain(cfg),
+            direct=cfg.code.grid_direct,
         )
     # Broadcast-based conditioning (concat or FiLM)
     return Registry.create("conditioning", cfg.code.conditioning_method, n_z=cfg.code.n_z)
@@ -1187,6 +1190,26 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
     _dump_config(cfg, "pair")
 
     return stepper, loader, transform
+
+
+def _set_grid_penalty_weights(cfg, cohort_norm, template_norm, code_source):
+    """Weight a direct grid's code penalty per member and node (cfg.code.grid_reg).
+
+    Coverage reads each member's own target points, distance the template's points,
+    region its heatmap_<label> fields; all in the normalised frame the grid spans.
+    """
+    weights = grid_penalty_weights(
+        cfg.code,
+        [member.points[0] for member in cohort_norm],
+        template_norm.points[0],
+        lambda labels: resolve_template_points(template_norm, labels),
+        _normalization_domain(cfg),
+    )
+    code_source.set_penalty_weights(weights)
+    per_node = weights[:, ::cfg.code.grid_channels]
+    print(f"[grid_reg] {cfg.code.grid_reg.kind}: node weights {per_node.min().item():.2f}..{per_node.max().item():.2f}, "
+          f"mean {per_node.mean().item():.2f}; at low: {(per_node <= cfg.code.grid_reg.low + 1e-6).float().mean().item():.0%}"
+          + ("" if cfg.loss.code_reg_weight > 0 else " (inactive: loss.code_reg_weight is 0)"))
 
 
 def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_encoder_pose=False, loss_terms=None):

@@ -38,6 +38,33 @@ class AutoDecoderCodes(ShapeCode):
 
         self.codes = nn.Embedding(num_shapes, n_z)
         nn.init.normal_(self.codes.weight, mean=0.0, std=0.01)
+        # Per-entry penalty weights [num_shapes, n_z], or None for a plain L2. Not
+        # persistent: they are recomputed from the config and data, not trained, so
+        # checkpoints and apply stay unchanged.
+        self.register_buffer("penalty_weights", None, persistent=False)
+        # The code the penalty pulls towards [n_z], or None for zero. Not persistent either.
+        self.register_buffer("penalty_center", None, persistent=False)
+
+    def set_penalty_weights(self, weights: Tensor):
+        """Weight the L2 penalty per shape and code entry (e.g. per grid node).
+
+        Args:
+            weights: [num_shapes, n_z], non-negative
+        """
+        if tuple(weights.shape) != tuple(self.codes.weight.shape):
+            raise ValueError(f"penalty weights {tuple(weights.shape)} do not match the "
+                             f"code table {tuple(self.codes.weight.shape)}")
+        self.penalty_weights = weights.to(self.codes.weight)
+
+    def set_penalty_center(self, center: Tensor):
+        """Pull the codes towards `center` [n_z] instead of zero (e.g. a trained run's code mean).
+
+        Args:
+            center: [n_z]
+        """
+        if tuple(center.shape) != (self.n_z,):
+            raise ValueError(f"penalty center {tuple(center.shape)} does not match n_z={self.n_z}")
+        self.penalty_center = center.to(self.codes.weight)
 
     def forward(self, batch) -> Optional[Tensor]:
         """Extract codes for shapes in batch.
@@ -67,7 +94,13 @@ class AutoDecoderCodes(ShapeCode):
         """Compute L2 regularization on embedding table.
 
         Returns:
-            Scalar loss tensor: regularization_weight * ||codes.weight||_2^2
+            Scalar loss tensor: regularization_weight * ||codes.weight - center||_2^2,
+            each entry weighted by penalty_weights when those are set; the center
+            is penalty_center, or zero
         """
-        l2_loss = torch.sum(self.codes.weight ** 2)
+        offset = self.codes.weight if self.penalty_center is None else self.codes.weight - self.penalty_center
+        squared = offset ** 2
+        if self.penalty_weights is not None:
+            squared = squared * self.penalty_weights
+        l2_loss = torch.sum(squared)
         return self.regularization_weight * l2_loss
