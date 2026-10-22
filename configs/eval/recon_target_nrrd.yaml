@@ -23,7 +23,7 @@ paths:
       transforms_dir: ${PROJECT_ROOT}/US_samples/VTK_4/1/20_semanas/aligned_to_template/transforms
 
   vtp_to_nrrd_overlay:
-    nrrd_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/1-20s-02.nrrd
+    nrrd_path: ${DATA_ROOT}/Casos Mar/Casos/1/20 semanas/1-20s-02.nrrd
     output_path: recon_target_distance.output_dir + /recon_w_distance_overlay.nrrd
 
     # To toggle layers on/off in Slicer, AND let overlapping layers coexist
@@ -46,7 +46,7 @@ paths:
         line_color: [255, 255, 0]
         thickness: 0.2
         landmark_align:
-          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
           template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
 
       # Fetus Model Mean Template
@@ -55,7 +55,7 @@ paths:
         line_color: [255, 0, 0]
         thickness: 0.2
         landmark_align:
-          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
           template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
 
       # Baby Model Reconstruction
@@ -64,7 +64,7 @@ paths:
         line_color: [255, 0, 0]
         thickness: 0.2
         landmark_align:
-          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
           template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
 
       # Baby Model Mean Template
@@ -73,7 +73,7 @@ paths:
         line_color: [255, 0, 0]
         thickness: 0.2
         landmark_align:
-          landmark_path: ${PROJECT_ROOT}/US_samples/Casos_Mar/1/20_semanas/Lmks_Antonia/1-20s-02.csv
+          landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
           template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
 
       # Original isosurface - already in the nrrd's own world frame, no alignment needed.

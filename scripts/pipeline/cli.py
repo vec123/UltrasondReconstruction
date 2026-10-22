@@ -2,7 +2,7 @@
 
 import os
 
-from .config import from_dict, interpolate, load_yaml, project_root
+from .config import from_dict, interpolate, load_yaml, path_variables
 from .registry import STAGE_REGISTRY
 
 
@@ -29,7 +29,7 @@ def _no_pipeline_context(reference):
 
 def stage_main(config_path, extra_vars=None):
     """Loads and runs a single stage from its own YAML config file."""
-    variables = {"PROJECT_ROOT": project_root(), **(extra_vars or {})}
+    variables = {**path_variables(), **(extra_vars or {})}
 
     raw = load_yaml(config_path)
     stage_name = raw.pop("stage", None)
@@ -81,7 +81,7 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
     """
     pipeline_config_path = os.path.abspath(pipeline_config_path)
     pipeline_cfg = load_yaml(pipeline_config_path)
-    variables = {"PROJECT_ROOT": project_root(), **(extra_vars or {})}
+    variables = {**path_variables(), **(extra_vars or {})}
 
     stages = pipeline_cfg.get("stages", [])
     if not stages:

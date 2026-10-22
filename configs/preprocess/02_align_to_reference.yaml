@@ -3,7 +3,7 @@
 # transform saved here IS the cumulative (original-frame -> this stage) one.
 stage: align_to_reference
 
-landmarks_csv_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/1/20_semanas/Lmks_Antonia/renamed
+landmarks_csv_dir: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/renamed
 vtp_shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd
 
 output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned

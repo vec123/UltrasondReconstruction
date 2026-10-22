@@ -290,12 +290,12 @@ paths:
 
   #---------Preprocessing Step 1
   nrrd_to_vtp:
-    input_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas
+    input_dir: ${DATA_ROOT}/Casos Mar/Casos/${SUBJECT_ID}/20 semanas
     output_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas
     cache_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas/Cache
 
   align_to_reference:
-    landmarks_csv_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/Lmks
+    landmarks_csv_dir: ${DATA_ROOT}/Casos Mar/Segmentaciones/${SUBJECT_ID}/20 semanas/Lmks_Antonia
     vtp_shapes_dir: nrrd_to_vtp.output_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned
     raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
@@ -882,7 +882,7 @@ paths:
 
 #----------------------Ultrasound-----Overlay of all lines
   vtp_to_nrrd_overlay:
-    nrrd_path: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/${REFERENCE_SCAN}.nrrd
+    nrrd_path: ${DATA_ROOT}/Casos Mar/Casos/${SUBJECT_ID}/20 semanas/${REFERENCE_SCAN}.nrrd
     output_path: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay.nrrd
     label_maps_dir: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay_labels
     layers:

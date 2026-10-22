@@ -35,6 +35,15 @@ def project_root() -> str:
     return root
 
 
+def path_variables() -> dict:
+    """The ``${NAME}`` variables every config can use: PROJECT_ROOT, and DATA_ROOT
+    (the raw ultrasound data folder) when the repo's .env defines it."""
+    variables = {"PROJECT_ROOT": project_root()}
+    if os.environ.get("DATA_ROOT"):
+        variables["DATA_ROOT"] = os.environ["DATA_ROOT"]
+    return variables
+
+
 def load_yaml(path) -> dict:
     with open(path, "r") as f:
         data = yaml.safe_load(f)
@@ -120,7 +129,7 @@ def from_dict(cls: Type[T], data: dict) -> T:
 
 
 def load_config(path, cls: Type[T]) -> T:
-    """Loads a stage YAML (with ``${PROJECT_ROOT}`` interpolation applied) into `cls`."""
+    """Loads a stage YAML (with path_variables() interpolation applied) into `cls`."""
     data = load_yaml(path)
-    data = interpolate(data, {"PROJECT_ROOT": project_root()})
+    data = interpolate(data, path_variables())
     return from_dict(cls, data)

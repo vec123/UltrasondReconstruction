@@ -30,7 +30,7 @@ stages:
 paths:
 
   nrrd_to_vtp:
-    input_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas
+    input_dir: ${DATA_ROOT}/Casos Mar/Casos/${SUBJECT_ID}/20 semanas
     output_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas
     cache_dir: ${PROJECT_ROOT}/outputs/${SUBJECT_ID}/20_semanas/Cache
 
@@ -40,9 +40,9 @@ paths:
     output_dir: nrrd_to_vtp.output_dir + /echotexture
 
   align_to_reference:
-    landmarks_csv_dir: ${PROJECT_ROOT}/Ultrasounds/${SUBJECT_ID}/20_semanas/Lmks_Antonia
+    landmarks_csv_dir: ${DATA_ROOT}/Casos Mar/Segmentaciones/${SUBJECT_ID}/20 semanas/Lmks_Antonia
     vtp_shapes_dir: nrrd_to_vtp.output_dir
-   #vtp_shapes_dir:  ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/${SUBJECT_ID}/20_semanas/PLY
+   #vtp_shapes_dir:  ${DATA_ROOT}/Casos Mar/Segmentaciones/${SUBJECT_ID}/20 semanas/PLY
     output_dir: nrrd_to_vtp.output_dir + /aligned
     raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
     transforms_dir: nrrd_to_vtp.output_dir + /aligned/transforms

@@ -3,7 +3,7 @@
 # the default pipeline.yaml chain).
 stage: nrrd_to_world_vtp
 
-input_dir: ${PROJECT_ROOT}/US_samples/Casos_Mar/Segmentations/1/20_semanas/US_transformed
+input_dir: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/US_transformed
 output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/Segmentations/1/20_semanas/US_transformed_world
 
 contour_value: 1  # label index/threshold for surface extraction
