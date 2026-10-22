@@ -1,0 +1,36 @@
+# Python 3.12. Install with:
+#    pip install -r requirements.txt
+# torch is pinned so the PyG extension wheels below (torch_scatter,
+# torch_cluster) match it; cu128 is the minimum CUDA build that supports
+# Blackwell GPUs (RTX 50xx).
+--extra-index-url https://download.pytorch.org/whl/cu128
+--find-links https://data.pyg.org/whl/torch-2.8.0+cu128.html
+
+# Core
+numpy==2.5.4
+scipy==1.18.1
+pandas==3.0.6
+scikit-learn==1.9.1
+matplotlib==3.11.2
+PyYAML==6.0.3
+python-dotenv==1.2.4
+
+# Imaging / meshes
+vtk==9.7.1
+SimpleITK==2.5.6
+libigl==2.6.3
+potpourri3d==1.4.0
+robust-laplacian==1.1.0
+pyamg==5.3.0
+
+# Deep learning
+torch==2.8.0
+torch_geometric==2.8.1
+torch_scatter==2.1.2+pt28cu128
+torch_cluster==1.6.3+pt28cu128
+e3nn==0.6.0
+geomloss==0.3.1
+
+# Imported by src/resnet_lddmm/learning/modules/position_encodings.py
+jax==0.12.0
+dm-haiku==0.0.17
