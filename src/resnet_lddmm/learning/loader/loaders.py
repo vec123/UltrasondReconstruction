@@ -205,9 +205,10 @@ class CohortBatchLoader:
             indices = self._pick_indices()
             selected_shapes = [self.cohort_shapes[i] for i in indices]
 
-            # Stack points [B, N, 3] and create shape_ids [B]
+            # Stack points [B, N, 3]; shape_ids [B] are the members' cohort indices, which
+            # the auto-decoder codes and free poses are indexed by (not batch positions)
             points = torch.stack([s.points.squeeze(0) for s in selected_shapes], dim=0)  # [B, N, 3]
-            shape_ids = torch.arange(len(selected_shapes), dtype=torch.long)  # [B] = [0, 1, 2, ...]
+            shape_ids = indices.to(torch.long)  # [B]
 
             # Optionally stack weights and normals
             weights = None
