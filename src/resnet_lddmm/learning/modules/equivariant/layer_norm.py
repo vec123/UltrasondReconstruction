@@ -15,7 +15,7 @@ def get_slice_for_irrep(irreps, target_ir):
 
 
 class EquivariantLayerNorm(nn.Module):
-    def __init__(self, irreps, eps=1e-5, affine=True, normalization='component', verbose=True):
+    def __init__(self, irreps, eps=1e-5, affine=True, normalization='component', verbose=False):
         super().__init__()
         self.irreps = o3.Irreps(irreps)
         self.eps = eps
@@ -31,34 +31,37 @@ class EquivariantLayerNorm(nn.Module):
             ])
 
     def forward(self, x):
-        # x: [N, irreps.dim] plain tensor laid out according to self.irreps.
+        # x: [..., irreps.dim] plain tensor laid out according to self.irreps.
+        batch_shape = x.shape[:-1]
         field_list = []
         for i, ((mul, ir), slice_idx) in enumerate(zip(self.irreps, self.irreps.slices())):
             field = x[..., slice_idx]
-            field_reshaped = field.reshape(field.shape[0], mul, ir.dim)
+            field_reshaped = field.reshape(*batch_shape, mul, ir.dim)
 
             if ir.l == 0:
                 # --- SCALAR BRANCH ---
-                mean = field_reshaped.mean(dim=(1, 2), keepdim=True)
-                var = field_reshaped.var(dim=(1, 2), keepdim=True, unbiased=False)
+                mean = field_reshaped.mean(dim=(-2, -1), keepdim=True)
+                var = field_reshaped.var(dim=(-2, -1), keepdim=True, unbiased=False)
                 normed = (field_reshaped - mean) / torch.sqrt(var + self.eps)
             else:
                 # --- VECTOR/TENSOR BRANCH (RMS Norm) ---
                 sq = torch.square(field_reshaped)
-                # RMS calculation: mean of squares across dimensions
+                # Square norm of each channel: sum or mean over the 2l+1 components
                 if self.normalization == 'norm':
-                    rms = torch.sqrt(sq.sum(dim=-1, keepdim=True) + self.eps)
+                    sq = sq.sum(dim=-1, keepdim=True)
                 else:
-                    rms = torch.sqrt(sq.mean(dim=-1, keepdim=True) + self.eps)
+                    sq = sq.mean(dim=-1, keepdim=True)
 
-                normed = field_reshaped / (rms + self.eps)
+                # One RMS over all channels of the block (a per-channel RMS would give each channel norm 1)
+                rms = torch.sqrt(sq.mean(dim=-2, keepdim=True) + self.eps)
+                normed = field_reshaped / rms
 
             # --- AFFINE: scale the NORMALIZED field by the learned per-mul gain ---
             if self.affine:
-                weight = self.affine_weights[i].view(1, mul, 1)
+                weight = self.affine_weights[i].view(mul, 1)
                 normed = normed * weight
 
-            field_list.append(normed.reshape(field.shape[0], -1))
+            field_list.append(normed.reshape(*batch_shape, mul * ir.dim))
 
         final_array = torch.cat(field_list, dim=-1)
 
