@@ -7,21 +7,20 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.checkpoint import checkpoint
 
-from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField, split_velocity
 from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
 
 
 def _velocity(field: VelocityField, q: Tensor, step: int, code: Optional[Tensor]):
-    """(velocity, its designed-mode part or None) -- see fields/modes.py ModalField.split."""
-    split = getattr(field, "split", None)
-    if split is None:
-        return field(q, step=step, code=code), None
-    return split(q, step=step, code=code)
+    """(velocity, its priced parts by name) -- see fields/base.py split_velocity."""
+    return split_velocity(field, q, step=step, code=code)
 
 
-def _trajectory(points, velocities, modal, dt) -> Trajectory:
+def _trajectory(points, velocities, parts, dt) -> Trajectory:
+    """Stack the steps; ``parts`` is one {name: [B, N, 3]} per step, the same names each."""
+    names = parts[0].keys() if parts else ()
     return Trajectory(torch.stack(points), torch.stack(velocities), dt,
-                      torch.stack(modal) if modal and modal[0] is not None else None)
+                      {name: torch.stack([p[name] for p in parts]) for name in names})
 
 
 class Integrator(abc.ABC):
@@ -93,16 +92,16 @@ class ForwardEuler(Integrator):
         q = q0
         points = [q0]
         velocities = []
-        modal = []
+        parts = []
 
         for k in range(num_steps):
-            v, v_mode = self._velocity(field, q, k, code)
+            v, v_parts = self._velocity(field, q, k, code)
             q = q + dt * v
             points.append(q)
             velocities.append(v)
-            modal.append(v_mode)
+            parts.append(v_parts)
 
-        return _trajectory(points, velocities, modal, dt)
+        return _trajectory(points, velocities, parts, dt)
 
 
 class ModifiedEuler(Integrator):
@@ -141,7 +140,7 @@ class ModifiedEuler(Integrator):
         q = qT
         points = [qT]
         velocities = []
-        modal = []
+        parts = []
 
         # Reversed step order for time-varying fields: K-1, K-2, ..., 0
         for k in reversed(range(num_steps)):
@@ -150,11 +149,11 @@ class ModifiedEuler(Integrator):
             q_pred = q - dt * v_hat
 
             # Corrector step: velocity at predicted location (Picard iteration)
-            v, v_mode = self._velocity(field, q_pred, k, code)
+            v, v_parts = self._velocity(field, q_pred, k, code)
             q = q - dt * v
 
             points.append(q)
             velocities.append(v)
-            modal.append(v_mode)
+            parts.append(v_parts)
 
-        return _trajectory(points, velocities, modal, dt)
+        return _trajectory(points, velocities, parts, dt)

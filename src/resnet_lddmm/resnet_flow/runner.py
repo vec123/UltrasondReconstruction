@@ -21,7 +21,7 @@ from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import (
 )
 from src.resnet_lddmm.resnet_flow.codes import SELF_POSING_KINDS
 from src.resnet_lddmm.resnet_flow.config import (ExperimentCfg, CENTERING_DOMAINS,
-                                                 FOURIER_FIELD_KINDS,
+                                                 FOURIER_FIELD_KINDS, MODE_FIELD_KINDS,
                                                  FshapeCfg, PointWeightFieldCfg,
                                                  reject_renamed_loss_distance_keys)
 from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
@@ -33,7 +33,9 @@ from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_fiel
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
 from src.resnet_lddmm.resnet_flow.flow import NeuralODEFlow, IdentityFlowWrapper
-from src.resnet_lddmm.resnet_flow.fields.modes import ModalField, network_of
+from src.resnet_lddmm.resnet_flow.fields.modes import ModalField, network_of, symmetric_field_of
+from src.resnet_lddmm.resnet_flow.fields.prior import PriorResidualField
+from src.resnet_lddmm.resnet_flow.fields.symmetry import SymmetricField
 from src.resnet_lddmm.resnet_flow.integrators import ForwardEuler, ModifiedEuler
 from src.resnet_lddmm.resnet_flow.losses import UnidirectionalMappingError, BidirectionalMappingError
 from src.resnet_lddmm.resnet_flow import registrations  #  Side effect: registers all component Load component registrations
@@ -281,6 +283,17 @@ def build_field(cfg, conditioning):
     )
 
 
+def build_network(cfg, conditioning):
+    """cfg.field -> the trained network: build_field, made symmetric when field.symmetry asks.
+
+    The mirror plane is placed later (_place_symmetry) or restored from the checkpoint.
+    """
+    field = build_field(cfg, conditioning)
+    if cfg.field.symmetry is not None:
+        field = SymmetricField(field, cfg.field.symmetry["mode"])
+    return field
+
+
 def build_flow(cfg):
     """cfg -> the flow module, freshly initialised.
 
@@ -296,7 +309,15 @@ def build_flow(cfg):
     Returns:
         NeuralODEFlow, wrapped in IdentityFlowWrapper when the config freezes it
     """
-    field = build_field(cfg, build_conditioning(cfg))
+    if cfg.field.prior is not None:
+        # Weights loaded later (_load_prior_field) or restored from the checkpoint.
+        prior_cfg = load_prior_config(cfg)
+        prior_n_z = code_size(prior_cfg)
+        field = PriorResidualField(build_network(prior_cfg, build_conditioning(prior_cfg)),
+                                   build_network(cfg, _residual_conditioning(cfg, prior_n_z)),
+                                   prior_n_z)
+    else:
+        field = build_network(cfg, build_conditioning(cfg))
     if cfg.field.modes is not None:
         # Placed later (_place_modes) or restored from the checkpoint's buffers.
         field = ModalField(field, cfg.field.modes["names"], cfg.field.num_steps)
@@ -310,6 +331,133 @@ def build_flow(cfg):
     if getattr(cfg, 'freeze_flow_at_identity', False):
         flow = IdentityFlowWrapper(flow)
     return flow
+
+
+def code_size(cfg) -> int:
+    """How many code entries cfg's field reads: 0 without a code."""
+    return 0 if cfg.code.kind == "none" else int(cfg.code.n_z)
+
+
+def load_prior_config(cfg):
+    """cfg.field.prior.run -> that run's ExperimentCfg, checked against cfg.
+
+    The prior field is rebuilt from the run's own config.json, so the architecture
+    its weights load into is the one they were trained in.
+
+    Raises:
+        FileNotFoundError: the run has no config.json
+        ValueError: the prior cannot be combined with cfg (see the messages)
+    """
+    run = cfg.field.prior["run"]
+    path = os.path.join(run, "config.json")
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"field.prior.run: no config.json in {run} (is it a run's output_dir?)")
+    with open(path) as f:
+        data = json.load(f)
+    data.pop("mode", None)      # provenance stamp of _dump_config, not an ExperimentCfg key
+    prior_cfg = ExperimentCfg.from_dict(data)
+
+    problems = []
+    if prior_cfg.field.kind not in MODE_FIELD_KINDS:
+        problems.append(f"its field kind {prior_cfg.field.kind!r} is not pointwise {MODE_FIELD_KINDS}")
+    if prior_cfg.field.modes is not None or prior_cfg.field.prior is not None:
+        problems.append("its field has modes or a prior of its own")
+    if prior_cfg.freeze_flow_at_identity:
+        problems.append("its flow is frozen at the identity")
+    for key in ("centering", "dtype"):
+        if getattr(prior_cfg, key) != getattr(cfg, key):
+            problems.append(f"its {key} is {getattr(prior_cfg, key)!r}, this run's {getattr(cfg, key)!r}")
+    if prior_cfg.field.num_steps != cfg.field.num_steps:
+        problems.append(f"it integrates {prior_cfg.field.num_steps} steps, this run {cfg.field.num_steps}")
+    prior_n_z = code_size(prior_cfg)
+    if prior_n_z > code_size(cfg):
+        problems.append(f"its field reads {prior_n_z} code entries, this run's code has "
+                        f"{code_size(cfg)}: set code.n_z to {prior_n_z} + the residual's entries")
+    if problems:
+        raise ValueError(f"field.prior.run {run} cannot be the prior of this run: " + "; ".join(problems))
+    return prior_cfg
+
+
+def _residual_conditioning(cfg, prior_n_z):
+    """The conditioning of a PriorResidualField's network: the code entries after the prior's."""
+    n_z = code_size(cfg) - prior_n_z
+    if n_z == 0:
+        return None
+    return build_conditioning(dataclasses.replace(cfg, code=dataclasses.replace(cfg.code, n_z=n_z)))
+
+
+def _load_prior_field(cfg, flow):
+    """Load field.prior's weights from its run's checkpoint into the flow's PriorResidualField.
+
+    Training only: apply restores the prior with the rest of the run's checkpoint.
+
+    Raises:
+        RuntimeError: from load_state_dict, if the checkpoint does not fit the
+            architecture of the run's config.json
+    """
+    if cfg.field.prior is None:
+        return
+    run = cfg.field.prior["run"]
+    ref, state = _prior_checkpoint(cfg)
+    prior_state = {k[len("field."):]: v for k, v in state["flow"].items() if k.startswith("field.")}
+    flow.field.prior.load_state_dict(prior_state, strict=True)
+    field = flow.field
+    count = sum(p.numel() for p in field.prior.parameters())
+    trainable = sum(p.numel() for p in field.network.parameters())
+    print(f"[prior] frozen field of {run} ({ref.path.name}, step {checkpoint_step(state)}): "
+          f"{count} parameters, code entries 0..{field.prior_n_z - 1}; residual network: {trainable} "
+          f"parameters, code entries {field.prior_n_z}..{code_size(cfg) - 1}; kinetic price of the "
+          f"prior {cfg.field.prior['discount']:g} x kinetic_weight")
+
+
+def _prior_checkpoint(cfg):
+    """field.prior's checkpoint: (CheckpointRef, its state dict)."""
+    ref = resolve_checkpoint(os.path.join(cfg.field.prior["run"], "checkpoints"), step=cfg.field.prior["step"])
+    return ref, load_checkpoint(ref)
+
+
+def _init_prior_codes(cfg, code_source):
+    """Start every code's prior entries at the mean of the prior run's codes.
+
+    The random init (std 0.01 per entry) puts a fresh code far outside the range the
+    prior was trained on when its codes are small; the mean is the prior's centre.
+    The residual's entries keep the random init. init.parts with codes overrides this.
+    """
+    if cfg.field.prior is None or cfg.code.kind != "auto_decoder":
+        return
+    _, state = _prior_checkpoint(cfg)
+    prior_n_z = code_size(load_prior_config(cfg))
+    if prior_n_z == 0 or "codes" not in state:
+        return
+    mean = state["codes"]["codes.weight"].mean(dim=0)
+    table = code_source.codes.weight
+    with torch.no_grad():
+        table[:, :prior_n_z] = mean.to(table)
+    print(f"[prior] code entries 0..{prior_n_z - 1} of {table.shape[0]} code(s) start at the mean "
+          f"of the prior's {state['codes']['codes.weight'].shape[0]} codes (norm {mean.norm():.3g})")
+
+
+def _check_prior_frame(cfg):
+    """A prior field works in its run's frame: this run must normalise into the same one.
+
+    Raises:
+        NotImplementedError: a pair run (its frame comes from its own two shapes)
+        ValueError: a cohort run without frame_source
+    """
+    if cfg.field.prior is None:
+        return
+    if cfg.train.mode != "cohort":
+        raise NotImplementedError("field.prior needs train.mode='cohort': only a cohort run can "
+                                  "take its frame from the prior's members (frame_source)")
+    prior_cfg = load_prior_config(cfg)
+    prior_frame = prior_cfg.frame_source or prior_cfg.source
+    if cfg.frame_source is None:
+        raise ValueError(f"field.prior: set frame_source to the prior's members ({prior_frame}), "
+                         f"else this run's frame comes from its own shapes and the prior field "
+                         f"sees them in the wrong place")
+    if os.path.realpath(cfg.frame_source) != os.path.realpath(prior_frame):
+        print(f"[prior] WARNING: frame_source {cfg.frame_source} is not the prior's frame "
+              f"{prior_frame}; correct only if it holds the same bounding-box extremes")
 
 
 def load_pair(cfg):
@@ -668,6 +816,57 @@ def _place_local_mask(cfg, source_norm, transform, flow):
                  point_fields={"local_mask": values.cpu().numpy()})
 
 
+def _place_symmetry(cfg, template_norm, transform, flow):
+    """Place field.symmetry's mirror plane from the template's own landmarks, in the training frame.
+
+    The normal is the mean direction right -> left over field.symmetry.pairs; the
+    plane passes through the mean of the pairs' midpoints and the midline landmarks
+    (heatmap argmax, as everywhere else). Prints how well the landmarks and the
+    template itself fit the plane, as a fraction of the template's size (the world
+    unit is mm for scans, but not for a shape model's frame). Training only: apply
+    restores the plane from the checkpoint's buffers.
+
+    Args:
+        cfg: ExperimentCfg
+        template_norm: the NORMALISED flowed shape (pair: source, cohort: template),
+            point_fields intact
+        transform: the run's FrameTransform (normalised = (world - center) / scale)
+        flow: the built flow; its SymmetricField's plane is placed IN PLACE
+    """
+    symmetry = cfg.field.symmetry
+    if symmetry is None:
+        return
+    prefix = symmetry["heatmap_prefix"]
+    right = resolve_template_points(template_norm, [p[0] for p in symmetry["pairs"]], prefix)
+    left = resolve_template_points(template_norm, [p[1] for p in symmetry["pairs"]], prefix)
+    directions = left - right
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    normal = directions.mean(axis=0)
+    normal /= np.linalg.norm(normal)
+    on_plane = 0.5 * (left + right)
+    if symmetry["midline"]:
+        on_plane = np.concatenate([on_plane, resolve_template_points(template_norm, symmetry["midline"], prefix)])
+    offset = float((on_plane @ normal).mean())
+    field = symmetric_field_of(flow.field)
+    field.plane.place(torch.as_tensor(normal), offset)
+
+    angles = np.degrees(np.arccos(np.clip(directions @ normal, -1.0, 1.0)))
+    with torch.no_grad():
+        points = template_norm.points[0]
+        size = float((points.max(dim=0).values - points.min(dim=0).values).norm())
+        sample = points[torch.randperm(len(points), generator=torch.Generator().manual_seed(0), device="cpu")[:4000]]
+        mirrored = field.plane.reflect_points(sample.to(field.plane.normal))
+        gap = torch.cat([torch.cdist(chunk, points.to(chunk)).min(dim=1).values
+                         for chunk in mirrored.split(500)]) / size
+    print(f"[symmetry] mode {symmetry['mode']}"
+          + (f", symmetric part at {symmetry['discount']:g} x kinetic_weight" if symmetry["mode"] == "split" else "")
+          + f"; mirror plane from {len(symmetry['pairs'])} pair(s) and {len(symmetry['midline'])} midline "
+          f"landmark(s), normal {[round(float(c), 3) for c in normal]}: pair directions within "
+          f"{angles.max():.2f} deg of it, landmarks {np.abs(on_plane @ normal - offset).max() / size:.2%} "
+          f"of the template diagonal from the plane at most; mirrored template to template: mean "
+          f"{gap.mean():.2%}, 95% {gap.quantile(0.95):.2%} of the diagonal")
+
+
 def _place_modes(cfg, source_norm, transform, flow):
     """Place field.modes' designed fields on the source, in the training frame.
 
@@ -724,32 +923,56 @@ def _place_modes(cfg, source_norm, transform, flow):
                  label="Designed deformation modes (template)", point_fields=fields)
 
 
-def _add_mode_kinetic_term(cfg, composer, loss_terms):
-    """Charge the designed modes' kinetic energy at ``discount * kinetic_weight``.
+def priced_parts(cfg) -> list:
+    """The flow's priced parts: (metric name, part name, discount), one per configured part.
 
-    ``Trajectory.kinetic_energy`` leaves the modes' part out, so without this term
-    they would be free. Dropped like any zero-weight term when the price is 0.
+    The part names are the keys fields/base.py split_velocity returns.
+    """
+    parts = []
+    if cfg.field.modes is not None:
+        parts.append(("mode_kinetic", "modes", cfg.field.modes["discount"]))
+    if cfg.field.prior is not None:
+        parts.append(("prior_kinetic", "prior", cfg.field.prior["discount"]))
+    if cfg.field.symmetry is not None and cfg.field.symmetry["mode"] == "split":
+        parts.append(("symmetric_kinetic", "symmetric", cfg.field.symmetry["discount"]))
+    return parts
+
+
+def _add_part_kinetic_terms(cfg, composer, loss_terms):
+    """Charge each priced part's kinetic energy at ``discount * kinetic_weight``.
+
+    The priced parts are the designed modes (field.modes), the frozen prior field
+    (field.prior) and the symmetric part (field.symmetry, mode split).
+    ``Trajectory.kinetic_energy`` leaves them out, so without these terms they would
+    be free. A part is dropped like any zero-weight term when its price is 0.
 
     Returns:
-        ``loss_terms`` unchanged without modes; else a NEW dict with "mode_kinetic".
+        ``loss_terms`` unchanged without priced parts; else a NEW dict with
+        "mode_kinetic", "prior_kinetic" and/or "symmetric_kinetic".
 
     Raises:
-        ValueError: a configured term is already named "mode_kinetic".
+        ValueError: a configured term already has one of those names.
     """
-    if cfg.field.modes is None:
-        return loss_terms
-    name = "mode_kinetic"
-    if loss_terms and name in loss_terms:
-        raise ValueError(f"a loss term is already named {name!r}; rename it so the "
-                         f"two metrics stay distinguishable")
-    weight = cfg.field.modes["discount"] * cfg.loss.kinetic_weight
-    if weight <= 0:
-        print("[modes] discount 0: moving along the designed modes is free")
+    parts = priced_parts(cfg)
+    if not parts:
         return loss_terms
     loss_terms = dict(loss_terms or {})
-    loss_terms[name] = Registry.create("loss_term", "mode_kinetic")
-    composer.terms.append(LossTerm(name, weight=weight))
+    for name, part, discount in parts:
+        if name in loss_terms:
+            raise ValueError(f"a loss term is already named {name!r}; rename it so the "
+                             f"two metrics stay distinguishable")
+        weight = discount * cfg.loss.kinetic_weight
+        if weight <= 0:
+            print(f"[{part}] discount 0: moving along the {part} part is free")
+            continue
+        loss_terms[name] = Registry.create("loss_term", "part_kinetic", part=part)
+        composer.terms.append(LossTerm(name, weight=weight))
     return loss_terms
+
+
+def trainable_parameters(module):
+    """The parameters of ``module`` an optimizer should get: not the frozen ones (a prior field's)."""
+    return [p for p in module.parameters() if p.requires_grad]
 
 
 def _flow_param_groups(cfg, flow):
@@ -761,7 +984,7 @@ def _flow_param_groups(cfg, flow):
     """
     field = flow.field
     if not isinstance(field, ModalField):
-        return [{"params": list(flow.parameters()), "weight_decay": cfg.loss.weight_decay}]
+        return [{"params": trainable_parameters(flow), "weight_decay": cfg.loss.weight_decay}]
     amplitude = field.amplitude
     network = [p for p in flow.parameters() if p is not amplitude]
     return [{"params": network, "weight_decay": cfg.loss.weight_decay},
@@ -1064,6 +1287,8 @@ def build(cfg: ExperimentCfg):
     # to load a checkpoint into.
     flow = build_flow(cfg)
     init_projections(flow, getattr(cfg.field, "proj_init_std", 0.0))
+    _check_prior_frame(cfg)
+    _load_prior_field(cfg, flow)
 
     # Registry.create: data term and isometry loss (shared). Old robust_* keys
     # fail here with their replacement rather than as an unexpected argument.
@@ -1270,9 +1495,10 @@ def _build_pair(cfg, flow, data_term, composer, iso_loss, augmentation, use_enco
     loss_terms = _add_landmark_term(cfg, source_norm, transform, composer, loss_terms)
     loss_terms = _add_kinetic_field_term(cfg, source_norm, transform, composer, loss_terms)
     loss_terms = _add_fshape_term(cfg, source_norm, target_norm, transform, composer, loss_terms)
-    loss_terms = _add_mode_kinetic_term(cfg, composer, loss_terms)
+    loss_terms = _add_part_kinetic_terms(cfg, composer, loss_terms)
     _place_local_mask(cfg, source_norm, transform, flow)
     _place_modes(cfg, source_norm, transform, flow)
+    _place_symmetry(cfg, source_norm, transform, flow)
 
     # Create mapping error strategy after knowing source size
     subsample_n = cfg.loss.resolve_subsample_count(source_norm.points.shape[1])
@@ -1387,6 +1613,7 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
         )
 
     _, cohort_norm, target_norm, transform = load_cohort(cfg)
+    _place_symmetry(cfg, target_norm, transform, flow)
 
     # Create mapping error strategy after knowing source size (use first shape)
     subsample_n = cfg.loss.resolve_subsample_count(cohort_norm[0].points.shape[1])
@@ -1400,12 +1627,14 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
     # weight field is read from it exactly as a pair run reads it from its source;
     # the stepper passes each step's subsample draw as LossContext.template_idx.
     loss_terms = _add_kinetic_field_term(cfg, target_norm, transform, composer, loss_terms)
+    loss_terms = _add_part_kinetic_terms(cfg, composer, loss_terms)
 
     # Create loader for cohort
     loader = CohortBatchLoader(cohort_norm, target_norm, batch_size=cfg.train.batch)
 
     # Build code source (handles none, auto_decoder, encoder with cohort-specific logic)
     code_source = build_code_source_cohort(len(cohort_norm), cfg.code.kind, cfg.code)
+    _init_prior_codes(cfg, code_source)
     if cfg.code.kind == "auto_decoder" and cfg.code.position_aware and cfg.code.grid_direct:
         _set_grid_penalty_weights(cfg, cohort_norm, target_norm, code_source)
 
@@ -1418,7 +1647,7 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
         print("[freeze_flow] the flow is frozen; only the codes are trained")
     else:
         groups = [
-            {"params": flow.parameters(), "weight_decay": cfg.loss.weight_decay},
+            {"params": trainable_parameters(flow), "weight_decay": cfg.loss.weight_decay},
             {"params": code_source.parameters(), "weight_decay": 0.0},
         ]
     optimizer = torch.optim.Adam(groups, lr=cfg.train.lr)

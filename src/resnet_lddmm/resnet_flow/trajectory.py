@@ -1,7 +1,7 @@
 """Trajectory: integrated path with points, velocities, and derived quantities."""
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Dict
 
 import torch
 from torch import Tensor
@@ -25,10 +25,11 @@ class Trajectory:
     dt: float
     """Integrator step size (typically 1/K). Single source of truth for all scaling."""
 
-    mode_velocities: Optional[Tensor] = None
-    """[K, B, N, 3] — the part of ``velocities`` due to designed deformation modes
-    (fields/modes.py), or None when the field has none. Charged by its own,
-    discounted cost (losses.kinetic.ModeKineticLoss), not by ``kinetic_energy``."""
+    parts: Dict[str, Tensor] = field(default_factory=dict)
+    """name -> [K, B, N, 3], the priced parts of ``velocities`` (fields/base.py
+    split_velocity): designed modes, a frozen prior, a symmetric part. Each is
+    charged at its own price (losses.kinetic.PartKineticLoss), not by
+    ``kinetic_energy``. Empty for a plain field."""
 
     @property
     def end(self) -> Tensor:
@@ -37,22 +38,22 @@ class Trajectory:
 
     @property
     def free_velocities(self) -> Tensor:
-        """[K, B, N, 3] — the velocities minus the designed modes' part: what the network moved."""
-        if self.mode_velocities is None:
+        """[K, B, N, 3] — the velocities minus the priced parts: what is charged at kinetic_weight."""
+        if not self.parts:
             return self.velocities
-        return self.velocities - self.mode_velocities
+        return self.velocities - sum(self.parts.values())
 
     def kinetic_energy(self) -> Tensor:
         """Total kinetic energy: ½ ∫ ||v(t)||² dt, summed over spatial dimensions.
 
         Computes: 0.5 × sum over [batch, points] of ||v||² × dt, on
-        ``free_velocities`` -- the designed modes' part is priced separately
-        (``mode_kinetic_energy``). Returns scalar.
+        ``free_velocities`` -- the priced parts are charged separately
+        (``part_kinetic_energy``). Returns scalar.
         """
         return _energy(self.free_velocities, self.dt)
 
-    def mode_kinetic_energy(self) -> Tensor:
-        """Kinetic energy of the designed modes' part alone; 0 without modes."""
-        if self.mode_velocities is None:
+    def part_kinetic_energy(self, name: str) -> Tensor:
+        """Kinetic energy of the priced part ``name`` alone; 0 when the field has no such part."""
+        if name not in self.parts:
             return self.velocities.new_zeros(())
-        return _energy(self.mode_velocities, self.dt)
+        return _energy(self.parts[name], self.dt)

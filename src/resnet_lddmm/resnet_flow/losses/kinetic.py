@@ -36,8 +36,8 @@ def weighted_kinetic_energy(trajectory: Trajectory, weights: Tensor) -> Tensor:
     sum over steps, times dt -- so ``weights = 1`` reproduces it exactly and a
     mean-1 field keeps the two terms on one scale.
 
-    Charges ``free_velocities``, like ``Trajectory.kinetic_energy``: designed
-    modes are priced by ``ModeKineticLoss`` instead.
+    Charges ``free_velocities``, like ``Trajectory.kinetic_energy``: the priced
+    parts (modes, prior, symmetric part) are charged by ``PartKineticLoss`` instead.
 
     Args:
         trajectory: velocities [K, B, N, 3] and dt
@@ -137,20 +137,26 @@ class PointWeightedKineticLoss(nn.Module):
         return weighted_kinetic_energy(ctx.fwd_traj, weights)
 
 
-class ModeKineticLoss(nn.Module):
-    """Kinetic energy of the designed modes' part of the flow (fields/modes.py).
+class PartKineticLoss(nn.Module):
+    """Kinetic energy of one priced part of the flow (fields/base.py split_velocity).
 
-    ``Trajectory.kinetic_energy`` leaves that part out, so this is its whole
-    price. The runner weights it as ``discount * kinetic_weight``: a discount
-    below 1 is what makes moving along a designed mode cheaper than moving any
-    other way. Both trajectories are charged under ``direction: bidirectional``,
-    as the plain kinetic term charges both.
+    ``Trajectory.kinetic_energy`` leaves the priced parts out, so this is the part's
+    whole price. The runner weights it as ``discount * kinetic_weight``: a discount
+    below 1 makes moving along that part cheaper than moving any other way -- along
+    designed modes ("modes"), the motions a frozen prior knows ("prior"), or
+    mirror-symmetric motions ("symmetric"). Both trajectories are charged under
+    ``direction: bidirectional``, as the plain kinetic term charges both.
     """
 
+    def __init__(self, part: str = "modes"):
+        """Args: part: the name of the priced part to charge."""
+        super().__init__()
+        self.part = part
+
     def forward(self, ctx: LossContext) -> Optional[Tensor]:
-        """Mode kinetic energy of ``ctx.fwd_traj`` (+ ``ctx.bwd_traj``), or None without modes."""
+        """The part's kinetic energy on ``ctx.fwd_traj`` (+ ``ctx.bwd_traj``), or None without it."""
         trajectories = [t for t in (ctx.fwd_traj, ctx.bwd_traj)
-                        if t is not None and t.mode_velocities is not None]
+                        if t is not None and self.part in t.parts]
         if not trajectories:
             return None
-        return sum(t.mode_kinetic_energy() for t in trajectories)
+        return sum(t.part_kinetic_energy(self.part) for t in trajectories)

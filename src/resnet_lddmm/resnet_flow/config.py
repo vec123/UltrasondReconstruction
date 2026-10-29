@@ -62,6 +62,12 @@ class FieldCfg:
     # Designed deformation modes added to the field at a discounted kinetic cost --
     # see fields/modes.py. {spec, template, names, discount, lr, decompose}; None = no modes.
     modes: Optional[dict] = None
+    # A frozen field of a finished run added to this one, which becomes the trainable
+    # residual -- see fields/prior.py. {run, step, discount}; None = no prior.
+    prior: Optional[dict] = None
+    # Mirror symmetry of the trained network -- see fields/symmetry.py.
+    # {mode, discount, pairs, midline, heatmap_prefix}; None = no symmetry.
+    symmetry: Optional[dict] = None
     # Equivariant stationary field (only if kind == "equivariant_stationary")
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
     gate_hidden_dim: int = 64               # hidden dim for gating network in SelfInteraction
@@ -109,11 +115,20 @@ class FieldCfg:
             if kind not in MODE_FIELD_KINDS:
                 raise ValueError(f"field.modes is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
             d["modes"] = _parse_modes(d["modes"])
+        if d.get("prior") is not None:
+            if kind not in MODE_FIELD_KINDS:
+                raise ValueError(f"field.prior is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
+            d["prior"] = _parse_prior(d["prior"])
+        if d.get("symmetry") is not None:
+            if kind not in MODE_FIELD_KINDS:
+                raise ValueError(f"field.symmetry is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
+            d["symmetry"] = _parse_symmetry(d["symmetry"])
         return cls(**d)
 
 
-# Field kinds a ModalField can wrap: pointwise ones. The contextual kinds read the
-# whole template (set_template), which the wrapper does not pass through.
+# Field kinds a ModalField or a PriorResidualField can wrap: pointwise ones. The
+# contextual kinds read the whole template (set_template), which the wrappers do not
+# pass through.
 MODE_FIELD_KINDS = ("time_varying", "time_varying_fourier", "time_varying_local", "stationary",
                     "stationary_fourier")
 # Field kinds with ONE Fourier encoding of xyz, as ``.encoding``: what field.fourier_anneal
@@ -163,6 +178,73 @@ def _parse_modes(modes) -> dict:
         raise ValueError(f"field.modes.decompose must be one of {MODE_DECOMPOSITIONS}, got {decompose!r}")
     return {"spec": modes["spec"], "template": modes["template"], "names": list(names),
             "discount": discount, "lr": lr, "decompose": decompose}
+
+
+def _parse_prior(prior) -> dict:
+    """field.prior, validated, with defaults filled in -- a plain dict so config.json round-trips it.
+
+    run       the output_dir of a finished run: its config.json gives the prior's
+              architecture, its checkpoints/ the weights. The prior works in that
+              run's frame, so a cohort run sets frame_source to the prior's members.
+    step      which checkpoint of the run; None = final.pt, else the last step.
+    discount  the prior's kinetic price relative to the residual network's: its
+              energy is charged at discount * kinetic_weight. 1 = no cheaper than any
+              other motion, 0 = free. Default 0.1.
+    """
+    if not isinstance(prior, dict):
+        raise ValueError(f"field.prior must be a mapping {{run, step, discount}}, got {prior!r}")
+    reject_unknown_keys(prior, {"run", "step", "discount"}, what="field.prior")
+    if not isinstance(prior.get("run"), str) or not prior["run"]:
+        raise ValueError(f"field.prior.run must be the output_dir of a finished run, got {prior.get('run')!r}")
+    step = prior.get("step")
+    discount = float(prior.get("discount", 0.1))
+    if discount < 0:
+        raise ValueError(f"field.prior.discount must be >= 0, got {discount}")
+    return {"run": prior["run"], "step": None if step is None else int(step), "discount": discount}
+
+
+# field.symmetry.mode: the field is mirror-symmetric, or its symmetric part is priced apart.
+SYMMETRY_MODES = ("symmetric", "split")
+
+
+def _parse_symmetry(symmetry) -> dict:
+    """field.symmetry, validated, with defaults filled in -- a plain dict so config.json round-trips it.
+
+    mode            symmetric = every flow is mirror-symmetric; split = the field is
+                    unchanged, its symmetric part charged at discount * kinetic_weight and
+                    the asymmetric rest at the full price
+    discount        split only: the symmetric part's kinetic price relative to the
+                    asymmetric part's. Default 0.3.
+    pairs           [[right, left], ...] landmark labels mirrored by the plane: their
+                    differences give its normal
+    midline         landmark labels on the plane: with the pairs' midpoints they give
+                    its position. Default none (midpoints only).
+    heatmap_prefix  the template field of a label is f"{heatmap_prefix}{label}". Default "heatmap_".
+    """
+    if not isinstance(symmetry, dict):
+        raise ValueError(f"field.symmetry must be a mapping {{mode, pairs, ...}}, got {symmetry!r}")
+    reject_unknown_keys(symmetry, {"mode", "discount", "pairs", "midline", "heatmap_prefix"},
+                        what="field.symmetry")
+    mode = symmetry.get("mode")
+    if mode not in SYMMETRY_MODES:
+        raise ValueError(f"field.symmetry.mode must be one of {SYMMETRY_MODES}, got {mode!r}")
+    if mode == "symmetric" and "discount" in symmetry:
+        raise ValueError("field.symmetry.discount only applies to mode: split (a symmetric "
+                         "field has no asymmetric part to price apart)")
+    discount = float(symmetry.get("discount", 0.3)) if mode == "split" else None
+    if discount is not None and discount < 0:
+        raise ValueError(f"field.symmetry.discount must be >= 0, got {discount}")
+    pairs = symmetry.get("pairs")
+    if not isinstance(pairs, (list, tuple)) or not pairs or not all(
+            isinstance(p, (list, tuple)) and len(p) == 2 and all(isinstance(l, str) and l for l in p)
+            for p in pairs):
+        raise ValueError(f"field.symmetry.pairs must be a non-empty list of [right, left] landmark "
+                         f"labels, e.g. [[enR, enL], [exR, exL]]; got {pairs!r}")
+    midline = symmetry.get("midline", [])
+    if not isinstance(midline, (list, tuple)) or not all(isinstance(l, str) and l for l in midline):
+        raise ValueError(f"field.symmetry.midline must be a list of landmark labels, got {midline!r}")
+    return {"mode": mode, "discount": discount, "pairs": [list(p) for p in pairs],
+            "midline": list(midline), "heatmap_prefix": str(symmetry.get("heatmap_prefix", "heatmap_"))}
 
 
 def _parse_widths(mlp, what: str) -> list:

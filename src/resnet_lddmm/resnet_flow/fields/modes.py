@@ -7,7 +7,7 @@
 slides but does not bulge" - and ``h_m(t)`` one learned amplitude per mode and
 Euler step. The point is the price: the kinetic term charges only the
 network's part (``Trajectory.free_velocities``), and the modes' part is charged
-separately at a discount (``losses.kinetic.ModeKineticLoss``), so moving along
+separately at a discount (``losses.kinetic.PartKineticLoss``), so moving along
 a designed mode is cheap and any other motion costs what it always did.
 
 Each ``phi_m`` is a Gaussian kernel expansion (``KernelExpansion``), placed once
@@ -16,13 +16,15 @@ checkpoint carries the exact fields its amplitudes were trained with and apply
 needs neither the spec nor the template.
 """
 
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
+from src.resnet_lddmm.resnet_flow.fields.base import VelocityField, split_velocity
+from src.resnet_lddmm.resnet_flow.fields.prior import PriorResidualField
+from src.resnet_lddmm.resnet_flow.fields.symmetry import SymmetricField
 
 
 class ModeBasis(nn.Module):
@@ -122,20 +124,35 @@ class ModalField(VelocityField):
         self.amplitude = nn.Parameter(torch.zeros(int(num_steps), len(self.names)))
 
     def split(self, x: Tensor, step: Optional[int] = None,
-              code: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:
-        """(total velocity, the modes' part of it), both [B, N, 3].
+              code: Optional[Tensor] = None) -> Tuple[Tensor, Dict[str, Tensor]]:
+        """(total velocity, priced parts): the modes' part as "modes", plus the network's own.
 
-        Integrators record the second so the kinetic cost can charge it apart
-        from the network's part.
+        Integrators record the parts so the kinetic cost can charge each apart
+        from the rest (fields/base.py split_velocity).
         """
         amplitude = self.amplitude[0 if step is None else step].to(x.dtype)
         modal = torch.einsum("bnmd,m->bnd", self.basis(x), amplitude)
-        return self.network(x, step=step, code=code) + modal, modal
+        velocity, parts = split_velocity(self.network, x, step=step, code=code)
+        return velocity + modal, {**parts, "modes": modal}
 
     def forward(self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None) -> Tensor:
         return self.split(x, step=step, code=code)[0]
 
 
+WRAPPERS = (ModalField, PriorResidualField, SymmetricField)
+
+
 def network_of(field: VelocityField) -> VelocityField:
-    """The learned network inside ``field`` - itself, unless modes are wrapped around it."""
-    return field.network if isinstance(field, ModalField) else field
+    """The trained network inside ``field`` - itself, unless modes, a prior or a symmetry are wrapped around it."""
+    while isinstance(field, WRAPPERS):
+        field = field.network
+    return field
+
+
+def symmetric_field_of(field: VelocityField) -> Optional[SymmetricField]:
+    """The SymmetricField around the trained network, or None (a frozen prior's own is not searched)."""
+    while isinstance(field, WRAPPERS):
+        if isinstance(field, SymmetricField):
+            return field
+        field = field.network
+    return None

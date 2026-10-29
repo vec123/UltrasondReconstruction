@@ -224,8 +224,7 @@ class DeformationClient:
             points=torch.cat([c.points for c in chunks], dim=2),
             velocities=torch.cat([c.velocities for c in chunks], dim=2),
             dt=chunks[0].dt,
-            mode_velocities=None if chunks[0].mode_velocities is None
-            else torch.cat([c.mode_velocities for c in chunks], dim=2),
+            parts={name: torch.cat([c.parts[name] for c in chunks], dim=2) for name in chunks[0].parts},
         )
 
     def _field(self):
