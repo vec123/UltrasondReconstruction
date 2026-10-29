@@ -414,6 +414,7 @@ class CodeCfg:
     grid_channels: int = 32                 # C — grid-head output per corner (only if position_aware=True)
     grid_direct: bool = False               # the code IS the grid (n_z = g³·C), not decoded into it
     grid_reg: GridRegCfg = dataclass_field(default_factory=GridRegCfg)  # per-node penalty weights (direct grid)
+    init_std: float = 0.01                  # auto_decoder: std of the codes at init
 
     # Encoder-specific config (only used if kind == "encoder")
     encoder_config: Optional[EncoderConfig] = dataclass_field(default=None)
@@ -523,13 +524,15 @@ class ChamferSideCfg:
             refused under direction: bidirectional (see FieldWeightedCDData).
         inherit_target_field: source_to_target ONLY, the mirror of
             inherit_source_field. Each source point takes, as a precision
-            multiplier, the target_to_source field's value at its NEAREST target
-            point -- recomputed every step from the current matches. With a target
-            field that is 0 on the target's rim (scripts/write_edge_fields.py:
-            support_edge), a source point the target never saw, whose nearest
-            target point lies on the rim, stops pulling toward the rim. Multiplies
-            this side's own field when both are set. Needs a target_to_source
-            field_name, and is refused under direction: bidirectional.
+            multiplier, a target field's value at its NEAREST target point --
+            recomputed every step from the current matches. ``true`` inherits the
+            target_to_source field; a field NAME (e.g. edge_weight) inherits that
+            target field instead, which then acts on this direction only (cohort
+            mode). With a target field that is 0 on the target's rim
+            (scripts/write_edge_fields.py: edge_weight), a source point the target
+            never saw, whose nearest target point lies on the rim, stops pulling
+            toward the rim. Multiplies this side's own field when both are set.
+            Refused under direction: bidirectional.
     """
     weight: float = 1.0
     base_sigma: float = 0.1
@@ -539,7 +542,7 @@ class ChamferSideCfg:
     field_scale: Optional[float] = None
     loss_distance_handle: Optional[dict] = None
     inherit_source_field: bool = False
-    inherit_target_field: bool = False
+    inherit_target_field: Any = False       # False | True | a target field name
 
     TRANSFORMS = ("gaussian_distance",)
 
@@ -578,7 +581,17 @@ class ChamferSideCfg:
                    field_transform=field_transform, field_scale=field_scale,
                    loss_distance_handle=d.get("loss_distance_handle"),
                    inherit_source_field=bool(d.get("inherit_source_field", False)),
-                   inherit_target_field=bool(d.get("inherit_target_field", False)))
+                   inherit_target_field=_parse_inherit_target_field(d.get("inherit_target_field", False)))
+
+
+def _parse_inherit_target_field(value):
+    """source_to_target.inherit_target_field: a bool, or a non-empty target field name."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value:
+        return value
+    raise ValueError(f"inherit_target_field must be true/false or a target field name "
+                     f"(e.g. edge_weight), got {value!r}")
 
 
 @dataclass
@@ -766,6 +779,12 @@ class LossCfg:
     fshape_weight: float = 0.0
     fshape_kwargs: dict = dataclass_field(default_factory=dict)
     code_reg_weight: float = 0.0
+    # {start, end}: code_reg_weight is 0 before step start and ramps linearly to its value at
+    # end, so the codes can take on the data before the penalty pulls them to zero. None = off.
+    code_reg_warmup: Optional[dict] = None
+    # {every, nu, weighting, rel_eps}: learn a Gaussian prior on the codes a frozen field.prior
+    # reads by EM over their Laplace posteriors (callbacks/schedules/code_prior_em.py). None = off.
+    code_prior_em: Optional[dict] = None
     weight_decay: float = 0.0               # Θ only — see Phase 6
     isometry_weight: float = 0.0            # disabled by default
     equivariant_deformation_weight: float = 0.0   # ||phi(g.T) - g.phi(T)||^2; 0 = not computed
@@ -866,6 +885,9 @@ class InitCfg:
         code_prior: "mean" centres the code penalty on the checkpoint's code mean
             instead of zero, so a fit is pulled towards the learned code space
             rather than towards the zero code (a different face on a direct grid).
+        code_prior_file: an .npz a CodePriorEM run wrote (code_prior_em/step_*.npz):
+            its Gaussian N(m, C) on the leading code entries becomes the code
+            penalty, the rest keep the plain L2 (runner._set_code_prior_from_file).
     """
 
     # The keys CheckpointWriter puts in the file, which are exactly the keys the
@@ -879,13 +901,16 @@ class InitCfg:
     continue_step_count: bool = True
     code_init: Optional[str] = None
     code_prior: Optional[str] = None
+    code_prior_file: Optional[str] = None
 
     CODE_INITS = ("mean",)
 
     @classmethod
     def from_dict(cls, d: dict) -> "InitCfg":
         reject_unknown_keys(d, {"checkpoint", "step", "parts", "continue_step_count", "code_init",
-                                "code_prior"}, what="init")
+                                "code_prior", "code_prior_file"}, what="init")
+        if d.get("code_prior") is not None and d.get("code_prior_file") is not None:
+            raise ValueError("init.code_prior and init.code_prior_file both set the code penalty; give one")
         code_init, code_prior = d.get("code_init"), d.get("code_prior")
         for key, value in (("code_init", code_init), ("code_prior", code_prior)):
             if value is not None and value not in cls.CODE_INITS:
@@ -916,7 +941,8 @@ class InitCfg:
                    parts=parts,
                    continue_step_count=bool(d.get("continue_step_count", True)),
                    code_init=code_init,
-                   code_prior=code_prior)
+                   code_prior=code_prior,
+                   code_prior_file=d.get("code_prior_file"))
 
 
 @dataclass

@@ -52,7 +52,7 @@ from src.resnet_lddmm.resnet_flow.callbacks.gradient_logs import (
     GradientLogger, NetworkStructureInspector, RequiresGradMonitor,
 )
 from src.resnet_lddmm.resnet_flow.callbacks.loss import LossLogger, VerboseCallback
-from src.resnet_lddmm.resnet_flow.callbacks.schedules import FourierAnnealing
+from src.resnet_lddmm.resnet_flow.callbacks.schedules import CodePriorEM, CodeRegWarmup, FourierAnnealing
 
 # Data terms taking the per-direction ChamferSideCfg config shape
 # ({source_to_target: {...}, target_to_source: {...}} in data_kwargs) and owning
@@ -1105,6 +1105,12 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
 
     # The mirrored backward half would put the inheritance on the OTHER claim
     # (source points taking the target's field), which is not what was configured.
+    if data_term.source_to_target_inherit_field_name is not None:
+        raise NotImplementedError(
+            f"source_to_target.inherit_target_field: {data_term.source_to_target_inherit_field_name} "
+            f"(a named target field) is supported in train.mode='cohort' only; use true "
+            f"to inherit the target_to_source field."
+        )
     if bidirectional and (data_term.target_to_source_inherit_source_field
                           or data_term.source_to_target_inherit_target_field):
         raise NotImplementedError(
@@ -1201,6 +1207,15 @@ def _add_cohort_field_weighted_chamfer(cfg, cohort_norm, template_norm, mapping_
         if field is not None:
             field = field.to(member.points.dtype).unsqueeze(0)
             member.weights = field if member.weights is None else member.weights * field
+
+    match_name = data_term.source_to_target_inherit_field_name
+    if match_name is not None:
+        for member in cohort_norm:
+            field = resolve_point_weight_field(match_name, None, fallback_shape=member)
+            member.match_weights = field.to(member.points.dtype).unsqueeze(0)
+        print(f"[field_weighted_chamfer] source_to_target inherits {match_name!r} of each member's "
+              f"nearest point: range [{min(m.match_weights.min().item() for m in cohort_norm):.4g}, "
+              f"{max(m.match_weights.max().item() for m in cohort_norm):.4g}]")
 
     member_fields = [m.weights for m in cohort_norm if m.weights is not None]
     for label, fields in (("source_to_target (template)", [] if template_field is None else [template_field]),
@@ -1477,7 +1492,8 @@ def build_code_source_cohort(num_shapes, kind, code_cfg):
             code_cfg.n_z
         )
     elif kind == "auto_decoder":
-        return Registry.create("code", kind, num_shapes=num_shapes, n_z=code_cfg.n_z)
+        return Registry.create("code", kind, num_shapes=num_shapes, n_z=code_cfg.n_z,
+                               init_std=getattr(code_cfg, "init_std", 0.01))
     else:
         # "none"
         return Registry.create("code", kind)
@@ -1722,6 +1738,9 @@ def restore_from(cfg, stepper):
         if init.code_prior == "mean":
             stepper.code_source.set_penalty_center(mean)
             print(f"[INIT] the code penalty pulls towards the mean of the checkpoint's {count} codes")
+    if init.code_prior_file is not None:
+        _set_code_prior_from_file(stepper.code_source, init.code_prior_file, cfg.loss.code_reg_weight,
+                                  cfg.train.batch)
 
     written_at = checkpoint_step(state)
     start_step = (written_at + 1) if (init.continue_step_count and written_at is not None) else 0
@@ -1729,6 +1748,32 @@ def restore_from(cfg, stepper):
           + (f" (step {written_at}); continuing from step {start_step}"
              if start_step else " (step counter starts at 0)"))
     return start_step
+
+
+def _set_code_prior_from_file(code_source, path, code_reg_weight, batch):
+    """init.code_prior_file: the Gaussian N(m, C) a CodePriorEM run learned on the leading code entries.
+
+    The penalty gets center [m | 0] and precision blockdiag(C^-1 / (2 B lambda), I): the
+    per-member prior of callbacks.schedules.code_prior_em for this run's own member count
+    B and code_reg_weight lambda, so a code fit with fewer members keeps it unchanged.
+    """
+    prior = np.load(path)
+    m, C, n = prior["m"], prior["C"], int(prior["n_em"])
+    members = code_source.num_shapes
+    if batch < members:
+        raise ValueError(f"init.code_prior_file needs every member in every batch: train.batch {batch} "
+                         f"< {members} members")
+    if code_reg_weight <= 0:
+        raise ValueError("init.code_prior_file needs loss.code_reg_weight > 0: the prior is that penalty")
+    table = code_source.codes.weight
+    precision = np.eye(code_source.n_z)
+    precision[:n, :n] = np.linalg.inv(C) / (2.0 * members * code_reg_weight)
+    center = np.zeros(code_source.n_z)
+    center[:n] = m
+    code_source.set_penalty_precision(torch.as_tensor(center, dtype=table.dtype),
+                                      torch.as_tensor(precision, dtype=table.dtype))
+    print(f"[INIT] code prior N(m, C) on the first {n} code entries from {path} "
+          f"(trace C {np.trace(C):.4g}); the other {code_source.n_z - n} keep the plain L2")
 
 
 def _dump_config(cfg, mode):
@@ -1779,6 +1824,19 @@ def default_callbacks(cfg) -> list:
     ]
 
 
+def _code_prior_em(cfg, stepper):
+    """loss.code_prior_em's callback: EM on the code entries the frozen field.prior reads.
+
+    Member names come from cfg.source in load_cohort's order, which is the code order.
+    """
+    priors = [m for m in stepper.flow.field.modules() if isinstance(m, PriorResidualField)]
+    if cfg.train.mode != "cohort" or not priors or priors[0].prior_n_z == 0:
+        raise ValueError("loss.code_prior_em needs train.mode: cohort and a field.prior that reads a code")
+    names = [os.path.splitext(f)[0] for f in sorted(f for f in os.listdir(cfg.source) if f.lower().endswith(".vtp"))]
+    return CodePriorEM(stepper, names, priors[0].prior_n_z, cfg.loss.code_reg_weight, cfg.output_dir,
+                       **cfg.loss.code_prior_em)
+
+
 def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
     """``callbacks`` plus everything this run's model and config call for, in running order.
 
@@ -1814,6 +1872,9 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
 
     # Coarse-to-fine Fourier bands. After CheckpointWriter, so a checkpoint keeps the
     # alpha its weights were trained with; before LossLogger, so fourier/alpha is logged.
+    # The code penalty's warm-up: before Fourier/loggers, like the other schedules.
+    if getattr(cfg.loss, "code_reg_warmup", None):
+        callbacks.append(CodeRegWarmup(stepper.composer, cfg.loss.code_reg_weight, **cfg.loss.code_reg_warmup))
     if cfg.field.kind in FOURIER_FIELD_KINDS and cfg.field.fourier_anneal is not None:
         callbacks.append(FourierAnnealing(network_of(stepper.flow.field).encoding, **cfg.field.fourier_anneal))
     if cfg.field.kind == "time_varying_local":
@@ -1845,6 +1906,11 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
         source, target, _ = load_pair(cfg)       # with landmarks (the loader's copies have none)
         callbacks.append(DecompositionExporter(source, target, transform,
                                                trajectories=decompose == "trajectories"))
+
+    # The code prior's EM, last: its Laplace passes overwrite the stepper's last
+    # trajectory and sample, which the callbacks before it read.
+    if getattr(cfg.loss, "code_prior_em", None):
+        callbacks.append(_code_prior_em(cfg, stepper))
 
     # Hand the frame transform to every exporter that wants one. This runs AFTER all
     # appends above: PoseShapeExporter is added conditionally further up, and assigning
