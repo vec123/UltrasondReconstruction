@@ -17,7 +17,7 @@ class AutoDecoderCodes(ShapeCode):
     """
 
     def __init__(self, num_shapes: int, n_z: int = 256, regularization_weight: float = 1.0,
-                 pose=None):
+                 pose=None, init_std: float = 0.01):
         """Initialize auto-decoder code table.
 
         Args:
@@ -37,13 +37,16 @@ class AutoDecoderCodes(ShapeCode):
         self.regularization_weight = regularization_weight
 
         self.codes = nn.Embedding(num_shapes, n_z)
-        nn.init.normal_(self.codes.weight, mean=0.0, std=0.01)
+        nn.init.normal_(self.codes.weight, mean=0.0, std=init_std)
         # Per-entry penalty weights [num_shapes, n_z], or None for a plain L2. Not
         # persistent: they are recomputed from the config and data, not trained, so
         # checkpoints and apply stay unchanged.
         self.register_buffer("penalty_weights", None, persistent=False)
         # The code the penalty pulls towards [n_z], or None for zero. Not persistent either.
         self.register_buffer("penalty_center", None, persistent=False)
+        # A full precision [n_z, n_z] in place of the per-entry L2, or None. Not persistent
+        # either: a learned prior (callbacks.schedules.CodePriorEM) writes its own files.
+        self.register_buffer("penalty_precision", None, persistent=False)
 
     def set_penalty_weights(self, weights: Tensor):
         """Weight the L2 penalty per shape and code entry (e.g. per grid node).
@@ -65,6 +68,23 @@ class AutoDecoderCodes(ShapeCode):
         if tuple(center.shape) != (self.n_z,):
             raise ValueError(f"penalty center {tuple(center.shape)} does not match n_z={self.n_z}")
         self.penalty_center = center.to(self.codes.weight)
+
+    def set_penalty_precision(self, center: Tensor, precision: Tensor):
+        """Penalise each code by ``(c - center)^T P (c - center)``: a Gaussian prior with a full covariance.
+
+        Args:
+            center: [n_z]
+            precision: [n_z, n_z], symmetric positive semi-definite
+
+        Raises:
+            ValueError: per-entry penalty weights are set; the two do not combine.
+        """
+        if tuple(precision.shape) != (self.n_z, self.n_z):
+            raise ValueError(f"penalty precision {tuple(precision.shape)} does not match n_z={self.n_z}")
+        if self.penalty_weights is not None:
+            raise ValueError("a full penalty precision replaces per-entry penalty weights; this table has both")
+        self.set_penalty_center(center)
+        self.penalty_precision = precision.to(self.codes.weight)
 
     def forward(self, batch) -> Optional[Tensor]:
         """Extract codes for shapes in batch.
@@ -96,9 +116,12 @@ class AutoDecoderCodes(ShapeCode):
         Returns:
             Scalar loss tensor: regularization_weight * ||codes.weight - center||_2^2,
             each entry weighted by penalty_weights when those are set; the center
-            is penalty_center, or zero
+            is penalty_center, or zero. With penalty_precision set, the squared norm
+            is (codes - center)^T P (codes - center) per shape instead.
         """
         offset = self.codes.weight if self.penalty_center is None else self.codes.weight - self.penalty_center
+        if self.penalty_precision is not None:
+            return self.regularization_weight * torch.einsum("si,ij,sj->", offset, self.penalty_precision, offset)
         squared = offset ** 2
         if self.penalty_weights is not None:
             squared = squared * self.penalty_weights
