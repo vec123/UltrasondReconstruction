@@ -396,3 +396,90 @@ def compute_flat_region_area(polydata, n_rings=5, flat_thresh=0.05, field_name="
     if field_name is not None:
         add_point_field(polydata, flat_area, field_name=field_name)
     return flat_area
+
+
+def compute_point_cloud_edges(polydata, normal_field="normal", k=16, gap_deg=120.0,
+                              ramp_spacings=3.0, prefix="edge"):
+    """Mark the rim and the hole borders of a surface given as points, and taper toward them.
+
+    For a point cloud with no faces (e.g. a fused ultrasound target) the mesh
+    boundary does not exist, so a point is called an EDGE point when its ``k``
+    nearest neighbours, projected onto its tangent plane, leave an angular gap
+    larger than ``gap_deg``: inside a surface the neighbours surround a point, on
+    a rim they lie on one side only.
+
+    From the edge points it derives, and attaches as point fields:
+
+    - ``{prefix}``: 1 on edge points, 0 elsewhere.
+    - ``{prefix}_distance``: Euclidean distance to the nearest edge point, in the
+      polydata's own units.
+    - ``{prefix}_weight``: a smooth (C1 smoothstep) ramp from 0 on the edge to 1
+      at ``ramp_spacings`` point spacings inside it. Given in spacings, not
+      lengths, so the same setting means the same thing in mm or in a shape
+      model's frame.
+
+    Coincident points (fusions can hold many copies of one point) are merged
+    first, to within 1e-4 of the bounding-box diagonal: a copy would otherwise be
+    a neighbour at distance zero, with no direction for the gap test. The spacing
+    is estimated from the k-th neighbour, h = d_k sqrt(pi / k) (uniform sampling
+    of a surface), which a dense rim band or a few remaining near-copies cannot
+    pull to zero the way a median nearest-neighbour distance can.
+
+    Args:
+        polydata: vtkPolyData with a ``normal_field`` point array (unit normals)
+        normal_field: the normals' array name; its tangent planes orient the gap test
+        k: neighbours per point for the gap test
+        gap_deg: the largest angular gap an interior point may show
+        ramp_spacings: the ramp's width, in median nearest-neighbour spacings
+        prefix: the fields' name prefix
+
+    Returns:
+        dict with "edge" [N] bool, "distance" [N], "weight" [N], "spacing" (the
+        median nearest-neighbour spacing) and "ramp" (the ramp width), lengths in
+        the polydata's units.
+
+    Raises:
+        ValueError: no normal array, or fewer than k + 1 points.
+    """
+    from vtk.util.numpy_support import vtk_to_numpy
+
+    points = vtk_to_numpy(polydata.GetPoints().GetData()).astype(np.float64)
+    array = polydata.GetPointData().GetArray(normal_field)
+    if array is None:
+        raise ValueError(f"compute_point_cloud_edges needs a '{normal_field}' point array "
+                         f"(the tangent planes of the gap test)")
+    if len(points) <= k:
+        raise ValueError(f"compute_point_cloud_edges needs more than k={k} points, got {len(points)}")
+    normals = vtk_to_numpy(array).astype(np.float64)
+    normals /= np.linalg.norm(normals, axis=1, keepdims=True).clip(1e-12)
+
+    tolerance = 1e-4 * float(np.linalg.norm(np.ptp(points, axis=0)))
+    _, first, inverse = np.unique(np.round(points / tolerance).astype(np.int64), axis=0,
+                                  return_index=True, return_inverse=True)
+    inverse = inverse.reshape(-1)
+    unique = points[first]
+    if len(unique) <= k:
+        raise ValueError(f"compute_point_cloud_edges needs more than k={k} distinct points, got {len(unique)}")
+
+    distances, neighbours = cKDTree(unique).query(unique, k=k + 1)
+    spacing = float(np.median(distances[:, k]) * np.sqrt(np.pi / k))
+    offsets = unique[neighbours[:, 1:]] - unique[:, None]                     # [U, k, 3]
+    a, b = _tangent_frames(normals[first])
+    angles = np.sort(np.arctan2(np.einsum("nkd,nd->nk", offsets, b),
+                                np.einsum("nkd,nd->nk", offsets, a)), axis=1)
+    gaps = np.diff(np.concatenate([angles, angles[:, :1] + 2.0 * np.pi], axis=1), axis=1)
+    edge = (np.degrees(gaps.max(axis=1)) > gap_deg)[inverse]
+
+    if edge.any():
+        distance = cKDTree(points[edge]).query(points)[0]
+    else:
+        distance = np.full(len(points), np.inf)
+    ramp = ramp_spacings * spacing
+    t = np.clip(distance / ramp, 0.0, 1.0)
+    weight = t * t * (3.0 - 2.0 * t)
+
+    add_point_field(polydata, edge.astype(np.float32), field_name=prefix)
+    add_point_field(polydata, np.minimum(distance, np.finfo(np.float32).max).astype(np.float32),
+                    field_name=f"{prefix}_distance")
+    add_point_field(polydata, weight.astype(np.float32), field_name=f"{prefix}_weight")
+    return {"edge": edge, "distance": distance, "weight": weight, "spacing": spacing, "ramp": ramp}
