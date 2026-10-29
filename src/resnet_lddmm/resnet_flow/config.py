@@ -40,6 +40,13 @@ DTYPES = ("float32", "float64")
 class FieldCfg:
     kind: str = "time_varying"              # time_varying | time_varying_fourier | time_varying_local | stationary | stationary_fourier | equivariant_stationary
     num_steps: int = 10                     # K — configured in ONE place
+    # Recompute each Euler step's field values in the backward pass instead of storing
+    # them (integrators.Integrator): same gradients, far less memory, ~20-30% slower.
+    grad_checkpointing: bool = False
+    # Std of each velocity block's output layer at init. 0 (the default) is the zero init, so
+    # the flow starts as the identity; a small value makes dv/dcode non-zero from the start,
+    # which an auto-decoder needs to leave the z = 0, v = 0 saddle (see blocks.VelocityBlock).
+    proj_init_std: float = 0.0
     mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary/equivariant_stationary)
     activation: str = "relu"
     fa: tuple = (64, 64, 64)                # stationary: FA-NN layer widths

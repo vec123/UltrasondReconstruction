@@ -14,6 +14,7 @@ import dataclasses
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import (
     CheckpointWriter, checkpoint_step, load_checkpoint, resolve_checkpoint,
@@ -301,8 +302,8 @@ def build_flow(cfg):
         field = ModalField(field, cfg.field.modes["names"], cfg.field.num_steps)
     flow = NeuralODEFlow(
         field=field,
-        direct=ForwardEuler(),
-        inverse=ModifiedEuler(),
+        direct=ForwardEuler(grad_checkpointing=cfg.field.grad_checkpointing),
+        inverse=ModifiedEuler(grad_checkpointing=cfg.field.grad_checkpointing),
         num_steps=cfg.field.num_steps
     )
     # Conditionally wrap flow at identity for pose-only training
@@ -1062,6 +1063,7 @@ def build(cfg: ExperimentCfg):
     # freezes the flow. Shared verbatim with apply, which rebuilds this same module
     # to load a checkpoint into.
     flow = build_flow(cfg)
+    init_projections(flow, getattr(cfg.field, "proj_init_std", 0.0))
 
     # Registry.create: data term and isometry loss (shared). Old robust_* keys
     # fail here with their replacement rather than as an unexpected argument.
@@ -1218,6 +1220,16 @@ def build_code_source(kind, code_cfg, pose=None):
     else:
         # For "none" and "auto_decoder", use Registry with standard args
         return Registry.create("code", kind, pose=pose)
+
+
+def init_projections(flow, std):
+    """Re-initialise every VelocityBlock's output layer N(0, std^2); std 0 keeps the zero init."""
+    if std <= 0:
+        return
+    from src.resnet_lddmm.resnet_flow.fields.blocks import VelocityBlock
+    for module in flow.modules():
+        if isinstance(module, VelocityBlock):
+            nn.init.normal_(module.proj.weight, mean=0.0, std=std)
 
 
 def build_code_source_cohort(num_shapes, kind, code_cfg):

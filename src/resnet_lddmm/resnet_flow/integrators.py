@@ -5,6 +5,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.checkpoint import checkpoint
 
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
 from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
@@ -25,6 +26,23 @@ def _trajectory(points, velocities, modal, dt) -> Trajectory:
 
 class Integrator(abc.ABC):
     """Abstract integrator: steps a velocity field to produce a trajectory."""
+
+    def __init__(self, grad_checkpointing: bool = False):
+        """Initialize the integrator.
+
+        Args:
+            grad_checkpointing: store only each step's positions and recompute the
+                field's intermediate values in the backward pass, instead of storing
+                them for every step. Same gradients, far less memory, one more field
+                evaluation per step. Only acts while gradients are enabled.
+        """
+        self.grad_checkpointing = grad_checkpointing
+
+    def _velocity(self, field: VelocityField, q: Tensor, step: int, code: Optional[Tensor]):
+        """_velocity, through torch.utils.checkpoint when grad_checkpointing is on."""
+        if self.grad_checkpointing and torch.is_grad_enabled():
+            return checkpoint(_velocity, field, q, step, code, use_reentrant=False)
+        return _velocity(field, q, step, code)
 
     @abc.abstractmethod
     def integrate(
@@ -78,7 +96,7 @@ class ForwardEuler(Integrator):
         modal = []
 
         for k in range(num_steps):
-            v, v_mode = _velocity(field, q, k, code)
+            v, v_mode = self._velocity(field, q, k, code)
             q = q + dt * v
             points.append(q)
             velocities.append(v)
@@ -128,11 +146,11 @@ class ModifiedEuler(Integrator):
         # Reversed step order for time-varying fields: K-1, K-2, ..., 0
         for k in reversed(range(num_steps)):
             # Predictor step: tentative q at previous time
-            v_hat = field(q, step=k, code=code)
+            v_hat = self._velocity(field, q, k, code)[0]
             q_pred = q - dt * v_hat
 
             # Corrector step: velocity at predicted location (Picard iteration)
-            v, v_mode = _velocity(field, q_pred, k, code)
+            v, v_mode = self._velocity(field, q_pred, k, code)
             q = q - dt * v
 
             points.append(q)
