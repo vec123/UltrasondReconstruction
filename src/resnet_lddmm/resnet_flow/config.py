@@ -521,6 +521,15 @@ class ChamferSideCfg:
             point, with no annotation on the target. Multiplies this side's own
             field when both are set. Needs a source_to_target field_name, and is
             refused under direction: bidirectional (see FieldWeightedCDData).
+        inherit_target_field: source_to_target ONLY, the mirror of
+            inherit_source_field. Each source point takes, as a precision
+            multiplier, the target_to_source field's value at its NEAREST target
+            point -- recomputed every step from the current matches. With a target
+            field that is 0 on the target's rim (scripts/write_edge_fields.py:
+            support_edge), a source point the target never saw, whose nearest
+            target point lies on the rim, stops pulling toward the rim. Multiplies
+            this side's own field when both are set. Needs a target_to_source
+            field_name, and is refused under direction: bidirectional.
     """
     weight: float = 1.0
     base_sigma: float = 0.1
@@ -530,6 +539,7 @@ class ChamferSideCfg:
     field_scale: Optional[float] = None
     loss_distance_handle: Optional[dict] = None
     inherit_source_field: bool = False
+    inherit_target_field: bool = False
 
     TRANSFORMS = ("gaussian_distance",)
 
@@ -538,7 +548,7 @@ class ChamferSideCfg:
         reject_renamed_loss_distance_keys(d, "source_to_target/target_to_source block")
         reject_unknown_keys(d, {"weight", "base_sigma", "field_name", "field_source",
                                 "field_transform", "field_scale", "loss_distance_handle",
-                                "inherit_source_field"},
+                                "inherit_source_field", "inherit_target_field"},
                             what="chamfer side")
         weight = float(d.get("weight", 1.0))
         base_sigma = float(d.get("base_sigma", 0.1))
@@ -567,7 +577,8 @@ class ChamferSideCfg:
                    field_name=d.get("field_name"), field_source=d.get("field_source"),
                    field_transform=field_transform, field_scale=field_scale,
                    loss_distance_handle=d.get("loss_distance_handle"),
-                   inherit_source_field=bool(d.get("inherit_source_field", False)))
+                   inherit_source_field=bool(d.get("inherit_source_field", False)),
+                   inherit_target_field=bool(d.get("inherit_target_field", False)))
 
 
 @dataclass

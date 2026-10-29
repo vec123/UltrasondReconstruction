@@ -1105,11 +1105,13 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
 
     # The mirrored backward half would put the inheritance on the OTHER claim
     # (source points taking the target's field), which is not what was configured.
-    if bidirectional and data_term.target_to_source_inherit_source_field:
+    if bidirectional and (data_term.target_to_source_inherit_source_field
+                          or data_term.source_to_target_inherit_target_field):
         raise NotImplementedError(
-            "target_to_source.inherit_source_field is not supported under "
-            "direction='bidirectional' yet: the mirrored backward half has no "
-            "defined meaning for it. Use direction='forward', or drop the key."
+            "target_to_source.inherit_source_field / source_to_target.inherit_target_field "
+            "are not supported under direction='bidirectional' yet: the mirrored "
+            "backward half has no defined meaning for them. Use direction='forward', "
+            "or drop the key."
         )
 
     if bidirectional:

@@ -746,6 +746,53 @@ class FieldWeightedCDData(TwoSidedDataTerm):
             print(f"[data_term] target_to_source: each target point weighted by "
                   f"{st.field_name!r} at its nearest deformed source point")
 
+        if ts.inherit_target_field:
+            raise ValueError(
+                "inherit_target_field is a source_to_target setting: it gives each "
+                "SOURCE point the target field at its matched target point. The "
+                "target_to_source side already reads the target field directly."
+            )
+        if st.inherit_target_field and ts.field_name is None:
+            raise ValueError(
+                "source_to_target.inherit_target_field needs a field to inherit: set "
+                "target_to_source.field_name (e.g. support_edge)."
+            )
+        self.source_to_target_inherit_target_field = st.inherit_target_field
+        if st.inherit_target_field:
+            print(f"[data_term] source_to_target: each source point weighted by "
+                  f"{ts.field_name!r} at its nearest target point")
+
+    def _source_to_target_weight(self, pred_w: Optional[Tensor], tgt_w: Optional[Tensor],
+                                 nearest_target: Tensor) -> Optional[Tensor]:
+        """The per-source-point weight source_to_target's mean runs under.
+
+        ``pred_w`` unchanged unless inherit_target_field is set; then each source
+        point's matched target point's ``tgt_w``, times ``pred_w`` when that is set
+        too. The mirror of _target_to_source_weight: the match is an argmin, so the
+        weight is a constant for this step.
+
+        Args:
+            pred_w: [1 or B, N] source weights, or None
+            tgt_w: [1 or B, M] target field at the target points, or None
+            nearest_target: [B, N] index of each source point's nearest target point
+
+        Returns:
+            [B, N] (or pred_w's shape) weights, or None for a plain mean.
+
+        Raises:
+            ValueError: inheriting, but no target field reached the data term.
+        """
+        if not self.source_to_target_inherit_target_field:
+            return pred_w
+        if tgt_w is None:
+            raise ValueError(
+                "source_to_target.inherit_target_field is set, but no target field "
+                "reached the data term (tgt_w is None)."
+            )
+        batch = nearest_target.shape[0]
+        inherited = tgt_w.detach().expand(batch, -1).gather(1, nearest_target)
+        return inherited if pred_w is None else inherited * pred_w
+
     def _target_to_source_weight(self, pred_w: Optional[Tensor], tgt_w: Optional[Tensor],
                                  nearest_source: Tensor) -> Optional[Tensor]:
         """The per-target-point weight target_to_source's mean runs under.
@@ -889,8 +936,10 @@ class FieldWeightedCDData(TwoSidedDataTerm):
 
         term1 = None
         if self.scores_source_to_target:
-            d1 = self.source_to_target_loss_distance_handle(dist_sq.min(dim=2)[0])
-            term1 = self._weighted_mean(d1, pred_w) / (2.0 * self.source_to_target_sigma ** 2)
+            d_min, idx = dist_sq.min(dim=2)                       # [B, N]
+            d1 = self.source_to_target_loss_distance_handle(d_min)
+            w1 = self._source_to_target_weight(pred_w, tgt_w, idx)
+            term1 = self._weighted_mean(d1, w1) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
         if self.scores_target_to_source:
@@ -1040,7 +1089,8 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             offset = pred - target.gather(1, gather_idx)          # [B, N, 3]
             d_plane = (offset * n.gather(1, gather_idx)).sum(-1).pow(2)
             d1 = self.source_to_target_loss_distance_handle((1.0 - a) * d_point + a * d_plane)
-            term1 = self._weighted_mean(d1, pred_w) / (2.0 * self.source_to_target_sigma ** 2)
+            w1 = self._source_to_target_weight(pred_w, tgt_w, idx)
+            term1 = self._weighted_mean(d1, w1) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
         if self.scores_target_to_source:
