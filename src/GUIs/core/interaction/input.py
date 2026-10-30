@@ -21,7 +21,7 @@ from typing import Callable, Dict, Iterable, Optional, Union
 
 import vtk
 
-from src.GUIs.core.viewer import Viewer
+from src.GUIs.core.scene.viewer import Viewer
 
 Log = Callable[..., None]
 

@@ -3,7 +3,7 @@
 :class:`FieldPreview` keeps the mesh's rest shape and a list of named fields
 ``u_k`` (one (N, 3) displacement per vertex - typically a generated mode at
 unit strength), and shows ``rest + sum_k alpha_k u_k``. It is also the
-:class:`~src.GUIs.core.slider_panel.SliderSource` for amplitude sliders:
+:class:`~src.GUIs.core.panels.slider_panel.SliderSource` for amplitude sliders:
 ``alpha`` holds the amplitudes and ``sigma`` one *reference* amplitude per
 field, chosen so that a slider at 1 moves that field's peak by
 ``reference_fraction`` of the mesh radius - so sliders read the same whatever
@@ -17,9 +17,9 @@ from typing import Callable, List, Optional, Sequence, Union
 import numpy as np
 import vtk
 
-from src.GUIs.core.coloring import SEQUENTIAL, ScalarColoring, SurfaceColoring
-from src.GUIs.core.glyphs import VectorGlyphs
-from src.GUIs.core.mesh_view import MeshView
+from src.GUIs.core.scene.coloring import SEQUENTIAL, ScalarColoring, SurfaceColoring
+from src.GUIs.core.scene.glyphs import VectorGlyphs
+from src.GUIs.core.scene.mesh_view import MeshView
 from src.GUIs.core.theme import Theme
 
 MAGNITUDE_FIELD = "field_magnitude"

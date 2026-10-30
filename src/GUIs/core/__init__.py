@@ -23,22 +23,22 @@ and edit its results.)
     ListPanel / Row / Cell clickable text rows: buttons, steppers, hover, wheel
 """
 
-from src.GUIs.core.coloring import (
+from src.GUIs.core.scene.coloring import (
     DIVERGING, SEQUENTIAL, ColorMode, FlatColoring, ScalarColoring, SurfaceColoring,
     make_scalar_bar, symmetric_range,
 )
-from src.GUIs.core.glyphs import FrameGlyphs, PlaneGlyph, VectorGlyphs
-from src.GUIs.core.hud import Hud, TextSlot, make_text_actor
-from src.GUIs.core.inspector import Inspector, Property
-from src.GUIs.core.input import KeyBinding, KeyboardRouter, KeyMap, TextPrompt, VertexPicker
-from src.GUIs.core.list_panel import BLANK, Cell, ListPanel, Row
-from src.GUIs.core.markers import Marker, VertexMarkers
-from src.GUIs.core.mesh_view import MeshView
-from src.GUIs.core.preview import FieldPreview, spread_subset
-from src.GUIs.core.selection import BrushTool, SelectionOverlay, Stroke, VertexSelection
-from src.GUIs.core.slider_panel import ModeSliderPanel, PanelGeometry, SliderSource, Throttle
+from src.GUIs.core.scene.glyphs import FrameGlyphs, PlaneGlyph, VectorGlyphs
+from src.GUIs.core.panels.hud import Hud, TextSlot, make_text_actor
+from src.GUIs.core.panels.inspector import Inspector, Property
+from src.GUIs.core.interaction.input import KeyBinding, KeyboardRouter, KeyMap, TextPrompt, VertexPicker
+from src.GUIs.core.panels.list_panel import BLANK, Cell, ListPanel, Row
+from src.GUIs.core.scene.markers import Marker, VertexMarkers
+from src.GUIs.core.scene.mesh_view import MeshView
+from src.GUIs.core.scene.preview import FieldPreview, spread_subset
+from src.GUIs.core.interaction.selection import BrushTool, SelectionOverlay, Stroke, VertexSelection
+from src.GUIs.core.panels.slider_panel import ModeSliderPanel, PanelGeometry, SliderSource, Throttle
 from src.GUIs.core.theme import THEMES, Theme, get_theme, next_theme, rgb
-from src.GUIs.core.viewer import AXIS_VECTORS, Viewer
+from src.GUIs.core.scene.viewer import AXIS_VECTORS, Viewer
 
 __all__ = [
     "AXIS_VECTORS", "Viewer",

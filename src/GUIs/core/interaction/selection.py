@@ -17,10 +17,10 @@ import numpy as np
 import vtk
 from vtk.util import numpy_support
 
-from src.GUIs.core.input import VertexPicker
-from src.GUIs.core.mesh_view import MeshView
+from src.GUIs.core.interaction.input import VertexPicker
+from src.GUIs.core.scene.mesh_view import MeshView
 from src.GUIs.core.theme import Theme
-from src.GUIs.core.viewer import Viewer
+from src.GUIs.core.scene.viewer import Viewer
 
 #: ``region(seed_vertex, radius) -> vertex indices`` - e.g. TemplateMesh.geodesic_ball.
 RegionFn = Callable[[int, float], np.ndarray]

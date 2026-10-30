@@ -16,9 +16,9 @@ from typing import Callable, List, Optional, Protocol, Tuple
 import numpy as np
 import vtk
 
-from src.GUIs.core.hud import make_text_actor
+from src.GUIs.core.panels.hud import make_text_actor
 from src.GUIs.core.theme import Theme
-from src.GUIs.core.viewer import Viewer
+from src.GUIs.core.scene.viewer import Viewer
 
 
 class SliderSource(Protocol):

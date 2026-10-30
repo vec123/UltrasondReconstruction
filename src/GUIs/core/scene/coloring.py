@@ -14,7 +14,7 @@ from typing import Dict, Optional, Protocol, Sequence, Tuple
 import numpy as np
 import vtk
 
-from src.GUIs.core.mesh_view import MeshView
+from src.GUIs.core.scene.mesh_view import MeshView
 from src.GUIs.core.theme import Theme
 
 # Ramp stop: (fraction of the value range, theme colour role).
