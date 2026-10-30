@@ -30,19 +30,21 @@ def load_vtu(filename):
 
 def save_vtp(polydata, vtk_path, binary=True, verbose = False):
     """Saves the PolyData object to disk using the XML format (VTP)."""
+    vtk_path = str(vtk_path)
     if verbose:
         print("Saving to:", vtk_path)
-    os.makedirs(os.path.dirname(vtk_path), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(vtk_path)), exist_ok=True)
     # Use vtkXMLPolyDataWriter instead of vtkPolyDataWriter
     writer = vtk.vtkXMLPolyDataWriter()
     writer.SetFileName(vtk_path)
     writer.SetInputData(polydata)
 
     if binary:
-        # For XML files, 'binary' is the default and is handled automatically.
-        # You can specify the data mode if needed:
-        writer.SetDataModeToAppended()
-        writer.SetCompressorTypeToZLib() # Optional: compresses the file
+        # Inline base64, not the VTK default "appended" block: the apt ParaView 5.11
+        # cannot parse the appended block ("not well-formed") and shows no data.
+        # Inline opens in every ParaView and the file size stays the same.
+        writer.SetDataModeToBinary()
+        writer.SetCompressorTypeToZLib()
     else:
         writer.SetDataModeToAscii()
 

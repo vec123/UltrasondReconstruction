@@ -12,6 +12,7 @@ from vtk.util import numpy_support
 
 from src.config.SSM.schema import AlignLandmarksConfig
 from src.landmarks.load_landmarks import load_landmarks
+from src.vtk.io import save_vtp as write_vtp
 
 
 def get_rigid_transform(source_pts, target_pts, allow_scale: bool = True):
@@ -49,10 +50,7 @@ def save_vtp(vertices, filename, connectivity):
     cells = vtk.vtkCellArray()
     cells.SetData(3, numpy_support.numpy_to_vtk(connectivity.flatten(), array_type=vtk.VTK_ID_TYPE))
     polydata.SetPolys(cells)
-    writer = vtk.vtkXMLPolyDataWriter()
-    writer.SetFileName(str(filename))
-    writer.SetInputData(polydata)
-    writer.Write()
+    write_vtp(polydata, filename)
 
 
 @dataclass

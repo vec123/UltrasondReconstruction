@@ -16,6 +16,7 @@ import vtk
 from vtk.util import numpy_support
 
 from src.config.US.schema import NrrdToWorldVtpConfig as Config
+from src.vtk.io import save_vtp
 
 
 def sitk_to_vtk_image(sitk_img):
@@ -94,14 +95,6 @@ def extract_and_clean_surface(sitk_img, contour_value, decimation):
         mesh = decimate.GetOutput()
 
     return mesh
-
-
-def save_vtp(polydata, filepath):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    writer = vtk.vtkXMLPolyDataWriter()
-    writer.SetFileName(filepath)
-    writer.SetInputData(polydata)
-    writer.Write()
 
 
 def run(cfg: Config):

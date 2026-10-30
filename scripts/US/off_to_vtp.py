@@ -1,9 +1,15 @@
 import vtk
 import os
 import glob
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from dotenv import load_dotenv
 load_dotenv()
+
+from src.vtk.io import save_vtp
 
 def convert_off_to_vtp_vtk(input_file, output_file):
     # 1. Parse the .off file
@@ -44,12 +50,9 @@ def convert_off_to_vtp_vtk(input_file, output_file):
             cells.InsertNextCell(cell)
         polydata.SetPolys(cells)
 
-    # 4. Save as .vtp using VTK's XML PolyData Writer
-    writer = vtk.vtkXMLPolyDataWriter()
-    writer.SetFileName(output_file)
-    writer.SetInputData(polydata)
-    writer.Write()
-    
+    # 4. Save as .vtp
+    save_vtp(polydata, output_file)
+
     print(f"Successfully converted: {os.path.basename(input_file)}")
 
 # --- Setup Paths ---
