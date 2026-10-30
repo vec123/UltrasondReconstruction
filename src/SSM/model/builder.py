@@ -137,6 +137,22 @@ class ModelSource:
     @classmethod
     def load(cls, path, normalize: bool = True, atlas_options=None,
              verbose: bool = False) -> "ModelSource":
+        if Path(path).suffix.lower() == ".npz":
+            # A built archive as the source of another build. Its (mean, Phi,
+            # Lambda) give Phi Lambda Phi^T, the same covariance in either
+            # inner product, so a ``pca`` term built from it is exact.
+            from src.SSM.model.model_memory_io import load_model_file
+
+            model = load_model_file(path)
+            return cls(
+                path=Path(path),
+                mean=np.ascontiguousarray(model.mean.reshape(-1)),
+                eigenfunctions=model.eigenfunctions,
+                eigenvalues=model.eigenvalues.reshape(-1),
+                landmarks=model.landmarks or {},
+                faces=None if model.faces is None else np.ascontiguousarray(model.faces),
+            )
+
         from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
 
         mean, eigenfunctions, eigenvalues, landmarks = load_shape_model(
