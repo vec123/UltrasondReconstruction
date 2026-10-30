@@ -19,7 +19,7 @@ import argparse
 import re
 from collections import defaultdict
 
-from scripts.inspection.fused_target_ranking import find_targets, reference_landmarks  # noqa: E402
+from scripts.inspection.fused_target_ranking import find_targets, reference_landmarks, session_scan_count  # noqa: E402
 from scripts.inspection.render_frontal_views import SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
@@ -34,13 +34,6 @@ def parse_week(week):
     return float(match.group(1)) if match else float("inf")
 
 
-def dataset_of(fused_path, roots):
-    for root in roots:
-        if fused_path.startswith(root):
-            return fused_path[len(root):].strip("/").split("/")[0]
-    return "?"
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", nargs="+", required=True,
@@ -51,10 +44,7 @@ def main():
 
     targets = find_targets(args.root)
     all_subjects = defaultdict(list)  # (dataset, case) -> [(week, fused_path, ref_path), ...]
-    for label, fused_path, ref_path in targets:
-        dataset = dataset_of(fused_path, args.root)
-        parts = label.split("/")
-        case, week = (parts[1], parts[2]) if len(parts) == 3 else (parts[1], "")
+    for label, dataset, case, week, fused_path, ref_path in targets:
         all_subjects[(dataset, case)].append((week, fused_path, ref_path))
     subjects = {key: sorted(sessions, key=lambda s: parse_week(s[0]))
                for key, sessions in all_subjects.items() if len(sessions) > 1}
@@ -78,7 +68,9 @@ def main():
         for i, (week, _, _) in enumerate(sessions):
             title = f"{SHORT_NAME.get(dataset, dataset)}/{case}" if i == 0 else ""
             title += f" {week.replace(' semanas', 'w')}" if week else ""
-            panels.append((title.strip(), meshes[i], SCAN_COLOR, []))
+            n_scans = session_scan_count(dataset, case, week)
+            panels.append((f"{title.strip()}\n{n_scans} scans" if n_scans is not None else title.strip(),
+                           meshes[i], SCAN_COLOR, []))
         grid_rows.append(([camera] * max_cols, panels))
 
     write_grid(grid_rows, max_cols,
