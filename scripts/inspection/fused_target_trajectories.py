@@ -1,13 +1,12 @@
-"""Show every subject with more than one fused scan target as one row, its
-sessions ordered left to right by gestational age - a trajectory view.
+"""Show every subject as one row, its sessions ordered left to right by
+gestational age - a trajectory view. A subject with only one fused target gets
+a one-panel row (a lone data point, not a trajectory, but kept so nothing is
+left out silently).
 
 Each cell is that session's fused target, frontal view only. One camera per
 ROW (built from the subject's earliest session's own landmarks, framing every
 one of its sessions' meshes), so a subject's own growth across weeks stays
 visually comparable; cameras differ between rows/subjects.
-
-A subject with only one fused target has no trajectory and is left out - see
-fused_target_ranking.py for a view of every single target instead.
 
 Run with:
     python scripts/inspection/fused_target_trajectories.py \
@@ -67,7 +66,7 @@ def main():
     for label, dataset, case, week, fused_path, ref_path in targets:
         all_subjects[(dataset, case)].append((week, fused_path, ref_path))
     subjects = {key: sorted(sessions, key=lambda s: parse_week(s[0]))
-               for key, sessions in all_subjects.items() if len(sessions) > 1}
+               for key, sessions in all_subjects.items()}
 
     def row_order(key):
         dataset, case = key
@@ -75,8 +74,9 @@ def main():
         return order, int(case) if case.isdigit() else case
     rows_keys = sorted(subjects, key=row_order)
     max_cols = max(len(sessions) for sessions in subjects.values())
-    print(f"{len(rows_keys)} of {len(all_subjects)} subjects have more than one fused target; "
-         f"up to {max_cols} sessions each")
+    n_multi = sum(1 for s in subjects.values() if len(s) > 1)
+    print(f"{len(rows_keys)} subjects total ({n_multi} with more than one fused target, "
+         f"{len(rows_keys) - n_multi} as a single point); up to {max_cols} sessions each")
 
     grid_rows = []
     for dataset, case in rows_keys:
@@ -105,7 +105,8 @@ def main():
     scale_note = "; each session's own align_to_template scale factor undone (real relative size, not " \
                 "the template's fixed size)" if args.orig_scale else ""
     write_grid(grid_rows, max_cols,
-               f"{len(rows_keys)} subjects with more than one fused target, ordered by gestational age "
+               f"{len(rows_keys)} subjects ({n_multi} trajectories, {len(rows_keys) - n_multi} single points), "
+               f"ordered by gestational age "
                f"(one camera per row, framing all of that subject's sessions){scale_note}",
                args.output, args.panel_px)
     print(f"Saved {args.output}")
