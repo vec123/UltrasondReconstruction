@@ -28,9 +28,9 @@ from typing import Any, Dict, List, Optional
 import torch
 
 from src.SSM.nicp.problem import FitProblem
-from src.SSM.nicp.registry import Registry, RegistryError
+from src.core.registry import RegistryError, TypedRegistry
 
-SOLVERS = Registry("solver")
+SOLVERS = TypedRegistry("solver")
 register_solver = SOLVERS.register
 
 

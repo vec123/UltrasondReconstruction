@@ -33,10 +33,10 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
-from src.SSM.nicp.registry import Registry
+from src.core.registry import TypedRegistry
 from src.SSM.nicp.shape import ShapeSpace
 
-PRIORS = Registry("prior")
+PRIORS = TypedRegistry("prior")
 register_prior = PRIORS.register
 
 

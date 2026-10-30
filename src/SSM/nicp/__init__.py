@@ -50,7 +50,7 @@ from src.SSM.nicp.projections import (
     build_projection,
     register_projection,
 )
-from src.SSM.nicp.registry import Registry, RegistryError
+from src.core.registry import RegistryError
 from src.SSM.nicp.shape import ShapeSpace
 from src.SSM.nicp.weight_fields import ChamferSide
 from src.SSM.nicp.sinkhorn import SinkhornMatching, unbalanced_sinkhorn
@@ -69,7 +69,6 @@ __all__ = [
     "ShapeSpace",
     "ChamferSide",
     "FitProblem",
-    "Registry",
     "RegistryError",
     # correspondence
     "ConstrainedMatching",

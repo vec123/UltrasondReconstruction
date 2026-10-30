@@ -36,7 +36,7 @@ import torch
 
 from src.SSM.nicp.correspondence import Correspondences
 from src.SSM.nicp.neighbours import build_tree, nearest
-from src.SSM.nicp.registry import Registry, RegistryError
+from src.core.registry import RegistryError, TypedRegistry
 from src.SSM.nicp.shape import ShapeSpace
 from src.SSM.nicp.weight_fields import ChamferSide
 
@@ -45,7 +45,7 @@ from src.SSM.nicp.weight_fields import ChamferSide
 # there. Importing beats keeping a second copy of the same four kernels in step.
 from src.resnet_lddmm.resnet_flow.losses.data_terms import ROBUST_KINDS, _robust_penalty
 
-LOSSES = Registry("loss")
+LOSSES = TypedRegistry("loss")
 register_loss = LOSSES.register
 
 

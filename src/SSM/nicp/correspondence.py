@@ -32,7 +32,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 import numpy as np
 
 from src.SSM.nicp.cloud import PointCloud
-from src.SSM.nicp.registry import Registry, RegistryError
+from src.core.registry import RegistryError, TypedRegistry
 
 #: kept as the public name; the registry raises this for correspondence failures
 CorrespondenceError = RegistryError
@@ -212,7 +212,7 @@ def _normal_agreement(src_normals, tgt_reference, rows, cols, threshold_deg):
     return dots >= np.cos(np.deg2rad(threshold_deg))
 
 
-CORRESPONDENCE = Registry("correspondence method")
+CORRESPONDENCE = TypedRegistry("correspondence method")
 register_correspondence = CORRESPONDENCE.register
 
 

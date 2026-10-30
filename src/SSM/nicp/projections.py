@@ -15,10 +15,10 @@ from typing import Any, Dict, List, Optional
 import torch
 from scipy.stats import chi2
 
-from src.SSM.nicp.registry import Registry
+from src.core.registry import TypedRegistry
 from src.SSM.nicp.shape import ShapeSpace
 
-PROJECTIONS = Registry("projection")
+PROJECTIONS = TypedRegistry("projection")
 register_projection = PROJECTIONS.register
 
 
