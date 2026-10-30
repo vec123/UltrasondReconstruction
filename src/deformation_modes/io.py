@@ -15,11 +15,11 @@ from typing import Any, Dict, Mapping, Optional
 
 import yaml
 
-from src.deformation_modes.directions import (
+from src.deformation_modes.geometry.directions import (
     AwayFrom, AwayFromMidline, Between, DirectionRule, Fixed, MidlineNormal, Reversed,
     SurfaceNormal, Tangential,
 )
-from src.deformation_modes.mesh import TemplateMesh
+from src.deformation_modes.geometry.mesh import TemplateMesh
 from src.deformation_modes.spec import (
     SCHEMA_VERSION, Axis, Brush, ConstraintSet, FieldThreshold, Mirror, Mode, ModeSet,
     NearLandmarks, Operation, Selection, faces_fingerprint,

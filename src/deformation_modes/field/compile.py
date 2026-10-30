@@ -14,11 +14,11 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 
-from src.deformation_modes.frames import local_frames
-from src.deformation_modes.kernel_field import (
+from src.deformation_modes.geometry.frames import local_frames
+from src.deformation_modes.field.kernel_field import (
     KernelField, anchors, displacement, rigid, sliding, strain, thin,
 )
-from src.deformation_modes.mesh import TemplateMesh
+from src.deformation_modes.geometry.mesh import TemplateMesh
 from src.deformation_modes.spec import ConstraintSet, Mode, ModeSet, Selection
 
 Resolver = Callable[[Selection], np.ndarray]

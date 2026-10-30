@@ -36,7 +36,7 @@ from src.deformation_modes import (
     AwayFrom, Axis, Between, ConstraintSet, FieldThreshold, Mirror, Mode, NearLandmarks,
 )
 from src.deformation_modes import Brush as BrushOp
-from src.deformation_modes.compile import mode_sites, sample
+from src.deformation_modes.field.compile import mode_sites, sample
 from src.GUIs.core import (
     DIVERGING, SEQUENTIAL, BrushTool, FieldPreview, FlatColoring, FrameGlyphs, Hud, Inspector,
     KeyboardRouter, KeyMap, ListPanel, MeshView, ModeSliderPanel, PanelGeometry, PlaneGlyph,

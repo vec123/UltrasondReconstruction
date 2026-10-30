@@ -18,25 +18,25 @@ gets. Nothing here imports VTK at module level.
     transport.py     modes carried onto a posed (similarity) copy of the template, for training
 """
 
-from src.deformation_modes.directions import (
+from src.deformation_modes.geometry.directions import (
     AwayFrom, AwayFromMidline, Between, DirectionRule, Fixed, MidlineNormal, Reversed,
     SurfaceNormal, Tangential,
 )
-from src.deformation_modes.frames import FRAME_AXES, local_frames
-from src.deformation_modes.kernel_field import (
+from src.deformation_modes.geometry.frames import FRAME_AXES, local_frames
+from src.deformation_modes.field.kernel_field import (
     KernelExpansion, KernelField, StrainConstraint, ValueConstraint, anchors, displacement,
     rigid, sliding, strain, thin,
 )
-from src.deformation_modes.landmarks import landmark_vertices
-from src.deformation_modes.mesh import TemplateMesh, load_template_mesh
-from src.deformation_modes.symmetry import MidlinePlane, MirrorMap
+from src.deformation_modes.geometry.landmarks import landmark_vertices
+from src.deformation_modes.geometry.mesh import TemplateMesh, load_template_mesh
+from src.deformation_modes.geometry.symmetry import MidlinePlane, MirrorMap
 from src.deformation_modes.spec import (
     CONSTRAINT_KINDS, MODE_KINDS, Axis, Brush, ConstraintSet, FieldThreshold, Mirror, Mode,
     ModeSet, NearLandmarks, Selection, faces_fingerprint,
 )
 from src.deformation_modes.io import SpecError, check_mesh, load_modeset, save_modeset
-from src.deformation_modes.compile import CompiledMode, compile_mode, mode_signature, mode_sites
-from src.deformation_modes.transport import Similarity, TransportedMode, fit_similarity, transport_modes
+from src.deformation_modes.field.compile import CompiledMode, compile_mode, mode_signature, mode_sites
+from src.deformation_modes.field.transport import Similarity, TransportedMode, fit_similarity, transport_modes
 
 __all__ = [
     "TemplateMesh", "load_template_mesh", "landmark_vertices",

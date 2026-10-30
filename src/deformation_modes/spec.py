@@ -24,8 +24,8 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from src.deformation_modes.directions import DirectionRule
-from src.deformation_modes.mesh import TemplateMesh
+from src.deformation_modes.geometry.directions import DirectionRule
+from src.deformation_modes.geometry.mesh import TemplateMesh
 
 SCHEMA_VERSION = 1
 

@@ -37,7 +37,7 @@ import numpy as np
 import scipy.linalg
 
 if TYPE_CHECKING:
-    from src.deformation_modes.symmetry import MirrorMap
+    from src.deformation_modes.geometry.symmetry import MirrorMap
 
 # Orthonormal basis (Frobenius) of symmetric 3x3 matrices: the 3 axial
 # stretches, then the 3 shears.

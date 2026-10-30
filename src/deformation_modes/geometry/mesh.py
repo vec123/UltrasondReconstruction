@@ -7,8 +7,8 @@ from typing import Dict, Mapping, Optional
 
 import numpy as np
 
-from src.deformation_modes.landmarks import landmark_vertices
-from src.deformation_modes.symmetry import MidlinePlane, MirrorMap
+from src.deformation_modes.geometry.landmarks import landmark_vertices
+from src.deformation_modes.geometry.symmetry import MidlinePlane, MirrorMap
 
 
 class TemplateMesh:

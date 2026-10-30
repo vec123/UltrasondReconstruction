@@ -17,7 +17,7 @@ from typing import Protocol, Tuple
 
 import numpy as np
 
-from src.deformation_modes.mesh import TemplateMesh
+from src.deformation_modes.geometry.mesh import TemplateMesh
 
 
 def _unit(vectors: np.ndarray) -> np.ndarray:

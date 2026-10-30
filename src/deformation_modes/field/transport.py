@@ -17,10 +17,10 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 
-from src.deformation_modes.compile import compile_mode
+from src.deformation_modes.field.compile import compile_mode
 from src.deformation_modes.io import SpecError, load_modeset
-from src.deformation_modes.kernel_field import KernelExpansion
-from src.deformation_modes.mesh import load_template_mesh
+from src.deformation_modes.field.kernel_field import KernelExpansion
+from src.deformation_modes.geometry.mesh import load_template_mesh
 
 
 @dataclass(frozen=True)
