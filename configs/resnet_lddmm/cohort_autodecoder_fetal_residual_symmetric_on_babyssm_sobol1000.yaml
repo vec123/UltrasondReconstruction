@@ -4,15 +4,19 @@
 # The mirror plane is placed from the template's landmarks (4 pairs + 5 midline points); the
 # BabySSM mean is exactly symmetric, so it fits to 0.03 % of the template diagonal.
 #
+# Training set: /home/victor/Escritorio/Data/fused_targets/train_106, links to the 110 fused
+# targets minus 32_20 (a 12 mm cloud of scattered points, not a face) and the hold-outs
+# 11_36, 13_26 and 16_26 (links in fused_targets/holdout_3, for code fits to the frozen flow).
+#
 # Run with:
 #    python scripts/run_stage.py --config configs/resnet_lddmm/cohort_autodecoder_fetal_residual_symmetric_on_babyssm_sobol1000.yaml
 
 stage: resnet_lddmm_train
 
-source: /home/victor/Escritorio/Data/fused_targets/targets
+source: /home/victor/Escritorio/Data/fused_targets/train_106    # 110 minus 32_20 (no face) and the hold-outs
 target: /home/victor/Escritorio/Data/fused_targets/template.vtp
 frame_source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
-output_dir: ${PROJECT_ROOT}/outputs/fetal_residual/prior-babyssm-sobol1000-mlp6x256-kin200_discount0.1_residual-mlp2x128-fourier2-symmetric_code128+32_kin200_codereg0.45_edges3sp_all110
+output_dir: ${PROJECT_ROOT}/outputs/stage2_flow/prior-babyssm-sobol1000-mlp6x256-kin200_discount0.1_residual-mlp2x128-fourier2-symmetric_code128+32_kin200_codereg0.47_edgeweight3sp-template2scan_train106
 
 field:
   kind: stationary_fourier          # the residual v_res
@@ -42,16 +46,16 @@ loss:
       weight: 1
       base_sigma: 0.01
       field_name: landmark_weight
-      inherit_target_field: true    # x support_edge of the nearest scan point: rim matches stop pulling
+      inherit_target_field: edge_weight   # x edge_weight of the nearest scan point: rim matches stop pulling
       loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
     target_to_source:
       weight: 1
       base_sigma: 0.01
-      field_name: support_edge      # support x edge_weight (scripts/write_edge_fields.py)
+      field_name: support           # fusion support only: every scan point has a counterpart on the template
       inherit_source_field: false
       loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
   kinetic_weight: 200.0
-  code_reg_weight: 0.45
+  code_reg_weight: 0.47
   landmark_weight: 0.0
   subsample_M: 1000
   direction: forward
@@ -59,7 +63,7 @@ loss:
 train:
   mode: cohort
   steps: 3000
-  batch: 110                        # = cohort size: every step uses every target with its own code
+  batch: 106                        # = cohort size: every step uses every target with its own code
   lr: 0.0001
   seed: 42
   log_every: 10
