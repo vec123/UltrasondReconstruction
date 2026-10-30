@@ -1,10 +1,8 @@
 """Runner classes: each one takes a config object and executes one script.
 
-sim_tf, upsample_atlas and vtu_2_vtp are not re-exported here: those runners
-only exist under ``src.SSM.runners.old`` (not yet migrated alongside the
-others), so importing them here would break this package entirely. Import
-them from ``src.SSM.runners.old.<module>`` directly if/when needed, or
-migrate them here properly.
+The sim_tf, upsample_atlas and vtu_2_vtp runners are gone: they were never
+migrated out of ``src.SSM.runners.old``, and that folder was removed. Recover
+them from the git history if they are needed again.
 """
 
 from src.SSM.runners.align_landmarks import AlignLandmarksResult, AlignLandmarksRunner
