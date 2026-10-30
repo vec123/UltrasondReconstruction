@@ -2,7 +2,9 @@
 
 import os
 
-from .config import from_dict, interpolate, load_yaml, path_variables
+from src.core.config import from_dict, load_yaml
+
+from .config import interpolate, path_variables
 from .registry import STAGE_REGISTRY
 
 

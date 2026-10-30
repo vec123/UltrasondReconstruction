@@ -1,25 +1,23 @@
-"""Minimal YAML <-> dataclass binding for pipeline stage configuration.
+"""Pipeline-specific parts of stage configuration.
 
-Every stage's configuration is a plain ``dataclasses.dataclass``. A YAML file
-maps 1:1 onto its fields (nested dicts map onto nested dataclasses, and a list
-of dicts maps onto a list of them), so the config a stage runs with is always
-fully visible in one file, and unknown keys (typos) fail loudly instead of
-being silently ignored.
+Loading a YAML file and binding it onto a dataclass is shared with every other
+pipeline - see ``src.core.config`` (``load_yaml``, ``from_dict``), where unknown
+keys (typos) fail loudly instead of being silently ignored. What lives here is
+only what a stage pipeline adds on top: the ``${PROJECT_ROOT}`` / ``${DATA_ROOT}``
+variables, and an ``interpolate`` that also understands cross-stage references
+and path expressions.
 
 Paths are written relative to the project root using ``${PROJECT_ROOT}``
 interpolation, e.g. ``${PROJECT_ROOT}/US_samples/...`` - the same env var
 (from ``.env``, via ``python-dotenv``) every script in this repo already uses.
 """
 
-import dataclasses
 import os
 import re
-from typing import Type, TypeVar, get_args, get_origin
 
-import yaml
 from dotenv import load_dotenv
 
-T = TypeVar("T")
+from src.core.config import substitute_variables
 
 # Matches a bare cross-stage reference like `nrrd_to_vtp.output_dir` or
 # `align_to_reference.aligned_shapes_vtp_dir` - a dotted chain of identifiers,
@@ -44,27 +42,15 @@ def path_variables() -> dict:
     return variables
 
 
-def load_yaml(path) -> dict:
-    with open(path, "r") as f:
-        data = yaml.safe_load(f)
-    return data or {}
-
-
 def _substitute_vars(text: str, variables: dict) -> str:
-    for name, replacement in variables.items():
-        text = text.replace(f"${{{name}}}", replacement)
-    if "${" in text:
-        raise ValueError(
-            f"Unresolved '${{...}}' placeholder in '{text}'. Known variables: {sorted(variables)}. "
-            f"Pass missing ones via --set NAME=VALUE."
-        )
-    return text
+    return substitute_variables(text, variables, hint="Pass missing ones via --set NAME=VALUE.")
 
 
 def interpolate(value, variables: dict, resolve_ref=None):
     """Recursively resolves every string leaf of a (possibly nested) config value.
 
-    Each string is one of:
+    Extends ``src.core.config.interpolate`` (plain ``${NAME}`` substitution) with
+    references and path expressions. Each string is one of:
 
     - A bare cross-stage reference, e.g. ``nrrd_to_vtp.output_dir`` (only
       recognized when ``resolve_ref`` is given - see ``pipeline/cli.py``).
@@ -96,40 +82,3 @@ def interpolate(value, variables: dict, resolve_ref=None):
     if isinstance(value, list):
         return [interpolate(v, variables, resolve_ref) for v in value]
     return value
-
-
-def from_dict(cls: Type[T], data: dict) -> T:
-    """Builds a (possibly nested) dataclass instance from a dict.
-
-    Missing keys fall back to the dataclass's own default; keys not present
-    on the dataclass raise, so a typo'd YAML field is caught immediately
-    instead of silently being ignored.
-    """
-    data = data or {}
-    field_types = {f.name: f.type for f in dataclasses.fields(cls)}
-
-    unknown = set(data) - set(field_types)
-    if unknown:
-        raise ValueError(f"Unknown config key(s) for {cls.__name__}: {sorted(unknown)}")
-
-    kwargs = {}
-    for name, ftype in field_types.items():
-        if name not in data:
-            continue
-        value = data[name]
-        if dataclasses.is_dataclass(ftype) and isinstance(value, dict):
-            value = from_dict(ftype, value)
-        elif get_origin(ftype) is list and isinstance(value, list):
-            (elem_type,) = get_args(ftype) or (None,)
-            if dataclasses.is_dataclass(elem_type):
-                value = [from_dict(elem_type, v) if isinstance(v, dict) else v for v in value]
-        kwargs[name] = value
-
-    return cls(**kwargs)
-
-
-def load_config(path, cls: Type[T]) -> T:
-    """Loads a stage YAML (with path_variables() interpolation applied) into `cls`."""
-    data = load_yaml(path)
-    data = interpolate(data, path_variables())
-    return from_dict(cls, data)

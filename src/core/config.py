@@ -72,6 +72,27 @@ def reject_unknown_keys(data: Dict[str, Any], allowed, what: str = "config") -> 
         raise ValueError(f"Unknown {what} key(s): {', '.join(sorted(unknown))}")
 
 
+def substitute_variables(text: str, variables: Dict[str, str], hint: str = "") -> str:
+    """Substitutes ``${NAME}`` in one string.
+
+    Args:
+        text: the string to substitute into
+        variables: replacement text for each ``${NAME}``
+        hint: appended to the error message, e.g. how to supply a missing variable
+
+    Raises:
+        ValueError: if a ``${...}`` placeholder has no matching variable
+    """
+    for name, replacement in variables.items():
+        text = text.replace(f"${{{name}}}", replacement)
+    if "${" in text:
+        raise ValueError(
+            f"Unresolved '${{...}}' placeholder in '{text}'. "
+            f"Known variables: {sorted(variables)}." + (f" {hint}" if hint else "")
+        )
+    return text
+
+
 def interpolate(value, variables: Dict[str, str]):
     """Recursively substitutes ``${NAME}`` in every string leaf of ``value``.
 
@@ -83,14 +104,7 @@ def interpolate(value, variables: Dict[str, str]):
         ValueError: if a ``${...}`` placeholder has no matching variable
     """
     if isinstance(value, str):
-        for name, replacement in variables.items():
-            value = value.replace(f"${{{name}}}", replacement)
-        if "${" in value:
-            raise ValueError(
-                f"Unresolved '${{...}}' placeholder in '{value}'. "
-                f"Known variables: {sorted(variables)}."
-            )
-        return value
+        return substitute_variables(value, variables)
     if isinstance(value, dict):
         return {k: interpolate(v, variables) for k, v in value.items()}
     if isinstance(value, list):

@@ -49,7 +49,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 from scripts.inspection import render_frontal_views as views  # noqa: E402
 import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels: colour None draws the point scalars)
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
-from scripts.pipeline.config import load_yaml  # noqa: E402
+from src.core.config import load_yaml  # noqa: E402
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
