@@ -90,6 +90,37 @@ class StatisticalShapeModel:
         """(3R,) coordinates of those same vertices, flattened to match."""
         return vertices.reshape(-1, 3)[idx_list].reshape(-1)
 
+    def vertex_variance(self, include_noise=False):
+        """(N, 3) per-coordinate variance, the diagonal of ``Phi Lambda Phi^T``."""
+        variance = (self.eigenfunctions ** 2) @ self.eigenvalues
+        if include_noise:
+            variance = variance + self.noise
+        return variance.reshape(-1, 3)
+
+    def vertex_std(self, include_noise=False):
+        """(N,) ``sqrt(trace)`` of each vertex's 3x3 covariance.
+
+        The same quantity as the ``total_std`` point field the mean-shape
+        runner writes, so the two can be compared directly.
+        """
+        return np.sqrt(self.vertex_variance(include_noise=include_noise).sum(axis=1))
+
+    def sample(self, n=1, rng=None, include_noise=False):
+        """(n, 3N) shapes drawn from the model."""
+        rng = np.random.default_rng(rng)
+        alpha = rng.standard_normal((int(n), self.n_components)) * np.sqrt(
+            np.clip(self.eigenvalues, 0.0, None))[None, :]
+        shapes = self.mean[None, :] + alpha @ self.eigenfunctions.T
+        if include_noise and self.noise > 0:
+            shapes = shapes + rng.standard_normal(shapes.shape) * np.sqrt(self.noise)
+        return shapes
+
+    def posterior(self, observations, include_model_noise=True):
+        """This model conditioned on ``observations`` - see ``src.SSM.model.posterior``."""
+        from src.SSM.model.posterior import posterior
+
+        return posterior(self, observations, include_model_noise=include_model_noise)
+
     def landmark_indices(self):
         return np.asarray(self.landmarks["verts "], dtype=np.int32)
 
