@@ -15,7 +15,7 @@ import random
 import numpy as np
 import torch
 
-from src.paths import get_project_root
+from src.core.paths import get_project_root
 from src.resnet_lddmm.learning.factories import build_encoder, build_decoder
 from src.resnet_lddmm.learning.registry import Registry
 from src.resnet_lddmm.learning.data.loading import load_dataset, split_dataset

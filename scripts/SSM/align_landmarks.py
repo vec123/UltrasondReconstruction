@@ -13,7 +13,7 @@ load_dotenv()
 
 from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import AlignLandmarksConfig
-from src.runners import AlignLandmarksRunner
+from src.SSM.runners import AlignLandmarksRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "align_landmarks.yaml"
 

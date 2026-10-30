@@ -13,7 +13,7 @@ from src.graphs.graphs import (
     build_super_graph,
     get_individual_graph,
     get_bipartite_graph)
-from src.transforms.padding import pad_vertex_list
+from src.resnet_lddmm.transforms.padding import pad_vertex_list
 import random
 from e3nn import o3
 
