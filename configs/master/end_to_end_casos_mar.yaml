@@ -226,6 +226,19 @@ stages:
   - name: recon_target_distance
     id: recon_target_distance_baby_mean_lddmm_high_confidence
     enabled: true
+#-----------baby ssm posterior on the lddmm baby mean match
+  - name: ssm_posterior
+    id: ssm_posterior_baby_mean_lddmm
+    enabled: true
+  - name: recon_target_distance
+    id: recon_target_distance_ssm_posterior_baby_mean_lddmm
+    enabled: true
+  - name: ssm_posterior
+    id: ssm_posterior_baby_mean_lddmm_cutoff
+    enabled: true
+  - name: recon_target_distance
+    id: recon_target_distance_ssm_posterior_baby_mean_lddmm_cutoff
+    enabled: true
 
 #-----------lddmm fetus ssm
   - name: similarity_transform
@@ -736,6 +749,40 @@ paths:
     recon_path: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
     landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
     output_dir: resnet_lddmm_apply_baby_mean.output_dir + /eval_high_confidence
+    lddmm_train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
+
+
+#---------------------Baby SSM conditioned on the baby mean LDDMM match
+# Templates/baby_mean.vtp is the baby SSM's own mean, so the match's
+# world/deformed.vtp observes that SSM vertex for vertex, and its eval's
+# recon_dist_2_target says how far to trust each vertex - see
+# scripts/US/pipeline/stages/ssm_posterior.py. posterior_mean.vtp is in the
+# same world frame as deformed.vtp, so it is scored exactly like it. Each
+# output_dir is named after its own settings, as ssm_posterior.variant_name
+# builds it - rename it with them.
+  ssm_posterior_baby_mean_lddmm: &ssm_posterior_baby_mean_lddmm_paths
+    shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca_sum_matern32.npz
+    template_vtp: resnet_lddmm_apply_baby_mean.output_dir + /world/template_points.vtp
+    observed_vtp: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
+    error_vtp: recon_target_distance_baby_mean_lddmm.output_dir + /recon_w_distance.vtp
+    output_dir: resnet_lddmm_apply_baby_mean.output_dir + /posterior_baby-pca-sum-matern32_pose_r2t_logistic2mm_sigma0.5mm
+
+  ssm_posterior_baby_mean_lddmm_cutoff:
+    <<: *ssm_posterior_baby_mean_lddmm_paths
+    output_dir: resnet_lddmm_apply_baby_mean.output_dir + /posterior_baby-pca-sum-matern32_pose_r2t_cutoff2mm_sigma0.5mm
+
+  recon_target_distance_ssm_posterior_baby_mean_lddmm:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: ssm_posterior_baby_mean_lddmm.output_dir + /posterior_mean.vtp
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
+    output_dir: ssm_posterior_baby_mean_lddmm.output_dir + /eval
+    lddmm_train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
+
+  recon_target_distance_ssm_posterior_baby_mean_lddmm_cutoff:
+    target_path: scan_fusion_ssm.output_dir + /fused_scan.vtp
+    recon_path: ssm_posterior_baby_mean_lddmm_cutoff.output_dir + /posterior_mean.vtp
+    landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
+    output_dir: ssm_posterior_baby_mean_lddmm_cutoff.output_dir + /eval
     lddmm_train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
 
 
@@ -1394,6 +1441,25 @@ hyperparameters:
     heatmap_prefix: heatmap_
     landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
     with_scale: true
+
+  # Shared by every ssm_posterior id without a block of its own. The noise
+  # kwargs are in recon_dist_2_target's units (mm). logistic observes every
+  # vertex, with a weight 1/sigma^2 that falls to 1/sigma_max^2 around
+  # threshold; cutoff observes only the vertices below threshold.
+  ssm_posterior: &ssm_posterior
+    error_array: recon_dist_2_target
+    noise:
+      name: logistic
+      kwargs: {sigma: 0.5, sigma_max: 100.0, threshold: 2.0, width: 0.5}
+    include_model_noise: true
+    n_samples: 5
+    seed: 0
+
+  ssm_posterior_baby_mean_lddmm_cutoff:
+    <<: *ssm_posterior
+    noise:
+      name: cutoff
+      kwargs: {sigma: 0.5, threshold: 2.0}
 
   resnet_lddmm_train: &resnet_lddmm_train
     field: &resnet_lddmm_field

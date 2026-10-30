@@ -27,6 +27,7 @@ from .stages import (
     scan_fusion,
     similarity_transform,
     smoothing_filter,
+    ssm_posterior,
     vtp_to_nrrd_overlay,
 )
 
@@ -50,4 +51,5 @@ STAGE_SPECS = {
     "distance_distribution_overlay": StageSpec(
         distance_distribution_overlay.Config, distance_distribution_overlay.run
     ),
+    "ssm_posterior": StageSpec(ssm_posterior.Config, ssm_posterior.run),
 }
