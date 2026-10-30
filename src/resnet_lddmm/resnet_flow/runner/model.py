@@ -63,27 +63,6 @@ def build_field(cfg, conditioning):
             layers_cfg=cfg.field.layers,
             conditioning=conditioning
         )
-    if cfg.field.kind == "equivariant_contextual":
-        return Registry.create(
-            "field", "equivariant_contextual",
-            context_irreps=getattr(cfg.field, 'context_irreps', "32x0e + 16x1o"),
-            sh_lmax=getattr(cfg.field, 'sh_lmax', 2),
-            layers_cfg=cfg.field.layers,
-            conditioning=conditioning
-        )
-    if cfg.field.kind == "equivariant_contextual_simple":
-        return Registry.create(
-            "field", "equivariant_contextual_simple",
-            hidden_dim=getattr(cfg.field, 'hidden_dim', 128),
-            n_layers=getattr(cfg.field, 'n_layers', 3),
-            conditioning=conditioning
-        )
-    if cfg.field.kind == "equivariant_template":
-        return Registry.create(
-            "field", "equivariant_template",
-            layers_cfg=cfg.field.layers,
-            conditioning=conditioning
-        )
     if cfg.field.kind == "time_varying_fourier":
         return Registry.create(
             "field", "time_varying_fourier",

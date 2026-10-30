@@ -36,9 +36,9 @@ Registry.register("field", "equivariant_stationary", "src.resnet_lddmm.resnet_fl
 #
 # Registering a target that cannot be imported turns `Registry.create` into a
 # ModuleNotFoundError instead of the registry's own "unknown kind, valid names
-# are ..." -- the registry advertised three fields nobody could build. runner.build
-# still has a branch for each; those now fail on the registry's error, which names
-# the kinds that DO exist. Re-add a line here when the module lands.
+# are ..." -- the registry advertised three fields nobody could build. These kinds
+# fail on the registry's own error, which names the kinds that DO exist. Re-add a
+# line here when the module lands.
 
 # STEPS T9: DataTerm + CDData + L2Data + EMDData
 Registry.register("data_term", "chamfer", "src.resnet_lddmm.resnet_flow.losses.data_terms:CDData")
