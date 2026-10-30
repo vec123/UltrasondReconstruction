@@ -2,9 +2,9 @@
 
 import dataclasses
 from src.resnet_lddmm.resnet_flow.flow import IdentityFlowWrapper, NeuralODEFlow
-from src.resnet_lddmm.resnet_flow.fields.modes import ModalField
-from src.resnet_lddmm.resnet_flow.fields.prior import PriorResidualField
-from src.resnet_lddmm.resnet_flow.fields.symmetry import SymmetricField
+from src.resnet_lddmm.resnet_flow.fields.composite.modes import ModalField
+from src.resnet_lddmm.resnet_flow.fields.composite.prior import PriorResidualField
+from src.resnet_lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
 from src.resnet_lddmm.resnet_flow.integrators import ForwardEuler, ModifiedEuler
 from src.resnet_lddmm.learning.registry import Registry
 

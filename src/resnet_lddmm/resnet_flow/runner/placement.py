@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from src.resnet_lddmm.resnet_flow.io import export_shape
 from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
-from src.resnet_lddmm.resnet_flow.fields.modes import network_of, symmetric_field_of
+from src.resnet_lddmm.resnet_flow.fields.composite.modes import network_of, symmetric_field_of
 
 
 def _place_local_mask(cfg, source_norm, transform, flow):

@@ -41,7 +41,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from src.resnet_lddmm.resnet_flow.fields.local import SmoothBallMask
+from src.resnet_lddmm.resnet_flow.fields.composite.local import SmoothBallMask
 from src.resnet_lddmm.resnet_flow.losses.terms import LossContext
 from src.resnet_lddmm.resnet_flow.surface_signals import curvature_signal
 

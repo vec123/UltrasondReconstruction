@@ -7,7 +7,7 @@ from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
 from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration
-from src.resnet_lddmm.resnet_flow.fields.modes import ModalField
+from src.resnet_lddmm.resnet_flow.fields.composite.modes import ModalField
 from src.resnet_lddmm.resnet_flow.losses import BidirectionalMappingError, UnidirectionalMappingError
 from src.resnet_lddmm.learning.registry import Registry
 from src.resnet_lddmm.learning.losses.composer import LossComposer, LossTerm

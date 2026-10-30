@@ -23,8 +23,8 @@ import torch.nn as nn
 from torch import Tensor
 
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField, split_velocity
-from src.resnet_lddmm.resnet_flow.fields.prior import PriorResidualField
-from src.resnet_lddmm.resnet_flow.fields.symmetry import SymmetricField
+from src.resnet_lddmm.resnet_flow.fields.composite.prior import PriorResidualField
+from src.resnet_lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
 
 
 class ModeBasis(nn.Module):

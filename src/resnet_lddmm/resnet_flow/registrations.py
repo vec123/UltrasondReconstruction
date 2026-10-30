@@ -20,7 +20,7 @@ Registry.register("conditioning", "position_aware", "src.resnet_lddmm.resnet_flo
 # STEPS T6: VelocityField + TimeVaryingField + StationaryField
 Registry.register("field", "time_varying", "src.resnet_lddmm.resnet_flow.fields.time_varying:TimeVaryingField")
 Registry.register("field", "time_varying_fourier", "src.resnet_lddmm.resnet_flow.fields.fourier:FourierTimeVaryingField")
-Registry.register("field", "time_varying_local", "src.resnet_lddmm.resnet_flow.fields.local:LocalRefinementField")
+Registry.register("field", "time_varying_local", "src.resnet_lddmm.resnet_flow.fields.composite.local:LocalRefinementField")
 Registry.register("field", "stationary", "src.resnet_lddmm.resnet_flow.fields.time_varying:StationaryField")
 Registry.register("field", "stationary_fourier", "src.resnet_lddmm.resnet_flow.fields.fourier:FourierStationaryField")
 

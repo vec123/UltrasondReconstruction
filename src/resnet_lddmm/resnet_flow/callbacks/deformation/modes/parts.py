@@ -23,7 +23,7 @@ from typing import Dict, Iterable, List, Optional
 import torch
 from torch import Tensor
 
-from src.resnet_lddmm.resnet_flow.fields.modes import ModalField
+from src.resnet_lddmm.resnet_flow.fields.composite.modes import ModalField
 
 NETWORK = "network"
 

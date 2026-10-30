@@ -4,8 +4,8 @@ import os
 import torch
 from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import CheckpointWriter
 from src.resnet_lddmm.resnet_flow.config import FOURIER_FIELD_KINDS
-from src.resnet_lddmm.resnet_flow.fields.modes import ModalField, network_of
-from src.resnet_lddmm.resnet_flow.fields.prior import PriorResidualField
+from src.resnet_lddmm.resnet_flow.fields.composite.modes import ModalField, network_of
+from src.resnet_lddmm.resnet_flow.fields.composite.prior import PriorResidualField
 from src.resnet_lddmm.resnet_flow.callbacks.deformation import DiagnosticsCallback, TrajectoryExporter
 from src.resnet_lddmm.resnet_flow.callbacks.deformation.modes import (
     DecompositionExporter,
