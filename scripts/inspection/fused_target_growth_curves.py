@@ -1,5 +1,6 @@
-"""Overlay every subject's align_to_template scale factor against gestational age,
-one line per subject with more than one fused target - a growth-curve QC plot.
+"""Overlay every subject's align_to_template scale factor against gestational age:
+a line for a subject with more than one fused target, a lone point for a subject
+with only one - a growth-curve QC plot.
 
 The scale plotted is session_scale (fused_target_ranking.py): the median
 align_to_template fit per session, composed with align_to_reference's own scale.
@@ -9,11 +10,16 @@ at that week - a SMALLER scale means a session needed MORE shrinking to reach th
 template's fixed size, i.e. a bigger true subject. A session with no saved
 transform is skipped (not interpolated or dropped silently - see the printed count).
 
-Two categories only (Casos_Maternitat has no multi-session subjects - see
-fused_target_trajectories.py), so they are colour-coded by dataset in the fixed
-categorical order (slot 1 Mar, slot 2 Dex - dataviz skill palette), with a legend;
-each subject's own line carries no separate colour or label (51 subjects is too
-many to colour individually - see dataviz anti-patterns on categorical series count).
+Casos_Maternitat has no week folders at all (no gestational age anywhere in its
+source layout - checked, there is none), so it has no x position on this chart
+and is left out entirely, not placed at a guessed location; every Casos_Maternitat
+session is a "no week" skip in the printed count.
+
+Two categories only, so they are colour-coded by dataset in the fixed categorical
+order (slot 1 Mar, slot 2 Dex - dataviz skill palette), with a legend; each
+subject's own line/point carries no separate colour or label (hundreds of subjects
+is too many to colour individually - see dataviz anti-patterns on categorical
+series count).
 
 Run with:
     python scripts/inspection/fused_target_growth_curves.py \
@@ -22,6 +28,7 @@ Run with:
 """
 
 import argparse
+import math
 from collections import defaultdict
 
 import matplotlib
@@ -46,16 +53,23 @@ def main():
 
     targets = find_targets(args.root)
     all_subjects = defaultdict(list)  # (dataset, case) -> [(week_num, scale), ...]
-    missing_scale = 0
+    missing_scale, no_week = 0, 0
     for label, dataset, case, week, fused_path, ref_path in targets:
         scale = session_scale(fused_path)
         if scale is None:
             missing_scale += 1
             continue
-        all_subjects[(dataset, case)].append((parse_week(week), scale))
-    subjects = {key: sorted(sessions) for key, sessions in all_subjects.items() if len(sessions) > 1}
-    print(f"{len(subjects)} subjects with more than one fused target have a scale curve "
-         f"({missing_scale} sessions skipped: no saved align_to_template transform)")
+        week_num = parse_week(week)
+        if math.isinf(week_num):
+            no_week += 1
+            continue
+        all_subjects[(dataset, case)].append((week_num, scale))
+    subjects = {key: sorted(sessions) for key, sessions in all_subjects.items()}
+    n_lines = sum(1 for s in subjects.values() if len(s) > 1)
+    n_points = sum(1 for s in subjects.values() if len(s) == 1)
+    print(f"{len(subjects)} subjects plotted ({n_lines} as a line, {n_points} as a lone point); "
+         f"{missing_scale} sessions skipped (no saved align_to_template transform), "
+         f"{no_week} skipped (no gestational week - Casos_Maternitat)")
 
     fig, ax = plt.subplots(figsize=(10, 6.5), dpi=150)
     fig.patch.set_facecolor(SURFACE)
@@ -73,7 +87,8 @@ def main():
     ax.set_xlabel("gestational age (weeks)", color=TEXT_SECONDARY, fontsize=11)
     ax.set_ylabel("align_to_template scale factor (smaller = bigger true subject)",
                  color=TEXT_SECONDARY, fontsize=11)
-    ax.set_title(f"{len(subjects)} subject trajectories: align_to_template scale vs. gestational age",
+    ax.set_title(f"{len(subjects)} subjects ({n_lines} lines, {n_points} single points): "
+                f"align_to_template scale vs. gestational age",
                 color=TEXT_PRIMARY, fontsize=13, pad=12)
     ax.grid(True, color=GRID_COLOR, linewidth=0.8, zorder=0)
     for spine in ("top", "right"):
