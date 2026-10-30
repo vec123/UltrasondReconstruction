@@ -1,0 +1,63 @@
+# Code fit of 200 NEW BabySSM samples (seed 1) into the trained flow of
+# cohort_autodecoder_babyssm_n5000_global_l2_cont20k.yaml (step 38000): the flow is frozen,
+# only the 200 codes are optimised, each starting at the mean of the 5000 training codes.
+# The frame is the training run's (frame_source), so the flow sees the same coordinates.
+#
+# Same loss as in training. code_reg_weight is scaled by 5000/200: the code penalty is
+# summed over the whole code table but the data term is averaged over the batch, so per
+# member the balance between them stays as in training.
+#
+# Inputs, written by:
+#    python scripts/SSM/sample_cohort.py --model src/SSM/saved_models/baby/baby_pca.npz \
+#        --output-dir /home/victor/Escritorio/Data/BabySSMData_test200 --n 200 --seed 1
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/resnet_lddmm/cohort_autodecoder_babyssm_n5000_global_l2_test200_code_fit.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_test200/members
+frame_source: /home/victor/Escritorio/Data/BabySSMData/members
+target: /home/victor/Escritorio/Data/BabySSMData/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_test200_code_fit
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: l2
+  sigma: 0.01
+  kinetic_weight: 2000.0
+  code_reg_weight: 0.25    # 0.01 * 5000 / 200, see the header
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 2000
+  batch: 200               # = cohort size: every step uses every member with its own code
+  lr: 0.0001               # as in training: the codes are ~0.003 per entry
+  seed: 42
+  log_every: 50
+  save_every: 1000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda
+  freeze_flow: true
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_cont20k/checkpoints/step_38000.pt
+  parts: [flow]
+  continue_step_count: false
+  code_init: mean

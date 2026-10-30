@@ -8,8 +8,9 @@
 # template and the member, and row i is compared to row i. No kinetic weight field,
 # no landmark / fshape terms.
 #
-# batch < cohort size: every step uses a random 256 of the 5000 members, so each code
-# is updated in about 1 of 20 steps; hence the higher step count.
+# batch < cohort size: every step uses a random 128 of the 5000 members, so each code
+# is updated in about 1 of 40 steps; hence the higher step count. GPU memory scales with
+# batch x subsample_M: 256 x 1000 needs more than 16 GB, 128 x 500 about a quarter of that.
 #
 # Inputs, written by:
 #    python scripts/SSM/sample_cohort.py --model src/SSM/saved_models/baby/baby_pca.npz \
@@ -43,13 +44,13 @@ loss:
   kinetic_weight: 2000.0   # start value; L2 with correspondence constrains more than chamfer
   code_reg_weight: 0.01
   landmark_weight: 0.0
-  subsample_M: 1000
+  subsample_M: 500
   direction: forward
 
 train:
   mode: cohort
   steps: 20000
-  batch: 256
+  batch: 128
   lr: 0.0001
   seed: 42
   log_every: 50
