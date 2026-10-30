@@ -35,6 +35,13 @@ VIEWS = ("frontal", "left", "right")
 # here (same dataset/case/week layout gen_fused_scan_targets.yaml reads CASES_ROOT from).
 INFERENCE_ROOT = "/home/victor/Projects/UltrasoundLandmarkPredictor/results/inference"
 
+# Casos_Mar's fused targets were moved to fused_scan_processing (see the move to
+# /home/victor/Escritorio/Data/fused_scan_processing), but only the fused_scan_ssm/
+# folder itself - the rest of each session's tree (aligned_to_template/, ...) was
+# never moved and still lives here. session_scale falls back to this root when a
+# Casos_Mar session's transforms aren't found alongside its (moved) fused target.
+CASOS_MAR_OUTPUTS_ROOT = "/home/victor/Projects/UltrasondReconstruction/outputs/Casos_Mar"
+
 
 def session_scan_count(dataset, case, week):
     """Number of raw .nrrd scans the (dataset, case, week) session was fused from, or
@@ -44,6 +51,32 @@ def session_scan_count(dataset, case, week):
     if not os.path.isdir(session_dir):
         return None
     return len(glob.glob(os.path.join(session_dir, "*.nrrd")))
+
+
+def session_scale(fused_path):
+    """Median align_to_template scale factor (s of x_template = s*R*x_raw + t, composed
+    with align_to_reference's own scale - see SimilarityTransform.save) over every scan
+    of this session, from its own aligned_to_template/transforms/*.npz files.
+
+    align_to_template fits each scan's landmarks onto ONE FIXED template
+    (Templates/fetus_mean.vtp), so every session - at every gestational week - gets
+    pulled toward that template's own size: fused_scan.vtp is in the TEMPLATE's scale,
+    not the original scan's mm scale. Dividing a session's points by this factor (about
+    their own centroid, so only size changes) undoes that and restores the session's
+    size relative to the template, letting different weeks be compared on a true scale.
+    Median over the session's scans, not just one, since each scan gets its own
+    (slightly different) landmark-based fit. None when no transform is found.
+    """
+    session_dir = os.path.dirname(os.path.dirname(fused_path))
+    transform_files = glob.glob(os.path.join(session_dir, "aligned_to_template", "transforms", "*.npz"))
+    if not transform_files and "Casos_Mar" in fused_path.split(os.sep):
+        # case/week are the two path components right before fused_scan_ssm/.
+        case, week = fused_path.split(os.sep)[-4:-2]
+        transform_files = glob.glob(os.path.join(CASOS_MAR_OUTPUTS_ROOT, case, week,
+                                                  "aligned_to_template", "transforms", "*.npz"))
+    if not transform_files:
+        return None
+    return float(np.median([np.load(f)["s"] for f in transform_files]))
 
 
 def find_targets(roots):

@@ -19,7 +19,12 @@ import argparse
 import re
 from collections import defaultdict
 
-from scripts.inspection.fused_target_ranking import find_targets, reference_landmarks, session_scan_count  # noqa: E402
+import numpy as np
+from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+
+from scripts.inspection.fused_target_ranking import (  # noqa: E402
+    find_targets, reference_landmarks, session_scale, session_scan_count,
+)
 from scripts.inspection.render_frontal_views import SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
@@ -34,12 +39,27 @@ def parse_week(week):
     return float(match.group(1)) if match else float("inf")
 
 
+def rescale_about_centroid(mesh, factor):
+    """mesh's points scaled by `factor` about their own centroid, in place - changes
+    size only, not position or orientation. See session_scale for why/when."""
+    points = vtk_to_numpy(mesh.GetPoints().GetData()).astype(np.float64)
+    centroid = points.mean(axis=0)
+    new_points = centroid + (points - centroid) * factor
+    mesh.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(new_points, dtype=np.float32), deep=True))
+    return mesh
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", nargs="+", required=True,
                         help="One or more fused_scan_processing dataset roots to search (recursively).")
     parser.add_argument("--output", required=True, help="PNG to write.")
     parser.add_argument("--panel-px", type=int, default=220, help="Width and height of each panel in pixels.")
+    parser.add_argument("--orig-scale", action="store_true",
+                        help="Undo each session's own align_to_template scale factor (about each mesh's "
+                             "centroid; rotation/translation untouched), so sizes reflect the original scan's "
+                             "mm scale relative to the template instead of the template's own fixed size - "
+                             "see session_scale. A session with no saved transform is left at template scale.")
     args = parser.parse_args()
 
     targets = find_targets(args.root)
@@ -62,7 +82,16 @@ def main():
     for dataset, case in rows_keys:
         sessions = subjects[(dataset, case)]
         meshes = [load_vtp(fused_path) for _, fused_path, _ in sessions]
-        lmk = reference_landmarks(load_vtp(sessions[0][2]))
+        ref_mesh = load_vtp(sessions[0][2])
+        if args.orig_scale:
+            for (week, fused_path, _), mesh in zip(sessions, meshes):
+                scale = session_scale(fused_path)
+                if scale:
+                    rescale_about_centroid(mesh, 1.0 / scale)
+            ref_scale = session_scale(sessions[0][1])
+            if ref_scale:
+                rescale_about_centroid(ref_mesh, 1.0 / ref_scale)
+        lmk = reference_landmarks(ref_mesh)
         camera = view_camera(lmk, meshes, "frontal")
         panels = []
         for i, (week, _, _) in enumerate(sessions):
@@ -73,9 +102,11 @@ def main():
                            meshes[i], SCAN_COLOR, []))
         grid_rows.append(([camera] * max_cols, panels))
 
+    scale_note = "; each session's own align_to_template scale factor undone (real relative size, not " \
+                "the template's fixed size)" if args.orig_scale else ""
     write_grid(grid_rows, max_cols,
                f"{len(rows_keys)} subjects with more than one fused target, ordered by gestational age "
-               f"(one camera per row, framing all of that subject's sessions)",
+               f"(one camera per row, framing all of that subject's sessions){scale_note}",
                args.output, args.panel_px)
     print(f"Saved {args.output}")
 
