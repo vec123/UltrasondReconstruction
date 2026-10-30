@@ -51,7 +51,7 @@ from vtk.util import numpy_support
 
 from src.config.SSM.schema import SampleShapesConfig
 from src.vtk.create import create_polydata
-from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
 
 def _rgb(hex_color: str):
@@ -299,7 +299,7 @@ class SampleShapesRunner:
 
     def _load_momentum_model(self):
         """The LDDMM parametrisation: tangent PCA now, a geodesic per sample."""
-        from src.SSM.model.deformetrica import load_momentum_model
+        from src.SSM.model.sources.deformetrica import load_momentum_model
 
         cfg = self.config
         source = cfg.source()

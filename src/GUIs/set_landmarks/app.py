@@ -1,7 +1,7 @@
 """The landmark picker window: click a vertex, choose a name, either order; Enter links them.
 
 The BabyFM .mat carries 23 named landmarks baked into the file; the fetus
-atlas carries none (see :mod:`src.SSM.model.deformetrica`). This window fills
+atlas carries none (see :mod:`src.SSM.model.sources.deformetrica`). This window fills
 that gap by hand. It shows the model's mean shape coloured by curvature, so
 the anatomy - nose tip, eye sockets, chin - is easy to find, and the same mode
 sliders ``sample_shapes.py`` uses, so a landmark can be placed on a deformed
@@ -45,7 +45,7 @@ from src.GUIs.set_landmarks.formatting import (
     HINT, START_MESSAGE, checklist_text, prompt_text, status_text,
 )
 from src.GUIs.set_landmarks.shape_space import load_shape_space
-from src.SSM.model.landmarks import read_landmark_map, write_landmark_map
+from src.SSM.model.sources.landmarks import read_landmark_map, write_landmark_map
 from src.vtk.io import save_vtp
 
 # -- layout ---------------------------------------------------------------------

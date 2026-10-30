@@ -4,7 +4,7 @@ The input is a registration that deformed the SSM's own mean shape, vertex for
 vertex (resnet_lddmm_apply's world/deformed.vtp on the baby mean), and a
 per-vertex error for it (recon_target_distance's recon_w_distance.vtp, point
 field recon_dist_2_target). `noise` turns that error into an observation std
-(see src.SSM.model.observations): `cutoff` observes only the vertices under a
+(see src.SSM.model.inference.observations): `cutoff` observes only the vertices under a
 threshold, `logistic` (the default) observes all of them but trusts the far
 ones less and less. With `error_direction: target_to_recon` the error is read
 from the scan's side instead: every target point picks its nearest
@@ -15,7 +15,7 @@ which vertices count, and how much, changes. `observation_spacing` then keeps
 about one observation per that many mm: neighbouring vertices share their
 error, and the thinned set is closer to the independent measurements the
 posterior assumes. The model conditioned on those observations
-(src.SSM.model.posterior) keeps the prior's uncertainty where the scan showed
+(src.SSM.model.inference.posterior) keeps the prior's uncertainty where the scan showed
 nothing, and reports it per vertex.
 
 Frames. The model lives in its own frame (~0.013 units across for the baby
@@ -34,7 +34,7 @@ pose_application: post) leaves the observations rotated and rescaled against
 the template, which the model can only absorb with extreme shape modes.
 `pose: similarity` (the default; `rigid` without scale, `none` to skip) removes
 that pose before conditioning and refits it `pose_iterations` times against the
-latest posterior mean - see src.SSM.model.posterior.posterior_with_pose. The
+latest posterior mean - see src.SSM.model.inference.posterior.posterior_with_pose. The
 written meshes carry the pose again, so they still sit on observed_vtp;
 posterior_model.npz is the pose-free shape posterior.
 
@@ -66,8 +66,8 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 from src.config.US.schema import SsmPosteriorConfig as Config
 from src.SSM.model.model_memory_io import load_model_file
-from src.SSM.model.observations import Observations, build_noise_model
-from src.SSM.model.posterior import posterior, posterior_with_pose, save_posterior
+from src.SSM.model.inference.observations import Observations, build_noise_model
+from src.SSM.model.inference.posterior import posterior, posterior_with_pose, save_posterior
 from src.transforms.similarity import SimilarityTransform
 from src.vtk.create import create_polydata
 from src.vtk.fields import add_point_field, add_point_fields

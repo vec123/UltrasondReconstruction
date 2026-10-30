@@ -56,7 +56,7 @@ from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from scripts.SSM.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
                                        load_cases, mm_stats, whitener)
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.SSM.model.posterior import condition_whitened  # noqa: E402
+from src.SSM.model.inference.posterior import condition_whitened  # noqa: E402
 from src.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.vtk.create import create_polydata  # noqa: E402
 from src.vtk.fields import add_point_fields  # noqa: E402

@@ -178,7 +178,7 @@ class AlignMeshesRunner:
         """
         model_vertices = None
         if source.shape_model is not None:
-            from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+            from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
             if not source.shape_model.exists():
                 raise FileNotFoundError(f"shape_model does not exist: {source.shape_model}")

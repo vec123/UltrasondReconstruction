@@ -52,7 +52,7 @@ def _as_float(value, what: str) -> float:
 class ModelSource:
     """What a model file yields, whatever its format.
 
-    An Adapter over :mod:`src.SSM.model.load`, which already puts a ``.mat`` and
+    An Adapter over :mod:`src.SSM.model.sources.load`, which already puts a ``.mat`` and
     a Deformetrica atlas behind one call. Holding the result as a value object
     matters because it is read three times during one build - for the mean, for
     the triangulation and for the ``pca`` basis - and both backends are
@@ -86,7 +86,7 @@ class ModelSource:
                 faces=None if model.faces is None else np.ascontiguousarray(model.faces),
             )
 
-        from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+        from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
         mean, eigenfunctions, eigenvalues, landmarks = load_shape_model(
             path, normalize=normalize, atlas_options=atlas_options, verbose=verbose

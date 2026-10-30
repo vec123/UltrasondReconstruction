@@ -53,8 +53,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
 from src.vtk.extract import get_vtp_faces, get_vtp_vertices
-from src.SSM.model.load import normalize_ssm
-from src.SSM.model.landmarks import read_landmark_map
+from src.SSM.model.sources.load import normalize_ssm
+from src.SSM.model.sources.landmarks import read_landmark_map
 
 # Deformetrica's default 'number_of_time_points' for shooting.
 DEFAULT_TIME_POINTS = 11

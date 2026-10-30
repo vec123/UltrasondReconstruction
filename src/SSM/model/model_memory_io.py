@@ -88,7 +88,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from src.SSM.kernels.base import Kernel, build_kernel
-from src.SSM.model.continuous_inference import build_inference
+from src.SSM.model.inference.continuous_inference import build_inference
 from src.SSM.model.mean_domain import MeanDomain
 from src.SSM.model.model import StatisticalShapeModel
 
@@ -240,7 +240,7 @@ class ModelCacheSpec:
 
     ``kernel_spec`` must be *resolved* (see :func:`spec_hash`). ``inference``
     is carried along for provenance and is used to rebuild a
-    :class:`~src.SSM.model.continuous_inference.ContinuousInference` on load,
+    :class:`~src.SSM.model.inference.continuous_inference.ContinuousInference` on load,
     but - see the module docstring's third bullet - it is not part of the hash.
     """
 
@@ -322,7 +322,7 @@ def annotate_landmarks(model: StatisticalShapeModel, landmarks_json) -> Statisti
     """Gives a model that carries no landmarks the ones named in a JSON file.
 
     A GPMM built on a Deformetrica atlas inherits the atlas's lack of landmark
-    annotation (see :mod:`src.SSM.model.landmarks`), and the archive keeps the
+    annotation (see :mod:`src.SSM.model.sources.landmarks`), and the archive keeps the
     source's vertex ordering unchanged - so the very file that annotates the
     atlas annotates every model built from it, with no rebuild. A model that
     brought its own landmarks along (anything descended from the BabyFM .mat)
@@ -331,7 +331,7 @@ def annotate_landmarks(model: StatisticalShapeModel, landmarks_json) -> Statisti
     if landmarks_json is None or len(model.landmarks.get("names ", [])):
         return model
 
-    from src.SSM.model.landmarks import read_landmark_map
+    from src.SSM.model.sources.landmarks import read_landmark_map
 
     mapping = read_landmark_map(landmarks_json)
     if not mapping:
@@ -367,7 +367,7 @@ def load_model_file(path, normalize: bool = False, atlas_options=None,
             raise ValueError(f"could not load serialized GPMM model from {path}")
         return annotate_landmarks(model, dict(atlas_options or {}).get("landmarks"))
 
-    from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+    from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
     mean, eigenfunctions, eigenvalues, landmarks = load_shape_model(
         path, normalize=normalize, atlas_options=atlas_options, verbose=verbose

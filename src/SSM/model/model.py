@@ -36,7 +36,7 @@ class StatisticalShapeModel:
     #: (Phi, Lambda) is a decomposition of. Free for a PCA model, so in
     #: practice never None once built through ``builder.build_model``.
     kernel: Optional[Any] = None
-    #: :class:`~src.SSM.model.continuous_inference.ContinuousInference` - how
+    #: :class:`~src.SSM.model.inference.continuous_inference.ContinuousInference` - how
     #: the model is evaluated away from its own vertices.
     inference: Optional[Any] = None
     #: Per-coordinate variance the truncated model does NOT represent -
@@ -116,8 +116,8 @@ class StatisticalShapeModel:
         return shapes
 
     def posterior(self, observations, include_model_noise=True):
-        """This model conditioned on ``observations`` - see ``src.SSM.model.posterior``."""
-        from src.SSM.model.posterior import posterior
+        """This model conditioned on ``observations`` - see ``src.SSM.model.inference.posterior``."""
+        from src.SSM.model.inference.posterior import posterior
 
         return posterior(self, observations, include_model_noise=include_model_noise)
 

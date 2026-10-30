@@ -34,7 +34,7 @@ from src.vtk.extract import (
 from src.vtk.create import (
     create_polydata
 )
-from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 from src.SSM.nicp.cloud import PointCloud
 from src.SSM.nicp.matching.correspondence import build_correspondence
 from src.SSM.nicp.losses import build_loss

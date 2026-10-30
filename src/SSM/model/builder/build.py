@@ -9,7 +9,7 @@ import numpy as np
 from src.SSM.kernels.algebra import IsotropicLift, Sum
 from src.SSM.kernels.base import Kernel
 from src.SSM.lowrank.operator import KernelOperator, decompose
-from src.SSM.model.continuous_inference import build_inference
+from src.SSM.model.inference.continuous_inference import build_inference
 from src.SSM.model.mean_domain import MeanDomain
 from src.SSM.model.model import StatisticalShapeModel
 

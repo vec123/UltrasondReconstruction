@@ -500,7 +500,7 @@ class DistanceDistributionOverlayConfig:
 
 @dataclasses.dataclass
 class NoiseModelConfig:
-    """A src.SSM.model.observations noise model, by name, with its kwargs.
+    """A src.SSM.model.inference.observations noise model, by name, with its kwargs.
 
     Every kwarg is in the error's units (mm for recon_dist_2_target):
       cutoff       sigma, threshold

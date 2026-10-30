@@ -84,7 +84,7 @@ def load_shape_model(path, normalize=True, atlas_options=None, verbose=False):
     .mat model, which has no such choices to make.
     """
     if is_atlas_path(path):
-        from src.SSM.model.deformetrica import load_atlas_ssm
+        from src.SSM.model.sources.deformetrica import load_atlas_ssm
 
         return load_atlas_ssm(path, normalize=normalize, verbose=verbose,
                               **dict(atlas_options or {}))
@@ -95,7 +95,7 @@ def load_shape_model(path, normalize=True, atlas_options=None, verbose=False):
 def load_shape_model_triangulation(path):
     """The model's (F, 3) triangulation, whichever format it came from."""
     if is_atlas_path(path):
-        from src.SSM.model.deformetrica import load_atlas_triangulation
+        from src.SSM.model.sources.deformetrica import load_atlas_triangulation
 
         return load_atlas_triangulation(path)
 

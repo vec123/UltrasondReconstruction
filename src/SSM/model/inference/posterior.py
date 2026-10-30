@@ -3,7 +3,7 @@
 The model is ``x = mu + Phi alpha`` with ``alpha ~ N(0, Lambda)``, plus an
 isotropic residual of variance ``noise`` that the truncation left out.
 Observing R vertices ``I`` as ``y = x_I + eps``, ``eps ~ N(0, Sigma)`` with a
-diagonal ``Sigma`` (see :class:`~src.SSM.model.observations.Observations`),
+diagonal ``Sigma`` (see :class:`~src.SSM.model.inference.observations.Observations`),
 gives a Gaussian posterior over ``alpha`` in closed form. It is written in the
 whitened coefficients ``beta = Lambda^{-1/2} alpha``, so a zero eigenvalue
 costs nothing and the only system solved is K x K:
@@ -55,10 +55,10 @@ import numpy as np
 import scipy.linalg as sla
 
 from src.SSM.kernels.data import Pca
-from src.SSM.model.continuous_inference import build_inference
+from src.SSM.model.inference.continuous_inference import build_inference
 from src.SSM.model.model import StatisticalShapeModel
 from src.SSM.model.model_memory_io import ModelCacheSpec, save_model
-from src.SSM.model.observations import Observations
+from src.SSM.model.inference.observations import Observations
 from src.transforms.similarity import SimilarityTransform
 
 

@@ -29,7 +29,7 @@ from src.vtk.io import save_vtp
 from src.vtk.create import create_polydata
 from src.vtk.fields import add_point_field
 from src.geometry.heatmap import landmark_heatmaps
-from src.SSM.model.load import load_shape_model, load_shape_model_triangulation
+from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
 
 @dataclass

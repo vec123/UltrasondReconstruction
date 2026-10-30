@@ -27,8 +27,8 @@ from typing import Callable, Dict, Optional
 import numpy as np
 
 from src.config.SSM.schema import PlaceLandmarksConfig
-from src.SSM.model.deformetrica import load_momentum_model, shoot
-from src.SSM.model.load import is_atlas_path, load_shape_model, load_shape_model_triangulation
+from src.SSM.model.sources.deformetrica import load_momentum_model, shoot
+from src.SSM.model.sources.load import is_atlas_path, load_shape_model, load_shape_model_triangulation
 
 Log = Callable[..., None]
 

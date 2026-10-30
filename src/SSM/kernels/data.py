@@ -98,7 +98,7 @@ class Pca(Kernel):
         rank is the number of modes kept, so a model truncated at build time
         stays truncated here.
 
-        Pass the eigenvalues as ``src.SSM.model.load.load_mat_ssm`` returns
+        Pass the eigenvalues as ``src.SSM.model.sources.load.load_mat_ssm`` returns
         them, **not** the raw ``.mat`` field. The file stores them in a
         different inner product from the one its eigenfunctions are normalised
         in, and ``rescale_eigenvalues`` corrects that by a factor of
