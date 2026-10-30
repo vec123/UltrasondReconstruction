@@ -43,12 +43,12 @@ import numpy as np
 import torch
 
 from src.SSM.nicp.cloud import PointCloud
-from src.SSM.nicp.correspondence import (
+from src.SSM.nicp.matching.correspondence import (
     Correspondences,
     CorrespondenceStrategy,
     register_correspondence,
 )
-from src.SSM.nicp.neighbours import nearest
+from src.SSM.nicp.matching.neighbours import nearest
 from src.SSM.nicp.shape import resolve_device
 
 

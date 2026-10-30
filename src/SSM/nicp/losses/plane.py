@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 import numpy as np
 import torch
-from src.SSM.nicp.neighbours import nearest
+from src.SSM.nicp.matching.neighbours import nearest
 from src.core.registry import RegistryError
 
 from .base import Loss, LossContext, LossValue, _subsample, register_loss

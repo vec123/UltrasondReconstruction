@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Optional
 import torch
-from src.SSM.nicp.neighbours import nearest
+from src.SSM.nicp.matching.neighbours import nearest
 
 from .base import Loss, LossContext, LossValue, _check_ratio, _reduce, _subsample, register_loss
 

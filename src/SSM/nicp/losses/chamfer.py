@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 import torch
-from src.SSM.nicp.neighbours import nearest
+from src.SSM.nicp.matching.neighbours import nearest
 from src.SSM.nicp.weight_fields import ChamferSide
 # The robust penalties are pure functions of a squared-distance tensor with
 # nothing LDDMM-specific in them, and they are already documented and exercised
