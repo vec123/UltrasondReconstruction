@@ -1,5 +1,6 @@
-# Python 3.12. Install with:
+# Python 3.12. Install with (the second line makes `src` and `scripts` importable):
 #    pip install -r requirements.txt
+#    pip install -e . --no-deps
 # torch is pinned so the PyG extension wheels below (torch_scatter,
 # torch_cluster) match it; cu128 is the minimum CUDA build that supports
 # Blackwell GPUs (RTX 50xx).

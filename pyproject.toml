@@ -1,0 +1,17 @@
+# Makes the project root importable from any folder, so `import src...` and
+# `import scripts...` work without sys.path changes in the scripts.
+# Dependencies stay in requirements.txt (it pins the torch wheel indexes), so install with:
+#     pip install -r requirements.txt
+#     pip install -e . --no-deps
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ultrasound-reconstruction"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = ["src", "scripts"]
