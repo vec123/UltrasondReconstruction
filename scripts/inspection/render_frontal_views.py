@@ -73,9 +73,13 @@ RECONSTRUCTIONS = [
     ("Cohort LDDMM fw direct g8 C2 location weighted kin10000 cherry-tree", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin10000_cherry/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted kinetic field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kinfield/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted stationary field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
+    ("SSM posterior (localized PCA) of the stationary field LDDMM", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/{case}_{week_}/posterior_baby-pca-times-gaussian_pose_t2r_cutoff1.5mm_spacing3mm_sigma1mm/eval/recon_w_distance.vtp"),
+    ("SSM posterior (PCA + Matern32) of the stationary field LDDMM", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/{case}_{week_}/posterior_baby-pca-sum-matern32_pose_t2r_cutoff1.5mm_spacing3mm_sigma1mm/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree stationary field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted stationary field kinetic field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf_kinfield/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
     ("Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree stationary field kinetic field", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf_kinfield/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
+    ("Cohort LDDMM fw direct g16 C2 location weighted kin2000 cherry-tree stationary field kinetic field 14000 6x256", "resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
+    ("BabySSM flow LayerNorm, codes + shared LayerNorm fitted, cherry-tree", "../stage2_flow/babyssm-sobol1000-mlp6x256-layernorm-kin200_free-layernorm-shared_fieldchange200_anchor0.01_code128_codereg1.67_edgeweight3sp-template2scan_cherry30/apply/{case}_{week_}/eval/recon_w_distance.vtp"),
 ]
 REFERENCE_LANDMARKS = "resnet_lddmm_baby_mean/{case}/{week}/apply/eval/reference_landmarks.vtp"
 ALIGNED_LANDMARKS = "{case}/{week}/aligned/aligned_landmarks/*_landmarks.csv"
@@ -313,6 +317,8 @@ def main():
     parser.add_argument("--output", default=None, help="Folder for the PNGs (default: <root>/views).")
     parser.add_argument("--panel-px", type=int, default=400, help="Width and height of each panel in pixels.")
     parser.add_argument("--overwrite", action="store_true", help="Re-render PNGs that already exist.")
+    parser.add_argument("--cases", nargs="+", default=None,
+                        help="Render only these case/weeks, named as the PNGs (e.g. 12_26_semanas).")
     args = parser.parse_args()
 
     output = args.output or os.path.join(args.root, "views")
@@ -321,7 +327,10 @@ def main():
     pairs = finished_pairs(args.root)
     print(f"Found {len(pairs)} finished case/week pairs under '{args.root}'.")
     for case, week in pairs:
-        out_path = os.path.join(output, f"{case}_{week.replace(' ', '_')}.png")
+        name = f"{case}_{week.replace(' ', '_')}"
+        if args.cases is not None and name not in args.cases:
+            continue
+        out_path = os.path.join(output, f"{name}.png")
         if os.path.exists(out_path) and not args.overwrite:
             continue
         try:
