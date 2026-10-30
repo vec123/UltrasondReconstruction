@@ -250,6 +250,7 @@ def build_field(cfg, conditioning):
             conditioning=conditioning,
             n_e=cfg.field.fourier_n_e,
             annealed=cfg.field.fourier_anneal is not None,
+            norm=getattr(cfg.field, "norm", None),
         )
     if cfg.field.kind == "stationary_fourier":
         return Registry.create(
@@ -259,6 +260,7 @@ def build_field(cfg, conditioning):
             conditioning=conditioning,
             n_e=cfg.field.fourier_n_e,
             annealed=cfg.field.fourier_anneal is not None,
+            norm=getattr(cfg.field, "norm", None),
         )
     if cfg.field.kind == "time_varying_local":
         local = cfg.field.local

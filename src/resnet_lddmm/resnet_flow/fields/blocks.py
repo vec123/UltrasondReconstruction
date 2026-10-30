@@ -1,48 +1,67 @@
 """Building blocks for velocity fields."""
 
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 import torch
 import torch.nn as nn
 
 
+def norm_layer(norm: Optional[str], dim: int) -> nn.Module:
+    """The normalisation after a hidden linear map: LayerNorm for "layer", else the identity.
+
+    The identity has no parameters, so a block built without a norm keeps its state_dict
+    keys and every checkpoint trained before field.norm still loads.
+    """
+    if norm is None:
+        return nn.Identity()
+    if norm == "layer":
+        return nn.LayerNorm(dim)
+    raise ValueError(f"unknown norm {norm!r}; expected 'layer' or None")
+
+
 class ResidualLayer(nn.Module):
-    """h -> skip(h) + act(W·h + b).
+    """h -> skip(h) + act(norm(W·h + b)).
 
     skip is the identity when the width is unchanged, else a bias-free linear
-    projection (the standard ResNet projection shortcut).
+    projection (the standard ResNet projection shortcut). norm is the identity
+    unless one is asked for (see norm_layer).
     """
 
-    def __init__(self, in_dim: int, out_dim: int, act: nn.Module):
+    def __init__(self, in_dim: int, out_dim: int, act: nn.Module, norm: Optional[str] = None):
         super().__init__()
         self.linear = nn.Linear(in_dim, out_dim)
+        self.norm = norm_layer(norm, out_dim)
         self.skip = nn.Identity() if in_dim == out_dim else nn.Linear(in_dim, out_dim, bias=False)
         self.act = act
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
         """[..., in_dim] -> [..., out_dim]."""
-        return self.skip(h) + self.act(self.linear(h))
+        return self.skip(h) + self.act(self.norm(self.linear(h)))
 
 
 class VelocityBlock(nn.Module):
     """
-    Residual block: f(x) = W3·(W2·R_n(…R_1(act(W1·x + b1))…) + b2).
+    Residual block: f(x) = W3·(W2·R_n(…R_1(act(N1(W1·x + b1)))…) + b2).
 
     ``widths`` are the hidden layer widths: W1 lifts to widths[0], each further
     width adds one ResidualLayer R_i, and W2 mixes at widths[-1]. ``widths=(w,)``
     has no R_i -- it is the original single-hidden-layer block with the same
     parameter names, so checkpoints trained with ``field.width: w`` still load.
+    ``norm`` puts a normalisation N after W1 and inside every R_i (norm_layer);
+    None leaves the block as it was.
     """
 
-    def __init__(self, in_dim: int, widths: Sequence[int], activation: str = "relu"):
+    def __init__(self, in_dim: int, widths: Sequence[int], activation: str = "relu",
+                 norm: Optional[str] = None):
         super().__init__()
         self.act = {
             "relu": nn.ReLU(),
             "leaky_relu": nn.LeakyReLU(0.2),
         }[activation]
         self.lift = nn.Linear(in_dim, widths[0])  # W1, b1
+        self.lift_norm = norm_layer(norm, widths[0])  # N1
         # Empty for a single width, so it adds no state_dict keys
         self.hidden = nn.ModuleList(
-            ResidualLayer(a, b, self.act) for a, b in zip(widths[:-1], widths[1:])
+            ResidualLayer(a, b, self.act, norm) for a, b in zip(widths[:-1], widths[1:])
         )
         self.mix = nn.Linear(widths[-1], widths[-1])  # W2, b2
         self.proj = nn.Linear(widths[-1], 3, bias=False)  # W3 — no bias
@@ -51,7 +70,7 @@ class VelocityBlock(nn.Module):
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
         """[B, N, in_dim] -> [B, N, 3]."""
-        h = self.act(self.lift(h))
+        h = self.act(self.lift_norm(self.lift(h)))
         for layer in self.hidden:
             h = layer(h)
         return self.proj(self.mix(h))

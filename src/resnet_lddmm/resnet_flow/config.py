@@ -49,6 +49,9 @@ class FieldCfg:
     proj_init_std: float = 0.0
     mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary/equivariant_stationary)
     activation: str = "relu"
+    # "layer": a LayerNorm (with its affine gamma, beta) after each hidden linear map, before the
+    # activation (fields/blocks.py); None = none. Fourier kinds only.
+    norm: Optional[str] = None
     fa: tuple = (64, 64, 64)                # stationary: FA-NN layer widths
     df: tuple = (256, 256, 256, 256, 256)   # DF-NN layer widths
     fourier_n_e: int = 3                    # Fourier bands; also time_varying_fourier's, stationary_fourier's, and time_varying_local's COARSE field (0 = plain xyz there)
@@ -123,6 +126,11 @@ class FieldCfg:
             if kind not in MODE_FIELD_KINDS:
                 raise ValueError(f"field.symmetry is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
             d["symmetry"] = _parse_symmetry(d["symmetry"])
+        if d.get("norm") is not None:
+            if d["norm"] not in NORMS:
+                raise ValueError(f"unknown field.norm {d['norm']!r}; expected one of {list(NORMS)} or null")
+            if kind not in FOURIER_FIELD_KINDS:
+                raise ValueError(f"field.norm is supported for kinds {FOURIER_FIELD_KINDS}, not {kind!r}")
         return cls(**d)
 
 
@@ -134,6 +142,8 @@ MODE_FIELD_KINDS = ("time_varying", "time_varying_fourier", "time_varying_local"
 # Field kinds with ONE Fourier encoding of xyz, as ``.encoding``: what field.fourier_anneal
 # opens (runner.complete_callbacks). time_varying_local has two, handled apart.
 FOURIER_FIELD_KINDS = ("time_varying_fourier", "stationary_fourier")
+# field.norm values: the normalisation inside each velocity block (fields/blocks.py).
+NORMS = ("layer",)
 # field.modes.decompose: what DecompositionExporter writes after training.
 MODE_DECOMPOSITIONS = ("trajectories", "ends", "none")
 

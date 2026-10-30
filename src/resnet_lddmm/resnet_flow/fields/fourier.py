@@ -107,6 +107,7 @@ class FourierTimeVaryingField(VelocityField):
         conditioning: Optional[Conditioning] = None,
         n_e: int = 4,
         annealed: bool = False,
+        norm: Optional[str] = None,
     ):
         """Initialize the field.
 
@@ -118,13 +119,14 @@ class FourierTimeVaryingField(VelocityField):
             n_e: number of Fourier bands, >= 1.
             annealed: start with every band off (alpha = 0), for a
                 FourierAnnealing callback to open; False starts fully open.
+            norm: the normalisation inside each block (blocks.norm_layer); None = none.
         """
         super().__init__()
         self.conditioning = conditioning or NoConditioning()
         self.encoding = AnnealedFourierFeatures(n_e, alpha=0.0 if annealed else None)
         in_dim = 3 * (2 * n_e + 1) + self.conditioning.dim
         self.blocks = nn.ModuleList(
-            VelocityBlock(in_dim, mlp, activation) for _ in range(num_blocks)
+            VelocityBlock(in_dim, mlp, activation, norm) for _ in range(num_blocks)
         )
 
     def forward(
@@ -164,9 +166,10 @@ class FourierStationaryField(FourierTimeVaryingField):
         conditioning: Optional[Conditioning] = None,
         n_e: int = 4,
         annealed: bool = False,
+        norm: Optional[str] = None,
     ):
         """Initialize the field; arguments as for FourierTimeVaryingField, without num_blocks."""
-        super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed)
+        super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed, norm=norm)
 
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
