@@ -972,6 +972,10 @@ class TrainCfg:
     # is left out of the optimizer. Cohort mode; this is how a trained flow is fitted
     # to new targets with its own training loss.
     freeze_flow: bool = False
+    # With freeze_flow: flow parameters whose name holds one of these strings stay trainable,
+    # shared over the cohort (e.g. [norm]: the LayerNorm affines of field.norm: layer).
+    # Pair them with loss terms parameter_anchor / field_change_kinetic (losses/fine_tune.py).
+    freeze_flow_except: tuple = ()
 
 
 @dataclass

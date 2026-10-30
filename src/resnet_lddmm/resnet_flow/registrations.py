@@ -93,6 +93,8 @@ Registry.register("loss_term", "landmark_guidance", "src.resnet_lddmm.resnet_flo
 Registry.register("loss_term", "point_weighted_kinetic", "src.resnet_lddmm.resnet_flow.losses.kinetic:PointWeightedKineticLoss")
 Registry.register("loss_term", "part_kinetic", "src.resnet_lddmm.resnet_flow.losses.kinetic:PartKineticLoss")
 Registry.register("loss_term", "fshape_data", "src.resnet_lddmm.resnet_flow.losses.fshape:FshapeDataTerm")
+Registry.register("loss_term", "parameter_anchor", "src.resnet_lddmm.resnet_flow.losses.fine_tune:ParameterAnchor")
+Registry.register("loss_term", "field_change_kinetic", "src.resnet_lddmm.resnet_flow.losses.fine_tune:FieldChangeKinetic")
 
 # Augmentation: random group transformations (SE(3), SO(3), or none)
 Registry.register("augmentation", "none", "src.resnet_lddmm.resnet_flow.augmentation.none:NoAugmentation")

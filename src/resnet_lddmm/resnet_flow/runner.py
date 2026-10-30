@@ -1661,10 +1661,22 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
     # Create optimizer with two param groups: flow with weight_decay, codes without.
     # A frozen flow (fitting new targets to a trained one) gets no gradient and no group.
     if cfg.train.freeze_flow:
-        for param in flow.parameters():
-            param.requires_grad = False
+        free = []
+        for name, param in flow.named_parameters():
+            param.requires_grad = any(pattern in name for pattern in cfg.train.freeze_flow_except)
+            if param.requires_grad:
+                free.append(param)
         groups = [{"params": code_source.parameters(), "weight_decay": 0.0}]
-        print("[freeze_flow] the flow is frozen; only the codes are trained")
+        if cfg.train.freeze_flow_except and not free:
+            raise ValueError(f"train.freeze_flow_except {list(cfg.train.freeze_flow_except)} matches no "
+                             f"flow parameter")
+        if free:
+            groups.append({"params": free, "weight_decay": 0.0})
+            print(f"[freeze_flow] the flow is frozen except {len(free)} tensors "
+                  f"({sum(p.numel() for p in free)} values) matching {list(cfg.train.freeze_flow_except)}, "
+                  f"shared over the cohort; and the codes")
+        else:
+            print("[freeze_flow] the flow is frozen; only the codes are trained")
     else:
         groups = [
             {"params": trainable_parameters(flow), "weight_decay": cfg.loss.weight_decay},
