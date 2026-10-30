@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dataclass_field, replace as dataclass_replace
+import warnings
+from dataclasses import dataclass, field as dataclass_field
 from typing import Optional, Tuple
 from src.core.config import reject_unknown_keys
 
@@ -129,57 +130,22 @@ class CodeCfg:
 
 
 def _parse_code_config(code_dict: dict) -> CodeCfg:
-    """Parse code config, handling nested encoder_config and graph_spec.
+    """Parse code config, handling the nested pose and grid_reg configs.
 
-    Separates encoder/graph config from base code config and creates
-    EncoderConfig/GraphSpec objects when kind == "encoder".
-
-    Note: EncoderConfig/GraphSpec are only imported when needed (lazy import),
-    so basic config parsing doesn't require e3nn/torch_geometric.
+    kind "encoder" is not yet supported: it is accepted, with a warning, and its
+    encoder_config and graph_spec are dropped. Building that code source then fails.
     """
     # Extract nested configs before passing to CodeCfg
-    encoder_cfg_dict = code_dict.pop("encoder_config", {})
-    graph_cfg_dict = code_dict.pop("graph_spec", {})
+    code_dict.pop("encoder_config", None)
+    code_dict.pop("graph_spec", None)
     pose_cfg = PoseCfg.from_dict(code_dict.pop("pose", {}))
     grid_reg_cfg = GridRegCfg.from_dict(code_dict.pop("grid_reg", {}))
 
-    # Parse encoder_config if provided and kind is encoder
-    encoder_cfg = None
     if code_dict.get("kind") == "encoder":
-        from src.spec import EncoderConfig, EncoderLayerConfig
-        declares_latent_dim = "latent_dim" in encoder_cfg_dict
-        if encoder_cfg_dict:
-            # Parse layer configs
-            layers_data = encoder_cfg_dict.pop("layers", [])
-            layers = [EncoderLayerConfig(**layer) for layer in layers_data]
-            encoder_cfg = EncoderConfig(layers=layers, **encoder_cfg_dict)
-        else:
-            # Use default EncoderConfig
-            encoder_cfg = EncoderConfig()
+        warnings.warn(
+            "code.kind 'encoder' is not yet supported: encoder_config and graph_spec are ignored, "
+            "and building this code source will fail",
+            stacklevel=2,
+        )
 
-        # n_z SEEDS latent_dim when encoder_config did not name one. Without this,
-        # `code: {kind: encoder, n_z: 256}` trains a 5-dim code -- EncoderConfig's
-        # default -- discarding the one dimension the config actually stated, and
-        # saying so only in a printed warning. Via replace() rather than by editing
-        # the dict before construction, because EncoderConfig.layers must stay
-        # non-empty and defaults to a list this function would otherwise have to
-        # rebuild. When BOTH are given the rule below is unchanged: the encoder wins.
-        if not declares_latent_dim and "n_z" in code_dict:
-            encoder_cfg = dataclass_replace(encoder_cfg, latent_dim=code_dict["n_z"])
-
-        # Validate n_z matches encoder's latent_dim
-        config_n_z = code_dict.get("n_z", 256)
-        encoder_latent_dim = encoder_cfg.latent_dim
-        if config_n_z != encoder_latent_dim:
-            print(f"WARNING: code.n_z={config_n_z} does not match encoder_config.latent_dim={encoder_latent_dim}")
-            print(f"         Using encoder_config.latent_dim={encoder_latent_dim} (encoder determines code dimension)")
-            code_dict["n_z"] = encoder_latent_dim
-
-    # Parse graph_spec if provided and kind is encoder
-    graph_spec = None
-    if code_dict.get("kind") == "encoder":
-        from src.spec import GraphSpec
-        graph_spec = GraphSpec(**graph_cfg_dict) if graph_cfg_dict else GraphSpec()
-
-    return CodeCfg(encoder_config=encoder_cfg, graph_spec=graph_spec, pose=pose_cfg, grid_reg=grid_reg_cfg,
-                   **code_dict)
+    return CodeCfg(pose=pose_cfg, grid_reg=grid_reg_cfg, **code_dict)
