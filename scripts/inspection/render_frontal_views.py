@@ -244,33 +244,24 @@ def render_pair(root, case, week, out_path, panel_px):
     write_grid(rows, columns, f"Case {case} - {week} - {len(scan_panels)} scans", out_path, panel_px)
 
 
-def write_grid(rows, columns, header_text, out_path, panel_px):
-    """Render rows of panels under a one-line header into one PNG.
+# A vtkRenderWindow taller than this renders as solid BLACK with no error or
+# exception (an offscreen-context/GPU renderbuffer size cap - measured on this
+# machine: fine up to 32640 px tall, black from 32840 px). Comfortably under
+# that, so one write_grid call never silently produces a black PNG for a plot
+# with many rows (e.g. fused_target_trajectories.py's 241-subject grid); render
+# in row-chunks under this height instead and stack them with PIL.
+MAX_WINDOW_HEIGHT = 16000
 
-    Args:
-        rows: [(camera, [(title, mesh, mesh colour, [landmark points, ...]) or None, ...]), ...],
-            each row drawn with its own camera, or with one camera per column when
-            it is a list; None, and the cells after a row shorter than `columns`,
-            are left blank
-        columns: panels per row
-        header_text: the line above the panels
-        out_path: the PNG to write
-        panel_px: width and height of each panel in pixels
-    """
-    header_px = 40
-    width, height = panel_px * columns, header_px + panel_px * len(rows)
+
+def _render_rows(rows, columns, panel_px, width):
+    """One chunk's worth of `rows` (see write_grid), rendered to an (H, W, 3) uint8 array."""
+    height = panel_px * len(rows)
     window = vtk.vtkRenderWindow()
     window.SetOffScreenRendering(1)
     window.SetSize(width, height)
 
-    header = vtk.vtkRenderer()
-    header.SetViewport(0, 1 - header_px / height, 1, 1)
-    header.SetBackground(1, 1, 1)
-    header.AddViewProp(text_actor(header_text, 20, 0.005, 0.85))
-    window.AddRenderer(header)
-
     for r, (camera, row) in enumerate(rows):
-        top = 1 - (header_px + r * panel_px) / height
+        top = 1 - (r * panel_px) / height
         bottom = top - panel_px / height
         for i in range(columns):
             viewport = (i / columns, bottom, (i + 1) / columns, top)
@@ -287,11 +278,53 @@ def write_grid(rows, columns, header_text, out_path, panel_px):
     grabber = vtk.vtkWindowToImageFilter()
     grabber.SetInput(window)
     grabber.Update()
-    writer = vtk.vtkPNGWriter()
-    writer.SetFileName(out_path)
-    writer.SetInputConnection(grabber.GetOutputPort())
-    writer.Write()
+    array = vtk_to_numpy(grabber.GetOutput().GetPointData().GetScalars())
+    dims = grabber.GetOutput().GetDimensions()
+    image = array.reshape(dims[1], dims[0], -1)[::-1]  # vtkImageData is bottom-up
     window.Finalize()
+    return image
+
+
+def write_grid(rows, columns, header_text, out_path, panel_px):
+    """Render rows of panels under a one-line header into one PNG.
+
+    Args:
+        rows: [(camera, [(title, mesh, mesh colour, [landmark points, ...]) or None, ...]), ...],
+            each row drawn with its own camera, or with one camera per column when
+            it is a list; None, and the cells after a row shorter than `columns`,
+            are left blank
+        columns: panels per row
+        header_text: the line above the panels
+        out_path: the PNG to write
+        panel_px: width and height of each panel in pixels
+    """
+    from PIL import Image
+
+    header_px = 40
+    width = panel_px * columns
+    rows_per_chunk = max(1, MAX_WINDOW_HEIGHT // panel_px)
+
+    header_window = vtk.vtkRenderWindow()
+    header_window.SetOffScreenRendering(1)
+    header_window.SetSize(width, header_px)
+    header = vtk.vtkRenderer()
+    header.SetBackground(1, 1, 1)
+    header.AddViewProp(text_actor(header_text, 20, 0.005, 0.85))
+    header_window.AddRenderer(header)
+    header_window.Render()
+    grabber = vtk.vtkWindowToImageFilter()
+    grabber.SetInput(header_window)
+    grabber.Update()
+    dims = grabber.GetOutput().GetDimensions()
+    header_image = vtk_to_numpy(grabber.GetOutput().GetPointData().GetScalars()).reshape(
+        dims[1], dims[0], -1)[::-1]
+    header_window.Finalize()
+
+    chunks = [header_image]
+    for start in range(0, len(rows), rows_per_chunk):
+        chunks.append(_render_rows(rows[start:start + rows_per_chunk], columns, panel_px, width))
+
+    Image.fromarray(np.concatenate(chunks, axis=0)).save(out_path)
 
 
 def add_panel(window, camera, viewport, title, poly, color, landmark_sets):
