@@ -8,7 +8,7 @@ from torch import Tensor
 from torch.utils.checkpoint import checkpoint
 
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField, split_velocity
-from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.dynamics.trajectory import Trajectory
 
 
 def _velocity(field: VelocityField, q: Tensor, step: int, code: Optional[Tensor]):

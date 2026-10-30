@@ -1,7 +1,7 @@
 """Landmark vertices of a template, read from its ``heatmap_<label>`` point fields.
 
 Same convention as ``src.landmarks.vtk_landmarks.heatmap_landmark_vertex_indices``
-and ``src.resnet_lddmm.resnet_flow.landmarks``: a template does not store a
+and ``src.resnet_lddmm.resnet_flow.guidance.landmarks``: a template does not store a
 landmark list, it carries one heatmap per label, and the landmark is that
 heatmap's peak (argmax) vertex. This variant works on point fields already in
 memory instead of re-reading a file.

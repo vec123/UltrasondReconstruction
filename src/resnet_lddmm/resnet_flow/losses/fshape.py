@@ -43,7 +43,7 @@ from torch import Tensor
 
 from src.resnet_lddmm.resnet_flow.fields.composite.local import SmoothBallMask
 from src.resnet_lddmm.resnet_flow.losses.terms import LossContext
-from src.resnet_lddmm.resnet_flow.surface_signals import curvature_signal
+from src.resnet_lddmm.resnet_flow.guidance.surface_signals import curvature_signal
 
 
 def face_geometry(vertices: Tensor, faces: Tensor):

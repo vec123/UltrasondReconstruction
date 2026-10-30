@@ -28,7 +28,7 @@ from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (regi
 from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights  # noqa: E402
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.resnet_lddmm.resnet_flow.io import load_shape  # noqa: E402
-from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points  # noqa: E402
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain, cohort_paths, load_cohort  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 

@@ -4,7 +4,7 @@ import abc
 from typing import Optional
 import torch.nn as nn
 from torch import Tensor
-from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.dynamics.trajectory import Trajectory
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
 
 

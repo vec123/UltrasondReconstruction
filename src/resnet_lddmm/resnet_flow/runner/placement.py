@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 from src.resnet_lddmm.resnet_flow.io import export_shape
-from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points
 from src.resnet_lddmm.resnet_flow.fields.composite.modes import network_of, symmetric_field_of
 
 

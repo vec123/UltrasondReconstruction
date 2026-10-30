@@ -3,7 +3,7 @@
 import os
 import torch
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg, reject_renamed_loss_distance_keys
-from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points
 from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
 from src.resnet_lddmm.resnet_flow.registration.pair import PairRegistration
 from src.resnet_lddmm.resnet_flow.registration.cohort import CohortRegistration

@@ -39,7 +39,7 @@ from scipy.sparse.csgraph import dijkstra
 
 from src.resnet_lddmm.resnet_flow.config import reject_unknown_keys
 from src.resnet_lddmm.resnet_flow.io import Shape
-from src.resnet_lddmm.resnet_flow.landmarks import aggregate, load_annotations
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import aggregate, load_annotations
 from src.weight_field.landmark_fields import (
     AXES,
     DEFAULT_DECAY_SCALE,

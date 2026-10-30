@@ -1,11 +1,11 @@
 """Builds the conditioning, the velocity field, the network and the flow from the config."""
 
 import dataclasses
-from src.resnet_lddmm.resnet_flow.flow import IdentityFlowWrapper, NeuralODEFlow
+from src.resnet_lddmm.resnet_flow.dynamics.flow import IdentityFlowWrapper, NeuralODEFlow
 from src.resnet_lddmm.resnet_flow.fields.composite.modes import ModalField
 from src.resnet_lddmm.resnet_flow.fields.composite.prior import PriorResidualField
 from src.resnet_lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
-from src.resnet_lddmm.resnet_flow.integrators import ForwardEuler, ModifiedEuler
+from src.resnet_lddmm.resnet_flow.dynamics.integrators import ForwardEuler, ModifiedEuler
 from src.resnet_lddmm.learning.registry import Registry
 
 from .common import _normalization_domain, code_size

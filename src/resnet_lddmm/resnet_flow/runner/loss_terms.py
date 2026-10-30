@@ -6,8 +6,8 @@ import torch
 from src.resnet_lddmm.resnet_flow.config import FshapeCfg, PointWeightFieldCfg
 from src.resnet_lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
 from src.resnet_lddmm.resnet_flow.io import export_shape
-from src.resnet_lddmm.resnet_flow.landmarks import build_landmark_term_kwargs, resolve_template_points
-from src.resnet_lddmm.resnet_flow.field_weights import normalize_unit_mean, resolve_point_weight_field
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import build_landmark_term_kwargs, resolve_template_points
+from src.resnet_lddmm.resnet_flow.guidance.field_weights import normalize_unit_mean, resolve_point_weight_field
 from src.resnet_lddmm.learning.registry import Registry
 from src.resnet_lddmm.learning.losses.composer import LossTerm
 

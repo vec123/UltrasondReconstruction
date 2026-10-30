@@ -3,7 +3,7 @@
 import os
 import torch
 from src.resnet_lddmm.resnet_flow.io import export_shape
-from src.resnet_lddmm.resnet_flow.field_weights import resolve_point_weight_field
+from src.resnet_lddmm.resnet_flow.guidance.field_weights import resolve_point_weight_field
 from src.resnet_lddmm.resnet_flow.losses import BidirectionalMappingError
 
 from .data import cohort_paths

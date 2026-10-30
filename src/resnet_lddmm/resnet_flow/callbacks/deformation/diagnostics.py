@@ -4,7 +4,7 @@ Lipschitz bound, inverse residual - logged as diag/* metrics."""
 import torch
 
 from src.resnet_lddmm.learning.callbacks.base import Callback
-from src.resnet_lddmm.resnet_flow.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound, inverse_residual
+from src.resnet_lddmm.resnet_flow.dynamics.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound, inverse_residual
 
 
 class DiagnosticsCallback(Callback):

@@ -34,7 +34,7 @@ import torch
 
 from src.resnet_lddmm.resnet_flow.config import reject_unknown_keys
 from src.resnet_lddmm.resnet_flow.io import Shape
-from src.resnet_lddmm.resnet_flow.landmarks import resolve_template_points
+from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points
 from src.weight_field.landmark_fields import (
     DEFAULT_DECAY_SCALE,
     DEFAULT_MAX_WEIGHT,

@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from src.resnet_lddmm.learning.callbacks.base import Callback
-from src.resnet_lddmm.resnet_flow.flow import IdentityFlowWrapper
+from src.resnet_lddmm.resnet_flow.dynamics.flow import IdentityFlowWrapper
 from src.resnet_lddmm.resnet_flow.io import export_shape, FrameTransform
 
 

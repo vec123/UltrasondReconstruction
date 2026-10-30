@@ -26,7 +26,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from src.resnet_lddmm.resnet_flow.losses.terms import LossContext
-from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.dynamics.trajectory import Trajectory
 
 
 def weighted_kinetic_energy(trajectory: Trajectory, weights: Tensor) -> Tensor:

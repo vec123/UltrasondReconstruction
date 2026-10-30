@@ -6,8 +6,8 @@ import torch.nn as nn
 from torch import Tensor
 
 from src.resnet_lddmm.resnet_flow.fields.base import VelocityField
-from src.resnet_lddmm.resnet_flow.integrators import Integrator
-from src.resnet_lddmm.resnet_flow.trajectory import Trajectory
+from src.resnet_lddmm.resnet_flow.dynamics.integrators import Integrator
+from src.resnet_lddmm.resnet_flow.dynamics.trajectory import Trajectory
 
 
 class NeuralODEFlow(nn.Module):
