@@ -136,6 +136,15 @@ class LocalRefinementField(VelocityField):
                                             n_e=fine_n_e, annealed=fine_annealed)
         self.mask = SmoothBallMask()
 
+    @classmethod
+    def from_cfg(cls, field, conditioning):
+        """Build from the ``field`` config section: the coarse field, and ``field.local`` for the fine one."""
+        local = field.local
+        return cls(num_blocks=field.num_steps, mlp=field.mlp, activation=field.activation,
+                   conditioning=conditioning, coarse_n_e=field.fourier_n_e,
+                   coarse_annealed=field.fourier_anneal is not None, fine_mlp=local["mlp"],
+                   fine_n_e=local["fourier_n_e"], fine_annealed=local["fourier_anneal"] is not None)
+
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
     ) -> Tensor:

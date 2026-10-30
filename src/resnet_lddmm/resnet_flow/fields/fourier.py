@@ -129,6 +129,13 @@ class FourierTimeVaryingField(VelocityField):
             VelocityBlock(in_dim, mlp, activation, norm) for _ in range(num_blocks)
         )
 
+    @classmethod
+    def from_cfg(cls, field, conditioning):
+        """Build from the ``field`` config section; the bands are annealed if fourier_anneal is set."""
+        return cls(num_blocks=field.num_steps, mlp=field.mlp, activation=field.activation,
+                   conditioning=conditioning, n_e=field.fourier_n_e,
+                   annealed=field.fourier_anneal is not None, norm=getattr(field, "norm", None))
+
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
     ) -> Tensor:
@@ -170,6 +177,13 @@ class FourierStationaryField(FourierTimeVaryingField):
     ):
         """Initialize the field; arguments as for FourierTimeVaryingField, without num_blocks."""
         super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed, norm=norm)
+
+    @classmethod
+    def from_cfg(cls, field, conditioning):
+        """Build from the ``field`` config section; the bands are annealed if fourier_anneal is set."""
+        return cls(mlp=field.mlp, activation=field.activation, conditioning=conditioning,
+                   n_e=field.fourier_n_e, annealed=field.fourier_anneal is not None,
+                   norm=getattr(field, "norm", None))
 
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None

@@ -36,7 +36,10 @@ def build_conditioning(cfg):
 
 
 def build_field(cfg, conditioning):
-    """cfg.field -> the VelocityField, dispatching on cfg.field.kind.
+    """cfg.field -> the VelocityField of kind cfg.field.kind.
+
+    Each field class builds itself from the config (VelocityField.from_cfg), so a new
+    kind needs a class and a registration line, not an edit here.
 
     Args:
         cfg: ExperimentCfg
@@ -45,57 +48,7 @@ def build_field(cfg, conditioning):
     Returns:
         VelocityField instance
     """
-    if cfg.field.kind == "stationary":
-        return Registry.create(
-            "field", "stationary",
-            fa=tuple(cfg.field.fa),
-            df=tuple(cfg.field.df),
-            fourier_n_e=cfg.field.fourier_n_e,
-            activation=cfg.field.activation,
-            conditioning=conditioning
-        )
-    if cfg.field.kind == "time_varying_fourier":
-        return Registry.create(
-            "field", "time_varying_fourier",
-            num_blocks=cfg.field.num_steps,
-            mlp=cfg.field.mlp,
-            activation=cfg.field.activation,
-            conditioning=conditioning,
-            n_e=cfg.field.fourier_n_e,
-            annealed=cfg.field.fourier_anneal is not None,
-            norm=getattr(cfg.field, "norm", None),
-        )
-    if cfg.field.kind == "stationary_fourier":
-        return Registry.create(
-            "field", "stationary_fourier",
-            mlp=cfg.field.mlp,
-            activation=cfg.field.activation,
-            conditioning=conditioning,
-            n_e=cfg.field.fourier_n_e,
-            annealed=cfg.field.fourier_anneal is not None,
-            norm=getattr(cfg.field, "norm", None),
-        )
-    if cfg.field.kind == "time_varying_local":
-        local = cfg.field.local
-        return Registry.create(
-            "field", "time_varying_local",
-            num_blocks=cfg.field.num_steps,
-            mlp=cfg.field.mlp,
-            activation=cfg.field.activation,
-            conditioning=conditioning,
-            coarse_n_e=cfg.field.fourier_n_e,
-            coarse_annealed=cfg.field.fourier_anneal is not None,
-            fine_mlp=local["mlp"],
-            fine_n_e=local["fourier_n_e"],
-            fine_annealed=local["fourier_anneal"] is not None,
-        )
-    return Registry.create(
-        "field", cfg.field.kind,
-        num_blocks=cfg.field.num_steps,
-        mlp=cfg.field.mlp,
-        activation=cfg.field.activation,
-        conditioning=conditioning
-    )
+    return Registry.resolve("field", cfg.field.kind).from_cfg(cfg.field, conditioning)
 
 
 def build_network(cfg, conditioning):

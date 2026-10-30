@@ -90,6 +90,12 @@ class StationaryField(VelocityField):
         # Identity at init: zero-init the final layer
         nn.init.zeros_(last_linear(self.df).weight)
 
+    @classmethod
+    def from_cfg(cls, field, conditioning):
+        """Build from the ``field`` config section: the FA-NN and DF-NN widths."""
+        return cls(fa=tuple(field.fa), df=tuple(field.df), fourier_n_e=field.fourier_n_e,
+                   activation=field.activation, conditioning=conditioning)
+
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
     ) -> Tensor:

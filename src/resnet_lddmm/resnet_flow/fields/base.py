@@ -12,6 +12,17 @@ class VelocityField(nn.Module, abc.ABC):
     Never returns positions, never applies an activation to a position sum —
     """
 
+    @classmethod
+    def from_cfg(cls, field, conditioning):
+        """Build this field from the ``field`` section of the experiment config.
+
+        ``field`` is read by attribute name, so this module needs no import of the
+        config (layering rule). The default fits the time-varying fields, one block
+        per Euler step; a field whose constructor takes other options overrides it.
+        """
+        return cls(num_blocks=field.num_steps, mlp=field.mlp, activation=field.activation,
+                   conditioning=conditioning)
+
     @abc.abstractmethod
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
