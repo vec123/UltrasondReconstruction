@@ -9,7 +9,7 @@ from src.core.config import reject_unknown_keys
 
 @dataclass
 class FieldCfg:
-    kind: str = "time_varying"              # time_varying | time_varying_fourier | time_varying_local | stationary | stationary_fourier | equivariant_stationary
+    kind: str = "time_varying"              # time_varying | time_varying_fourier | time_varying_local | stationary | stationary_fourier
     num_steps: int = 10                     # K — configured in ONE place
     # Recompute each Euler step's field values in the backward pass instead of storing
     # them (integrators.Integrator): same gradients, far less memory, ~20-30% slower.
@@ -18,7 +18,7 @@ class FieldCfg:
     # the flow starts as the identity; a small value makes dv/dcode non-zero from the start,
     # which an auto-decoder needs to leave the z = 0, v = 0 saddle (see blocks.VelocityBlock).
     proj_init_std: float = 0.0
-    mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary/equivariant_stationary)
+    mlp: tuple = (512,)                     # hidden widths per block, residual between them (ignored by stationary)
     activation: str = "relu"
     # "layer": a LayerNorm (with its affine gamma, beta) after each hidden linear map, before the
     # activation (fields/blocks.py); None = none. Fourier kinds only.
@@ -42,7 +42,8 @@ class FieldCfg:
     # Mirror symmetry of the trained network -- see fields/symmetry.py.
     # {mode, discount, pairs, midline, heatmap_prefix}; None = no symmetry.
     symmetry: Optional[dict] = None
-    # Equivariant stationary field (only if kind == "equivariant_stationary")
+    # Options of the removed equivariant_stationary field. Unused, but kept so that the config.json
+    # of a finished run (asdict dumps every field) still loads.
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
     gate_hidden_dim: int = 64               # hidden dim for gating network in SelfInteraction
     use_tensor_product_self: bool = True    # use SelfInteraction (V⊗V+gating) vs simple Linear

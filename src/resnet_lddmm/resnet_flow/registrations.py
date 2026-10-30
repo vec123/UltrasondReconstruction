@@ -24,8 +24,8 @@ Registry.register("field", "time_varying_local", "src.resnet_lddmm.resnet_flow.f
 Registry.register("field", "stationary", "src.resnet_lddmm.resnet_flow.fields.time_varying:StationaryField")
 Registry.register("field", "stationary_fourier", "src.resnet_lddmm.resnet_flow.fields.fourier:FourierStationaryField")
 
-# SO(3)-equivariant stationary field using e3nn SelfInteraction
-Registry.register("field", "equivariant_stationary", "src.resnet_lddmm.resnet_flow.fields.equivariant:EquivariantStationaryField")
+# The SO(3)-equivariant stationary field (kind equivariant_stationary, fields/equivariant.py)
+# was removed; recover it from the git history if it is needed again.
 
 # NOT registered, because the modules do not exist (they never have -- no commit
 # in this repo's history contains them):

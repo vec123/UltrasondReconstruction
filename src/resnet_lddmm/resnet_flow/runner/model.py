@@ -54,15 +54,6 @@ def build_field(cfg, conditioning):
             activation=cfg.field.activation,
             conditioning=conditioning
         )
-    if cfg.field.kind == "equivariant_stationary":
-        return Registry.create(
-            "field", "equivariant_stationary",
-            hidden_irreps=cfg.field.hidden_irreps,
-            gate_hidden_dim=cfg.field.gate_hidden_dim,
-            use_tensor_product_self=cfg.field.use_tensor_product_self,
-            layers_cfg=cfg.field.layers,
-            conditioning=conditioning
-        )
     if cfg.field.kind == "time_varying_fourier":
         return Registry.create(
             "field", "time_varying_fourier",
