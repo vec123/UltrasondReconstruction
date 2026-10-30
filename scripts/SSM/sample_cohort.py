@@ -44,7 +44,7 @@ from src.vtk.create import create_polydata
 from src.vtk.io import save_vtp
 
 
-def draw_cohort(model, n, n_modes=None, clip=None, seed=0):
+def draw_cohort(model, n, n_modes=None, clip=None, seed=0, sampling="random"):
     """(alpha [n, K], sigmas [n, K], vertices [n, N, 3]) drawn from the model's prior.
 
     Args:
@@ -52,13 +52,22 @@ def draw_cohort(model, n, n_modes=None, clip=None, seed=0):
         n: number of members
         n_modes: use the first K modes only; None = all
         clip: clip every sigma to [-clip, clip]; None = no clip
-        seed: numpy seed, so the same arguments give the same cohort
+        seed: seed of the draw, so the same arguments give the same cohort
+        sampling: "random" (independent normal draws) or "sobol" (a scrambled Sobol
+            sequence through the normal inverse CDF: quasi-random, so the n members cover
+            the K-dimensional Gaussian more evenly than independent draws do)
     """
     k = model.n_components if n_modes is None else int(n_modes)
     if not 0 < k <= model.n_components:
         raise ValueError(f"n_modes must be in 1..{model.n_components}, got {k}")
-    rng = np.random.default_rng(seed)
-    sigmas = rng.standard_normal((n, k))
+    if sampling == "random":
+        sigmas = np.random.default_rng(seed).standard_normal((n, k))
+    elif sampling == "sobol":
+        from scipy.stats import norm, qmc
+        u = qmc.Sobol(d=k, scramble=True, seed=seed).random(n)
+        sigmas = norm.ppf(np.clip(u, 1e-12, 1 - 1e-12))
+    else:
+        raise ValueError(f"sampling must be 'random' or 'sobol', got {sampling!r}")
     if clip is not None:
         sigmas = np.clip(sigmas, -clip, clip)
     alpha = sigmas * np.sqrt(model.eigenvalues[:k])
@@ -76,6 +85,8 @@ def main():
     parser.add_argument("--subset", type=int, default=0,
                         help="keep this many random vertices (same on all shapes); 0 = full mesh")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--sampling", choices=("random", "sobol"), default="random",
+                        help="independent normal draws, or a scrambled Sobol sequence (even coverage)")
     args = parser.parse_args()
 
     model = load_model_file(args.model)
@@ -84,7 +95,7 @@ def main():
     if members_dir.exists() and any(members_dir.glob("*.vtp")):
         raise FileExistsError(f"{members_dir} already holds .vtp files; choose an empty --output-dir")
 
-    alpha, sigmas, vertices = draw_cohort(model, args.n, args.modes, args.clip, args.seed)
+    alpha, sigmas, vertices = draw_cohort(model, args.n, args.modes, args.clip, args.seed, args.sampling)
     mean = model.mean.reshape(-1, 3)
     faces = model.faces
 
@@ -101,7 +112,7 @@ def main():
         save_vtp(create_polydata(verts[vertex_idx], faces), str(members_dir / f"sample_{i:05d}.vtp"))
     np.savez(out / "coefficients.npz", alpha=alpha, sigmas=sigmas,
              eigenvalues=model.eigenvalues[:alpha.shape[1]], vertex_idx=vertex_idx,
-             seed=args.seed, model=str(args.model))
+             seed=args.seed, sampling=args.sampling, model=str(args.model))
 
     print(f"wrote {args.n} members ({len(vertex_idx)} vertices, {alpha.shape[1]} modes) "
           f"+ template to {out}")
