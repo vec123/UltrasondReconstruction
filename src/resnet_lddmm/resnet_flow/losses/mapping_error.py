@@ -362,9 +362,14 @@ class UnidirectionalMappingError:
         self.last_sample_points = sample_points  # what configured terms must reuse
 
         tgt_w = _combine_weights(sample_weights, _gather_field(self.sample_field, sample_idx))
+        # The weight the template inherits at its nearest sample point, on the same
+        # draw; handed on only when present, so data terms without it never see it.
+        _, match_w = _take_vertices(sample.points, getattr(sample, "match_weights", None),
+                                    sample_idx, "sample")
+        extra = {} if match_w is None else {"tgt_match_w": match_w}
 
         data = data_term(pred, sample_points, pred_w=pred_w, tgt_w=tgt_w,
-                         normals=sample_normals)
+                         normals=sample_normals, **extra)
         kinetic = fwd.kinetic_energy()
         return data, kinetic
 

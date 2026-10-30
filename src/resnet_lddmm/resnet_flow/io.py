@@ -101,6 +101,9 @@ class Shape:
     weights: Optional[torch.Tensor] = None  # [1, N] or None
     normals: Optional[torch.Tensor] = None  # [1, N, 3] or None
     point_fields: Optional[dict] = None  # {name: [N] or [N, C] numpy} or None
+    # [1, N] or None: the weight the OTHER cloud's points take at their nearest point of
+    # this one (data term source_to_target.inherit_target_field: <field name>).
+    match_weights: Optional[torch.Tensor] = None
 
 
 def load_shape(path):

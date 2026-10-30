@@ -168,6 +168,7 @@ class CohortBatch:
     weights: torch.Tensor = None
     faces: list = None  # List of [F, 3] face tensors, one per shape in batch
     normals: torch.Tensor = None  # [B, N, 3] per-vertex normals, or None
+    match_weights: torch.Tensor = None  # [B, N] weights the template inherits at its matches, or None
 
 
 class CohortBatchLoader:
@@ -217,6 +218,9 @@ class CohortBatchLoader:
             normals = None
             if selected_shapes[0].normals is not None:
                 normals = torch.stack([s.normals.squeeze(0) for s in selected_shapes], dim=0)
+            match_weights = None
+            if getattr(selected_shapes[0], "match_weights", None) is not None:
+                match_weights = torch.stack([s.match_weights.squeeze(0) for s in selected_shapes], dim=0)
 
             # Collect per-shape faces (one per shape in batch)
             sample_faces = [s.faces if hasattr(s, 'faces') else None for s in selected_shapes]
@@ -230,5 +234,5 @@ class CohortBatchLoader:
             )
 
             sample_batch = CohortBatch(points=points, shape_ids=shape_ids, weights=weights, faces=sample_faces,
-                                       normals=normals)
+                                       normals=normals, match_weights=match_weights)
             yield template_batch, sample_batch

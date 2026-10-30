@@ -752,45 +752,56 @@ class FieldWeightedCDData(TwoSidedDataTerm):
                 "SOURCE point the target field at its matched target point. The "
                 "target_to_source side already reads the target field directly."
             )
-        if st.inherit_target_field and ts.field_name is None:
+        if st.inherit_target_field is True and ts.field_name is None:
             raise ValueError(
-                "source_to_target.inherit_target_field needs a field to inherit: set "
-                "target_to_source.field_name (e.g. support_edge)."
+                "source_to_target.inherit_target_field: true inherits the target_to_source "
+                "field, but there is none: set target_to_source.field_name, or name the "
+                "field to inherit (e.g. inherit_target_field: edge_weight)."
             )
-        self.source_to_target_inherit_target_field = st.inherit_target_field
+        self.source_to_target_inherit_target_field = bool(st.inherit_target_field)
+        # A named field reaches forward() as tgt_match_w (runner resolves it per member).
+        self.source_to_target_inherit_field_name = (st.inherit_target_field
+                                                    if isinstance(st.inherit_target_field, str) else None)
         if st.inherit_target_field:
+            inherited = self.source_to_target_inherit_field_name or ts.field_name
             print(f"[data_term] source_to_target: each source point weighted by "
-                  f"{ts.field_name!r} at its nearest target point")
+                  f"{inherited!r} at its nearest target point")
 
     def _source_to_target_weight(self, pred_w: Optional[Tensor], tgt_w: Optional[Tensor],
-                                 nearest_target: Tensor) -> Optional[Tensor]:
+                                 nearest_target: Tensor,
+                                 tgt_match_w: Optional[Tensor] = None) -> Optional[Tensor]:
         """The per-source-point weight source_to_target's mean runs under.
 
         ``pred_w`` unchanged unless inherit_target_field is set; then each source
-        point's matched target point's ``tgt_w``, times ``pred_w`` when that is set
-        too. The mirror of _target_to_source_weight: the match is an argmin, so the
-        weight is a constant for this step.
+        point's matched target point's ``tgt_match_w`` (a named field) or ``tgt_w``
+        (``true``), times ``pred_w`` when that is set too. The mirror of
+        _target_to_source_weight: the match is an argmin, so the weight is a
+        constant for this step.
 
         Args:
             pred_w: [1 or B, N] source weights, or None
-            tgt_w: [1 or B, M] target field at the target points, or None
+            tgt_w: [1 or B, M] target_to_source field at the target points, or None
             nearest_target: [B, N] index of each source point's nearest target point
+            tgt_match_w: [1 or B, M] the named inherited field at the target points, or None
 
         Returns:
             [B, N] (or pred_w's shape) weights, or None for a plain mean.
 
         Raises:
-            ValueError: inheriting, but no target field reached the data term.
+            ValueError: inheriting, but the field to inherit did not reach the data term.
         """
         if not self.source_to_target_inherit_target_field:
             return pred_w
-        if tgt_w is None:
+        source = tgt_match_w if self.source_to_target_inherit_field_name else tgt_w
+        if source is None:
             raise ValueError(
-                "source_to_target.inherit_target_field is set, but no target field "
-                "reached the data term (tgt_w is None)."
+                f"source_to_target.inherit_target_field is set, but the target field "
+                f"{self.source_to_target_inherit_field_name or 'of target_to_source'!s} did "
+                f"not reach the data term (a named field is resolved in cohort mode only, "
+                f"runner._add_cohort_field_weighted_chamfer)."
             )
         batch = nearest_target.shape[0]
-        inherited = tgt_w.detach().expand(batch, -1).gather(1, nearest_target)
+        inherited = source.detach().expand(batch, -1).gather(1, nearest_target)
         return inherited if pred_w is None else inherited * pred_w
 
     def _target_to_source_weight(self, pred_w: Optional[Tensor], tgt_w: Optional[Tensor],
@@ -909,6 +920,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         tgt_w: Optional[Tensor] = None,
         normals: Optional[Tensor] = None,
         per_point: bool = False,
+        tgt_match_w: Optional[Tensor] = None,
     ) -> Tensor:
         """Compute the field-weighted, per-direction-sigma Chamfer distance.
 
@@ -938,7 +950,7 @@ class FieldWeightedCDData(TwoSidedDataTerm):
         if self.scores_source_to_target:
             d_min, idx = dist_sq.min(dim=2)                       # [B, N]
             d1 = self.source_to_target_loss_distance_handle(d_min)
-            w1 = self._source_to_target_weight(pred_w, tgt_w, idx)
+            w1 = self._source_to_target_weight(pred_w, tgt_w, idx, tgt_match_w)
             term1 = self._weighted_mean(d1, w1) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
@@ -1030,6 +1042,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
         tgt_w: Optional[Tensor] = None,
         normals: Optional[Tensor] = None,
         per_point: bool = False,
+        tgt_match_w: Optional[Tensor] = None,
     ) -> Tensor:
         """Compute the field-weighted, per-direction-sigma point-to-plane distance.
 
@@ -1089,7 +1102,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
             offset = pred - target.gather(1, gather_idx)          # [B, N, 3]
             d_plane = (offset * n.gather(1, gather_idx)).sum(-1).pow(2)
             d1 = self.source_to_target_loss_distance_handle((1.0 - a) * d_point + a * d_plane)
-            w1 = self._source_to_target_weight(pred_w, tgt_w, idx)
+            w1 = self._source_to_target_weight(pred_w, tgt_w, idx, tgt_match_w)
             term1 = self._weighted_mean(d1, w1) / (2.0 * self.source_to_target_sigma ** 2)
 
         term2 = None
