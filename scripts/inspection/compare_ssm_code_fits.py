@@ -30,18 +30,14 @@ import glob
 import json
 import os
 import re
-import sys
 
 import numpy as np
 import torch
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-import render_frontal_views as views  # noqa: E402
-from eval_ssm_cohort import decode, load_run  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.vtk.create import create_polydata  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402

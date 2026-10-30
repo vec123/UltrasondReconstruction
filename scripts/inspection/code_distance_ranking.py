@@ -16,18 +16,14 @@ Run with:
 
 import argparse
 import os
-import sys
 
 import numpy as np
 import torch
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-from code_pca_modes import decode, with_points  # noqa: E402
-from code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
-from render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
+from scripts.inspection.code_pca_modes import decode, with_points  # noqa: E402
+from scripts.inspection.code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
+from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")

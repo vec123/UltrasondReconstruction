@@ -50,12 +50,8 @@ Usage:
 import argparse
 import json
 import os
-import sys
 import time
 from dataclasses import dataclass
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 # Every solve here is K x K (K ~ 160): threaded BLAS makes each one ~30x slower.
 for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):

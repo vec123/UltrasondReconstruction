@@ -43,12 +43,7 @@ Usage:
 import argparse
 import json
 import os
-import sys
 import time
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "inspection"))
 
 # The per-case solves are K x K (K ~ 128): threaded BLAS makes each one ~30x slower.
 for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
@@ -57,7 +52,7 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np
 import torch
 
-from eval_ssm_cohort import load_run  # noqa: E402
+from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from scripts.SSM.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
                                        load_cases, mm_stats, whitener)
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402

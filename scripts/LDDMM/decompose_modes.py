@@ -10,10 +10,7 @@ Usage:
 """
 
 import argparse
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.resnet_lddmm.resnet_flow.callbacks.deformation.modes import export_decomposition  # noqa: E402
 

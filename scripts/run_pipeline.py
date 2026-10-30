@@ -10,11 +10,6 @@ Usage:
 """
 
 import argparse
-import os
-import sys
-
-# Allow running this script directly from any cwd.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.pipeline.cli import pipeline_main  # noqa: E402
 

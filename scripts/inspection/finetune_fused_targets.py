@@ -58,7 +58,6 @@ import copy
 import json
 import math
 import os
-import sys
 import time
 
 import numpy as np
@@ -67,17 +66,13 @@ import torch.nn as nn
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "SSM")))
-
-import render_frontal_views as views  # noqa: E402
-import render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
-from code_fit_fused_targets import CASOS, references  # noqa: E402
-from code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
-from eval_ssm_cohort import load_run  # noqa: E402
-from render_ssm_posterior_views import faces_of, ramp_colors, with_colors  # noqa: E402
-from target_to_ssm_frame import similarity  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
+from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa: E402
+from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
+from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
+from scripts.inspection.render_ssm_posterior_views import faces_of, ramp_colors, with_colors  # noqa: E402
+from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
 from src.resnet_lddmm.resnet_flow.fields.fourier import FourierStationaryField  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402

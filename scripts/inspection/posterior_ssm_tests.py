@@ -32,17 +32,13 @@ import argparse
 import io
 import json
 import os
-import sys
 from contextlib import redirect_stdout
 
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-import render_frontal_views as views  # noqa: E402
-from render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
 from scripts.pipeline.config import from_dict  # noqa: E402
 from scripts.pipeline.registry import STAGE_REGISTRY  # noqa: E402
 from scripts.US.pipeline.stages.ssm_posterior import variant_name  # noqa: E402

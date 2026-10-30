@@ -3,12 +3,10 @@
 from copy import deepcopy
 from pathlib import Path
 import json
-import sys
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 
 from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import PipelineConfig

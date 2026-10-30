@@ -23,10 +23,6 @@ Usage:
 """
 
 import argparse
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.weight_field.config import load_yaml_mapping
 from src.resnet_lddmm.resnet_flow.io import load_shape, export_shape, FrameTransform

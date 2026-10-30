@@ -33,16 +33,12 @@ Usage:
 import argparse
 import json
 import os
-import sys
 
 import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-import render_ssm_posterior_views as post  # noqa: E402  (also lets a panel take color=None)
+from scripts.inspection import render_ssm_posterior_views as post  # noqa: E402  (also lets a panel take color=None)
 from scripts.SSM.update_ssm_em import load_cases  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.SSM.model.posterior import posterior, posterior_with_pose  # noqa: E402

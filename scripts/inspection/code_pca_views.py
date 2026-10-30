@@ -14,7 +14,6 @@ import argparse
 import glob
 import json
 import os
-import sys
 import tempfile
 
 import matplotlib
@@ -23,10 +22,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-from render_frontal_views import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
+from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402

@@ -16,18 +16,14 @@ Run with:
 import argparse
 import json
 import os
-import sys
 
 import numpy as np
 import torch
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-from code_pca_views import target_path  # noqa: E402
-from render_frontal_views import MESH_COLOR, SCAN_COLOR, mesh_actor, text_actor, view_camera  # noqa: E402
+from scripts.inspection.code_pca_views import target_path  # noqa: E402
+from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, mesh_actor, text_actor, view_camera  # noqa: E402
 from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights  # noqa: E402
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402

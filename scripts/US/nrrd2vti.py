@@ -1,11 +1,8 @@
 import os
-import sys
 import glob
 import vtk
 from vtk.util import numpy_support
 import SimpleITK as sitk
-# Allow running this script directly (`python scripts/US/nrrd2vti.py`) from any cwd.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.geometry import preprocess_volume
 
 def convert_nrrd_to_vti(nrrd_path, vti_path, preprocess=True,

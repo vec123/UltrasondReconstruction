@@ -28,10 +28,7 @@ Usage:
 import argparse
 import json
 import os
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import numpy as np
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy

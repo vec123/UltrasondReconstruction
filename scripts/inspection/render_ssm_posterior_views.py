@@ -21,17 +21,13 @@ Usage:
 
 import argparse
 import os
-import sys
 
 import numpy as np
 import vtk
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-import render_frontal_views as views  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
 from src.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.vtk.create import create_polydata  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402

@@ -26,7 +26,6 @@ Run with:
 import argparse
 import json
 import os
-import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -34,19 +33,15 @@ import torch
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "SSM")))
-
-import render_frontal_views as views  # noqa: E402
-import render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
-from code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
-                                    load_run_config, ssm_decoder)
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
+from scripts.inspection.code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
+                                                       load_run_config, ssm_decoder)
 from src.resnet_lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
-from render_ssm_posterior_views import ramp_colors, with_colors  # noqa: E402
-from eval_ssm_cohort import load_run  # noqa: E402
-from target_to_ssm_frame import similarity  # noqa: E402
+from scripts.inspection.render_ssm_posterior_views import ramp_colors, with_colors  # noqa: E402
+from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
+from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.vtk.create import create_polydata  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
@@ -211,7 +206,7 @@ def main():
     # Varifold: the scan's own triangles, in the same unposed mm frame as its points.
     vf_inputs = {}
     if args.data == "varifold":
-        from render_ssm_posterior_views import faces_of
+        from scripts.inspection.render_ssm_posterior_views import faces_of
         obs_tris = []
         for case, target in zip(args.cases, targets):
             obs_tris.append(target[torch.as_tensor(faces_of(scans[case][0]), dtype=torch.long, device=device)])

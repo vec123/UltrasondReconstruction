@@ -20,18 +20,14 @@ Run with:
 
 import argparse
 import os
-import sys
 
 import numpy as np
 import torch
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-import render_frontal_views as views  # noqa: E402
-from code_pca_views import similarity_map, template_landmarks  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+from scripts.inspection.code_pca_views import similarity_map, template_landmarks  # noqa: E402
 from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.resnet_lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from scripts.pipeline.cli import _no_pipeline_context  # noqa: E402

@@ -32,20 +32,15 @@ import argparse
 import glob
 import json
 import os
-import sys
 
 import numpy as np
 import torch
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "SSM")))
-
-import render_frontal_views as views  # noqa: E402
-from eval_ssm_cohort import decode, load_run  # noqa: E402
-from sample_cohort import draw_cohort  # noqa: E402
+from scripts.inspection import render_frontal_views as views  # noqa: E402
+from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
+from scripts.SSM.sample_cohort import draw_cohort  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import cohort_paths  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.vtk.create import create_polydata  # noqa: E402

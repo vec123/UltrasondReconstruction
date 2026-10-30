@@ -35,15 +35,11 @@ Usage:
 import argparse
 import glob
 import os
-import sys
 
 import numpy as np
 import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
-
-# Allow running this script directly from any cwd.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from src.vtk.io import load_vtp  # noqa: E402
 

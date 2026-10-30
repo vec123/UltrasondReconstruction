@@ -31,8 +31,6 @@ import tempfile
 import numpy as np
 from scipy.spatial import cKDTree
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.SSM.model.observations import Observations, build_noise_model  # noqa: E402
 from src.SSM.model.posterior import posterior, posterior_with_pose, save_posterior  # noqa: E402

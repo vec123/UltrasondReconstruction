@@ -29,16 +29,12 @@ Usage:
 import argparse
 import json
 import shutil
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
 
-from sample_cohort import draw_cohort
-from target_to_ssm_frame import similarity
+from scripts.SSM.sample_cohort import draw_cohort
+from scripts.SSM.target_to_ssm_frame import similarity
 from src.SSM.model.model_memory_io import load_model_file
 from src.vtk.create import create_polydata
 from src.vtk.io import save_vtp
