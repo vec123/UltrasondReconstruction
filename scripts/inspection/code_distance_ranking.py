@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from code_pca_modes import decode, with_points  # noqa: E402
-from code_pca_views import load_codes, target_path, template_landmarks  # noqa: E402
+from code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
 from render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
@@ -39,20 +39,27 @@ def main():
     parser.add_argument("--output", default=None, help="PNG to write (default: <run>/code_distance_ranking.png).")
     parser.add_argument("--members-per-row", type=int, default=3, help="Member tiles side by side.")
     parser.add_argument("--panel-px", type=int, default=200, help="Width and height of each panel in pixels.")
+    parser.add_argument("--similarity", default=None,
+                        help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
+                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
     args = parser.parse_args()
+    to_mm = similarity_map(args.similarity)
 
     # Only the code mean (step 0) is needed; decode returns it once per component.
     # The zero code is decoded too: the auto-decoder's prior, which the mean need not be.
     points, template, run, _, _ = decode(args.apply_config, (0.0,),
                                          extra={"zero": lambda codes: np.zeros(codes.shape[1])})
+    points = {key: to_mm(p) for key, p in points.items()}
     mean_points = points[(0, 0.0)]
     names, codes = load_codes(run)
     distance = np.linalg.norm(codes - codes.mean(axis=0), axis=1)
     order = np.argsort(distance)
     zero_distance = np.linalg.norm(codes.mean(axis=0))
 
-    recons = {i: load_vtp(os.path.join(run, "apply", names[i], "world", "deformed.vtp")) for i in order}
-    lmk = template_landmarks(run, names[0])
+    recons = {i: with_points(template, to_mm(vtk_to_numpy(load_vtp(
+        os.path.join(run, "apply", names[i], "world", "deformed.vtp")).GetPoints().GetData())))
+        for i in order}
+    lmk = template_landmarks(run, names[0], to_mm)
     cameras = [view_camera(lmk, list(recons.values()), view) for view in VIEWS]
     frontal = cameras[0]
 

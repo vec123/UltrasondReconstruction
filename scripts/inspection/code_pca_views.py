@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from render_frontal_views import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
-from vtk.util.numpy_support import vtk_to_numpy  # noqa: E402
+from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
 
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 # The training targets are point clouds resampled from each member's fused scan mesh,
@@ -77,32 +77,64 @@ def choose_points(scores, n_pairs):
     return chosen
 
 
-def template_landmarks(run, member):
+def similarity_map(path):
+    """points [N, 3] -> the same points under a similarity.json's x' = s R x + t, or as they are.
+
+    For runs whose world frame is not mm, e.g. a shape model's frame: the similarity.json
+    scripts/SSM/target_to_ssm_frame.py writes maps that frame back to the scans' mm frame,
+    where the cameras and the mm colour scales of these views are meant to work.
+
+    Args:
+        path: a similarity.json ({scale, rotation, translation}), or None for the identity
+    """
+    if path is None:
+        return lambda points: points
+    with open(path) as f:
+        sim = json.load(f)
+    scale, rotation = float(sim["scale"]), np.asarray(sim["rotation"], dtype=np.float64)
+    translation = np.asarray(sim["translation"], dtype=np.float64)
+    return lambda points: scale * np.asarray(points, dtype=np.float64) @ rotation.T + translation
+
+
+def template_landmarks(run, member, to_frame=None):
     """{label: point} on the template, in the deformed templates' (world) frame.
 
     The eval stage moves the recon into its case's reference-scan frame, so its
     landmarks are carried back through their nearest recon vertex: deformed.vtp and
-    recon_w_distance.vtp share the template's vertex order.
+    recon_w_distance.vtp share the template's vertex order. ``to_frame`` (see
+    similarity_map) maps the world points first.
     """
     member_dir = os.path.join(run, "apply", member)
     eval_points = vtk_to_numpy(load_vtp(os.path.join(member_dir, "eval", "recon_w_distance.vtp")).GetPoints().GetData())
     world_points = vtk_to_numpy(load_vtp(os.path.join(member_dir, "world", "deformed.vtp")).GetPoints().GetData())
+    if to_frame is not None:
+        world_points = to_frame(world_points)
     lmk = read_landmarks(os.path.join(member_dir, "eval", "recon_landmarks.vtp"))
     return {label: world_points[np.argmin(np.linalg.norm(eval_points - p, axis=1))] for label, p in lmk.items()}
 
 
 def target_path(run, member):
-    """The member's fused scan mesh; members are named <case>_<week>_semanas."""
+    """The member's fused scan mesh: the one its eval scored (eval/distance_summary.json), else
+    the Casos_Mar layout beside the run; members are named <case>_<week>_semanas."""
+    summary = os.path.join(run, "apply", member, "eval", "distance_summary.json")
+    if os.path.isfile(summary):
+        with open(summary) as f:
+            return json.load(f)["target_path"]
     case, week = member.split("_", 1)
     return os.path.join(os.path.dirname(os.path.normpath(run)),
                         FUSED_SCAN.format(case=case, week=week.replace("_", " ")))
 
 
-def render_thumbnails(run, names, chosen, panel_px):
+def render_thumbnails(run, names, chosen, panel_px, to_mm=None):
     """{index: RGB image}: frontal, left and right views (rows) of each chosen
-    deformed template (left column) and its target (right column)."""
-    lmk = template_landmarks(run, names[next(iter(chosen))])
+    deformed template (left column) and its target (right column). ``to_mm`` (see
+    similarity_map) maps the deformed templates into the targets' mm frame first."""
+    lmk = template_landmarks(run, names[next(iter(chosen))], to_mm)
     meshes = {i: load_vtp(os.path.join(run, "apply", names[i], "world", "deformed.vtp")) for i in chosen}
+    if to_mm is not None:
+        for mesh in meshes.values():
+            mesh.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(
+                to_mm(vtk_to_numpy(mesh.GetPoints().GetData())), dtype=np.float32), deep=True))
     targets = {i: load_vtp(target_path(run, names[i])) for i in chosen}
     cameras = [view_camera(lmk, list(meshes.values()), view) for view in ("frontal", "left", "right")]
     images = {}
@@ -193,12 +225,16 @@ def main():
     parser.add_argument("--output", default=None, help="PNG to write (default: <run>/code_pca.png).")
     parser.add_argument("--pairs", type=int, default=3, help="How many closest pairs to show.")
     parser.add_argument("--panel-px", type=int, default=260, help="Width and height of each view in pixels.")
+    parser.add_argument("--similarity", default=None,
+                        help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
+                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
     args = parser.parse_args()
 
     names, codes = load_codes(args.run)
     scores, ratio = pca(codes)
     chosen = choose_points(scores, args.pairs)
-    images = render_thumbnails(args.run, names, chosen, args.panel_px)
+    to_mm = similarity_map(args.similarity) if args.similarity else None
+    images = render_thumbnails(args.run, names, chosen, args.panel_px, to_mm)
     out_path = args.output or os.path.join(args.run, "code_pca.png")
     plot(names, scores, ratio, chosen, images,
          f"{os.path.basename(os.path.normpath(args.run))}: auto-decoder codes ({len(names)} members)", out_path)

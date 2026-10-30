@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import render_frontal_views as views  # noqa: E402
-from code_pca_views import template_landmarks  # noqa: E402
+from code_pca_views import similarity_map, template_landmarks  # noqa: E402
 from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.resnet_lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from scripts.pipeline.cli import _no_pipeline_context  # noqa: E402
@@ -172,12 +172,17 @@ def main():
                         help="Comma-separated landmark labels; PCA over their grid nodes only (direct grid).")
     parser.add_argument("--region-name", default=None,
                         help="Short name of the region for the file name and header (default: the labels).")
+    parser.add_argument("--similarity", default=None,
+                        help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
+                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
     args = parser.parse_args()
 
     region = args.region.split(",") if args.region else None
     points, template, run, ratio, nodes = decode(args.apply_config, STEPS, region)
+    to_mm = similarity_map(args.similarity)
+    points = {key: to_mm(p) for key, p in points.items()}
     names = sorted(n for n in os.listdir(os.path.join(run, "apply")) if os.path.isdir(os.path.join(run, "apply", n)))
-    lmk = template_landmarks(run, names[0])
+    lmk = template_landmarks(run, names[0], to_mm)
 
     meshes = {key: with_points(template, p) for key, p in points.items()}
     frontal, left, right = (views.view_camera(lmk, list(meshes.values()), view) for view in ("frontal", "left", "right"))
