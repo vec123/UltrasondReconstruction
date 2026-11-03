@@ -28,7 +28,7 @@ class VolumeConfig:
     norm_out_max: float = 255.0
     crop: bool = False
     crop_threshold: int = 0
-    crop_margin: float = 0
+    crop_margin: Union[int, float] = 0  # voxels (int), or a fraction of each axis (float in (0, 1))
     # 4D (x, y, z, t) volumes: "skip" = skip with a warning; "mean" | "median" = reduce
     # over time to one 3D scan; int = keep only that time frame (see reduce_4d_volume)
     four_d: Union[str, int] = "skip"
@@ -66,7 +66,7 @@ class EchotextureConfig:
     # Must mirror nrrd_to_vtp's own volume.crop* settings - see the stage module docstring.
     crop: bool = False
     crop_threshold: int = 0
-    crop_margin: float = 0
+    crop_margin: Union[int, float] = 0  # voxels (int), or a fraction of each axis (float in (0, 1))
     four_d: Union[str, int] = "skip"  # must mirror nrrd_to_vtp's volume.four_d, else a 4D scan is sampled in another volume
 
     # What signal to measure; independent of the coordinate frame above.

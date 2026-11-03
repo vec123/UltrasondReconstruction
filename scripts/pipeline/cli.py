@@ -7,16 +7,16 @@ from src.core.config import from_dict, interpolate_paths, load_yaml, path_variab
 from .registry import STAGE_REGISTRY
 
 
-def _bind_stage_config(stage_name, raw):
+def _bind_stage_config(stage_name, raw, source):
     """Binds an already-interpolated raw dict to its registered stage Config.
 
     Uses the stage's own binder (`StageSpec.from_dict`) when it has one -
-    SSM and resnet-lddmm each already validate their YAML more strictly than
-    the generic nested-dataclass binder below could (cross-field checks,
-    aliasing, nested unions) - falling back to the generic binder otherwise.
+    resnet-lddmm's configs check across fields and accept aliases - and the
+    strict generic binder (src.core.config.from_dict) otherwise. `source`
+    names the YAML in the error messages.
     """
     spec = STAGE_REGISTRY.get(stage_name)
-    binder = spec.from_dict or (lambda d: from_dict(spec.config_cls, d))
+    binder = spec.from_dict or (lambda d: from_dict(spec.config_cls, d, source=source))
     return spec, binder(raw)
 
 
@@ -38,7 +38,7 @@ def stage_main(config_path, extra_vars=None):
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
 
     raw = interpolate_paths(raw, variables, resolve_ref=_no_pipeline_context)
-    spec, cfg = _bind_stage_config(stage_name, raw)
+    spec, cfg = _bind_stage_config(stage_name, raw, config_path)
 
     print(f"Running stage '{stage_name}' from '{config_path}'")
     spec.run(cfg)
@@ -146,7 +146,7 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
         raw = {**stage_paths, **stage_hyperparameters}
 
         raw = interpolate_paths(raw, variables, resolve_ref=resolve_ref)
-        spec, cfg = _bind_stage_config(stage_name, raw)
+        spec, cfg = _bind_stage_config(stage_name, raw, f"{pipeline_config_path} ({stage_id})")
 
         # Bind and resolve the config either way, so later stages can still
         # reference this one's fields (e.g. `nrrd_to_vtp.output_dir`) even
