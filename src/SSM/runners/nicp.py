@@ -20,7 +20,7 @@ import torch
 
 from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
-from src.SSM.correspondence.vtk import save_matching_field
+from src.SSM.correspondence.vtk import save_matching_lines
 from src.transforms.similarity import SimilarityTransform
 from src.vtk.io import (
     load_vtp,
@@ -408,7 +408,7 @@ class NicpRunner:
 
         if outputs.save_matching_field and corr is not None and not corr.is_empty:
             path = outputs.run_path("matching_field", run=spec.name)
-            save_matching_field(vertices.reshape(-1, 3), self.target.points,
+            save_matching_lines(vertices.reshape(-1, 3), self.target.points,
                                 corr.as_array(), filename=str(path))
             self.written_files.append(path)
 

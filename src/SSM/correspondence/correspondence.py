@@ -102,7 +102,7 @@ class Correspondences:
                 for i, j, d in zip(self.source_idx, self.target_idx, self.distance)]
 
     def __array__(self, dtype=None) -> np.ndarray:
-        # lets np.asarray(corr) and anything built on it (save_matching_field,
+        # lets np.asarray(corr) and anything built on it (save_matching_lines,
         # ShapeInstance.l2_closed_form_step) take a Correspondences object directly
         arr = self.as_array()
         return arr if dtype is None else arr.astype(dtype)

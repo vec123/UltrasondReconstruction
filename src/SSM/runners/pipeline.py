@@ -26,7 +26,7 @@ import numpy as np
 
 from src.config.SSM.client import ConfigClient
 from src.config.SSM.schema import PipelineConfig
-from src.SSM.correspondence.vtk import save_matching_field
+from src.SSM.correspondence.vtk import save_matching_lines, save_correspondence_field
 from src.landmarks.load_landmarks import load_landmarks
 from src.transforms.similarity import SimilarityTransform
 from src.geometry.spectral_operators import (
@@ -549,7 +549,7 @@ class PipelineRunner:
         shape_fit = ShapeInstance(self.shape_model,
                                   alpha=result.alpha.detach().cpu().numpy().astype(float))
         self._register(spec.name, shape_fit, vertices)
-        self._save_points(vertices, "nicp_fit", faces=self.model_faces, name=spec.name)
+        recon_file = self._save_points(vertices, "nicp_fit", faces=self.model_faces, name=spec.name)
 
         # A correspondence-free fit has no pairs to draw, so there is nothing to
         # write: the one place anything downstream notices which family it was.
@@ -557,9 +557,16 @@ class PipelineRunner:
         self.matches = matches
         if matches is not None and not matches.is_empty:
             path = cfg.outputs.path("nicp_fit_matching", name=spec.name)
-            save_matching_field(vertices.reshape(-1, 3), target_cloud.points,
+            save_matching_lines(vertices.reshape(-1, 3), target_cloud.points,
                                 matches.as_array(), filename=str(path))
             self.written_files.append(path)
+
+            src_colors_path = cfg.outputs.path("nicp_fit_colors", name=spec.name)
+            tgt_colors_path = cfg.outputs.path("nicp_fit_target_colors", name=spec.name)
+            self.written_files.extend(save_correspondence_field(
+                recon_file, create_polydata(target_cloud.points, self.surface_faces), matches,
+                target_path=tgt_colors_path, recon_path=src_colors_path,
+            ))
 
     # -- step 3: regional Laplacian deformation ----------------------------
 
