@@ -14,6 +14,8 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from src.geometry import vertex_normals
+from src.vtk.extract import extract_all_vtp_point_fields, extract_vtp_points_cells
+from src.vtk.io import load_vtp
 
 
 class PointCloud:
@@ -58,6 +60,34 @@ class PointCloud:
                     f"- one scalar per point"
                 )
             self._fields[name] = arr
+
+    @classmethod
+    def from_vtp(cls, path, normals_field: Optional[str] = None) -> "PointCloud":
+        """Points, triangles and scalar point fields of a .vtp file.
+
+        ``normals_field`` names an (N, 3) point array to use as the normals.
+        Without it, the normals come from the faces, or from a k-NN fit when
+        the file has no faces. Other multi-component arrays are not carried.
+        """
+        polydata = load_vtp(str(path))
+        points, faces = extract_vtp_points_cells(polydata)
+        arrays = extract_all_vtp_point_fields(polydata)
+
+        normals = None
+        if normals_field is not None:
+            if normals_field not in arrays:
+                raise ValueError(
+                    f"{path}: no point array {normals_field!r} for the normals; "
+                    f"available: {sorted(arrays)}"
+                )
+            normals = np.asarray(arrays.pop(normals_field), dtype=np.float64)
+            length = np.linalg.norm(normals, axis=1, keepdims=True)
+            # a zero normal stays zero, the same as a face normal that cancels out
+            normals = np.divide(normals, length, out=np.zeros_like(normals), where=length > 0)
+
+        fields = {name: values for name, values in arrays.items()
+                  if np.asarray(values).squeeze().ndim == 1}
+        return cls(points, faces=faces if len(faces) else None, normals=normals, fields=fields)
 
     @classmethod
     def as_cloud(cls, obj, faces=None) -> "PointCloud":
