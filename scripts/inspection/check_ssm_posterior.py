@@ -20,7 +20,7 @@ All in model units, reported in mm through the model-to-template scale.
 
 Run with:
     python scripts/inspection/check_ssm_posterior.py
-    python scripts/inspection/check_ssm_posterior.py --model shape_models/baby/baby_pca.npz
+    python scripts/inspection/check_ssm_posterior.py --model assets/shape_models/baby/baby_pca.npz
 """
 
 import argparse
@@ -36,7 +36,7 @@ from src.SSM.model.inference.observations import Observations, build_noise_model
 from src.SSM.model.inference.posterior import posterior, posterior_with_pose, save_posterior  # noqa: E402
 from src.transforms.similarity import SimilarityTransform  # noqa: E402
 
-DEFAULT_MODEL = "shape_models/baby/baby_pca_sum_matern32.npz"
+DEFAULT_MODEL = "assets/shape_models/baby/baby_pca_sum_matern32.npz"
 
 
 def main():

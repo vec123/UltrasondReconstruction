@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--extra", nargs="+", default=[],
                         help="label=path of other methods' results for the scan, in the scan's frame (mm)")
     parser.add_argument("--name", default="comparison", help="base name of the .json and the views/ .png")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--panel-px", type=int, default=240)
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()

@@ -2,7 +2,7 @@
 via shared named landmarks - see src.landmarks.vtk_landmarks.fit_landmark_alignment.
 
 `source_vtp` must carry its own `heatmap_{label}` point fields (e.g.
-Templates/baby_mean.vtp, Templates/fetus_mean.vtp): the argmax vertex of each
+assets/templates/baby_mean.vtp, assets/templates/fetus_mean.vtp): the argmax vertex of each
 field gives that label's position in source_vtp's own frame. `landmark_path`
 is a named landmark CSV (x, y, z, label columns) already living in the target
 frame - e.g. one subject's file from align_to_template's out_landmarks_csv_dir,

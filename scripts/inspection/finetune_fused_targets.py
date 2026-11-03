@@ -271,7 +271,7 @@ def main():
     parser.add_argument("--variants", nargs="+", default=["code", "detail", "lora"], choices=VARIANTS)
     parser.add_argument("--fused-dir", default=f"{CASOS}/cohort/fused_targets")
     parser.add_argument("--aligned-template", default=f"{CASOS}/cohort/template_baby_mean_aligned.vtp")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--sigma", type=float, default=3.0, help="stage 1: data noise (mm), as the gauss<sigma> variants")
     parser.add_argument("--ft-sigma", type=float, default=1.0, help="stage 2: data noise (mm)")
     parser.add_argument("--tau", type=float, default=1.0, help="bound of the velocity change (mm / unit time)")

@@ -1,7 +1,7 @@
 # Proof-of-concept: hand pair registration with isometry constraint
 # Same as hand_pair_poc but with isometry regularization enabled
 
-source: Templates/baby_mean.vtp
+source: assets/templates/baby_mean.vtp
 
 # 0.2 (not a higher threshold) is deliberate: it's the SUPERSET carrying every
 # point down to consistency_score 0.2, so target_to_source.field_name below

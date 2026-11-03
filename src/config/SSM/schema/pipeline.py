@@ -24,7 +24,7 @@ class PipelineInputs:
     # Target landmark positions, name -> [x, y, z]. Only read by steps.align
     # and steps.landmark_fit; may be omitted when both are off.
     landmarks_json: Optional[Path] = None
-    # The model's own mean-shape mesh (e.g. Templates/baby_mean.vtp), vertex-wise
+    # The model's own mean-shape mesh (e.g. assets/templates/baby_mean.vtp), vertex-wise
     # corresponding with shape_model_mat - same vertex count, same ordering. The
     # model format (.mat or Deformetrica atlas) carries geometry and landmarks
     # but no arbitrary point-data fields, so every mesh this pipeline writes is

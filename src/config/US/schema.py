@@ -325,8 +325,8 @@ class TransformConfig:
 @dataclasses.dataclass
 class LandmarkAlignConfig:
     landmark_path: str = ""  # subject's own landmark CSV (Slicer fiducial export), in the nrrd's world frame
-    # VTP carrying `heatmap_{label}` point fields (e.g. Templates/baby_mean.vtp,
-    # Templates/fetus_mean.vtp) - the argmax vertex of each field gives that
+    # VTP carrying `heatmap_{label}` point fields (e.g. assets/templates/baby_mean.vtp,
+    # assets/templates/fetus_mean.vtp) - the argmax vertex of each field gives that
     # label's vertex index into vtp_path's own point ordering, valid whenever
     # vtp_path preserves this template mesh's topology (as NICP-fitted
     # reconstructions do).
@@ -341,7 +341,7 @@ class SimilarityTransformConfig:
     """Rigidly (+ scale) moves source_vtp into landmark_path's frame, via
     shared named landmarks - see src.landmarks.vtk_landmarks.fit_landmark_alignment.
 
-    Typical use: a standalone template (e.g. Templates/baby_mean.vtp, which
+    Typical use: a standalone template (e.g. assets/templates/baby_mean.vtp, which
     carries its own heatmap_{label} point fields) needs to land in the same
     coordinate frame as an align_to_template output - e.g. before pairing it
     with a fused/consensus scan built in that frame as resnet_lddmm_train's

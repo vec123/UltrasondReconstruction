@@ -1,4 +1,4 @@
-# Bakes a `kinetic_weight` STIFFNESS field onto Templates/baby_mean.vtp: low on
+# Bakes a `kinetic_weight` STIFFNESS field onto assets/templates/baby_mean.vtp: low on
 # the lower nose (alae, alar bases, tip, subnasale), high everywhere else. Used
 # by loss.kinetic_field_weight / kinetic_field_kwargs (losses/kinetic.py), it
 # makes moving the nose cheap and bulging the tissue next to it expensive.
@@ -14,7 +14,7 @@
 # then re-run similarity_transform_baby_mean so the field reaches
 # baby_mean_aligned.vtp, the file training actually reads.
 
-vtp: Templates/baby_mean.vtp
+vtp: assets/templates/baby_mean.vtp
 output_field: kinetic_weight
 invert: true
 

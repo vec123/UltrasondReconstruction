@@ -59,7 +59,7 @@ def session_scale(fused_path):
     of this session, from its own aligned_to_template/transforms/*.npz files.
 
     align_to_template fits each scan's landmarks onto ONE FIXED template
-    (Templates/fetus_mean.vtp), so every session - at every gestational week - gets
+    (assets/templates/fetus_mean.vtp), so every session - at every gestational week - gets
     pulled toward that template's own size: fused_scan.vtp is in the TEMPLATE's scale,
     not the original scan's mm scale. Dividing a session's points by this factor (about
     their own centroid, so only size changes) undoes that and restores the session's

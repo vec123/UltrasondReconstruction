@@ -6,7 +6,7 @@ style, reusing their camera and grid-rendering machinery.
 Usage:
     python scripts/inspection/render_gamma_sweep_comparison.py \
         --root outputs/direct_SSM_fit \
-        --model shape_models/baby/baby_pca.npz
+        --model assets/shape_models/baby/baby_pca.npz
 """
 
 import argparse
@@ -56,7 +56,7 @@ def discover_fits(case_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", default="outputs/direct_SSM_fit")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--output", default=None, help="PNG to write (default: <root>/gamma_sweep_comparison.png)")
     parser.add_argument("--panel-px", type=int, default=260)
     args = parser.parse_args()

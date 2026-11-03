@@ -405,7 +405,7 @@ def main():
     parser.add_argument("--run", required=True, help="the SSM-trained cohort run")
     parser.add_argument("--step", type=int, default=None)
     parser.add_argument("--tests-dir", default="outputs/posterior_SSM_tests")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--seed", type=int, default=0, help="the seed posterior_ssm_tests.py ran with")
     parser.add_argument("--noise-mm", type=float, default=0.3, help="the noise posterior_ssm_tests.py ran with")
     parser.add_argument("--variants", nargs="+", default=["data", "gauss0.5", "gauss3"])

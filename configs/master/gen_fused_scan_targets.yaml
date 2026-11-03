@@ -58,7 +58,7 @@ paths:
     aligned_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned/aligned_shapes_vtp
     aligned_landmarks_dir: nrrd_to_vtp.output_dir + /aligned/aligned_landmarks
   align_to_template:
-    template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+    template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     vtp_shapes_dir: align_to_reference.aligned_shapes_vtp_dir
     landmarks_csv_dir: align_to_reference.aligned_landmarks_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
@@ -85,10 +85,10 @@ paths:
     transforms_dir: align_to_template.transforms_dir
   fetus_ssm_fit_init_pca:
     inputs:
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca.npz
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
-      template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+      template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
       dir: nrrd_to_vtp.output_dir + /fetus_ssm/init_pca
   scan_fusion_ssm:

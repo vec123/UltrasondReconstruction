@@ -39,5 +39,5 @@ approximation:
 inference:
   name: none
 output:
-  dir: ${PROJECT_ROOT}/shape_models/fetus
+  dir: ${PROJECT_ROOT}/assets/shape_models/fetus
   filename: fetus_pca_sum_gaussian.npz

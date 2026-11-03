@@ -48,7 +48,7 @@ from src.vtk.create import create_polydata  # noqa: E402
 from src.vtk.fields import add_point_field  # noqa: E402
 from src.vtk.io import load_vtp, save_vtp  # noqa: E402
 
-DEFAULT_MODEL = "shape_models/baby/baby_pca.npz"
+DEFAULT_MODEL = "assets/shape_models/baby/baby_pca.npz"
 MM_PER_UNIT = 5335.0  # the baby models' frame against the mm templates
 UNOBSERVED_ERROR = 10.0
 ERROR_MAX_MM = 3.0

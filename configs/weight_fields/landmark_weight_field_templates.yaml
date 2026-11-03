@@ -1,4 +1,4 @@
-# Bakes the `landmark_weight` point field onto Templates/baby_mean.vtp (the
+# Bakes the `landmark_weight` point field onto assets/templates/baby_mean.vtp (the
 # copy configs/master/end_to_end.yaml's similarity_transform/baby_ssm_fit
 # stages read), mirroring landmark_weight_field.yaml's weighting for the
 # data/processed_ultrasound/baby/baby_mean.vtp copy used by
@@ -6,7 +6,7 @@
 # Regenerate with:
 #   python scripts/weight_fields/write_landmark_weight_field.py configs/weight_fields/landmark_weight_field_templates.yaml
 
-vtp: Templates/baby_mean.vtp
+vtp: assets/templates/baby_mean.vtp
 
 include:
   # nose -- wide halo AND higher importance than the rest

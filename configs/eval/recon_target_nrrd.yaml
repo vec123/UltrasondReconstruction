@@ -47,7 +47,7 @@ paths:
         thickness: 0.2
         landmark_align:
           landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
-          template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+          template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
 
       # Fetus Model Mean Template
       - vtp_path: ${PROJECT_ROOT}/Results/fetus_ssm_outputs/1/high_conf_scan/merged_high_confidence_scan_threshold_0.8/init_shape.vtp
@@ -56,7 +56,7 @@ paths:
         thickness: 0.2
         landmark_align:
           landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
-          template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+          template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
 
       # Baby Model Reconstruction
       - vtp_path: recon_target_distance.output_dir + /recon_w_distance.vtp
@@ -65,7 +65,7 @@ paths:
         thickness: 0.2
         landmark_align:
           landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
-          template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+          template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
 
       # Baby Model Mean Template
       - vtp_path: ${PROJECT_ROOT}/Results/baby_ssm_outputs/1/high_conf_target_threshold_0.8/init_shape.vtp
@@ -74,7 +74,7 @@ paths:
         thickness: 0.2
         landmark_align:
           landmark_path: ${DATA_ROOT}/Casos Mar/Segmentaciones/1/20 semanas/Lmks_Antonia/1-20s-02.csv
-          template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+          template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
 
       # Original isosurface - already in the nrrd's own world frame, no alignment needed.
       - vtp_path: ${PROJECT_ROOT}/US_samples/VTK_3/1/20_semanas/1-20s-02.vtp

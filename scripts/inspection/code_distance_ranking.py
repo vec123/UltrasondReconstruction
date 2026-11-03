@@ -39,7 +39,7 @@ def main():
     parser.add_argument("--similarity", default=None,
                         help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
                              "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz",
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz",
                         help="landmark fallback for members with no eval (see template_landmarks)")
     args = parser.parse_args()
     to_mm = similarity_map(args.similarity)

@@ -5,7 +5,7 @@ with only one - a growth-curve QC plot.
 The scale plotted is session_scale (fused_target_ranking.py): the median
 align_to_template fit per session, composed with align_to_reference's own scale.
 It maps a session's own real mm landmarks onto ONE FIXED template
-(Templates/fetus_mean.vtp), so it is inversely related to the subject's true size
+(assets/templates/fetus_mean.vtp), so it is inversely related to the subject's true size
 at that week - a SMALLER scale means a session needed MORE shrinking to reach the
 template's fixed size, i.e. a bigger true subject. A session with no saved
 transform is skipped (not interpolated or dropped silently - see the printed count).

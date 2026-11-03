@@ -30,14 +30,14 @@ kernel:
     # Untouched: every global mode the population showed stays available.
     - name: pca
     # The regional term. Weights come from the heatmap_landmarks point field
-    # already baked on Templates/baby_mean.vtp, which is this same mesh in the
+    # already baked on assets/templates/baby_mean.vtp, which is this same mesh in the
     # same vertex order (its points match refShape vertex for vertex). The
     # field peaks at 1.0, so it needs no rescaling: variance scales as w^2, so
     # w = 1 gives the full 'scale' below and the floor (~0.0018) gives ~3e-6 of
     # it - effectively frozen outside the region.
     - name: localized
       kwargs:
-        weights: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+        weights: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
         weights_field: heatmap_landmarks
       children:
         # sigma 8.0 is deliberately SMALLER than the region (1431 vertices at
@@ -63,5 +63,5 @@ approximation:
 inference:
   name: none
 output:
-  dir: ${PROJECT_ROOT}/shape_models/baby
+  dir: ${PROJECT_ROOT}/assets/shape_models/baby
   filename: baby_pca_sum_localized_gaussian.npz

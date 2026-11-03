@@ -51,7 +51,7 @@ paths:
     aligned_landmarks_dir: nrrd_to_vtp.output_dir + /aligned/aligned_landmarks
 
   align_to_template:
-    template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+    template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     vtp_shapes_dir: align_to_reference.aligned_shapes_vtp_dir
     landmarks_csv_dir: align_to_reference.aligned_landmarks_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned_to_template

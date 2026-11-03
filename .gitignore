@@ -15,9 +15,9 @@ venv/
 /outputs/
 /Ultrasounds/
 /fetus_ssm_outputs/
-/Templates/
+/assets/templates/
 # Built GPMMs (configs/ssm/build_configs writes here); ~3 GB, all reproducible.
-/shape_models/
+/assets/shape_models/
 
 src\SSM\BabyFM\BabyFaceModel.mat
 

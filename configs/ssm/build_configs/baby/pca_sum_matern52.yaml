@@ -36,5 +36,5 @@ approximation:
 inference:
   name: none
 output:
-  dir: ${PROJECT_ROOT}/shape_models/baby
+  dir: ${PROJECT_ROOT}/assets/shape_models/baby
   filename: baby_pca_sum_matern52.npz

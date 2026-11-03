@@ -18,7 +18,7 @@
 #
 # Inputs, prepared from the batch outputs:
 #   template: the per-case baby_mean_aligned.vtp closest to the vertex mean of all
-#     of them (case 1 / 20 semanas). Templates/baby_mean.vtp itself is stored
+#     of them (case 1 / 20 semanas). assets/templates/baby_mean.vtp itself is stored
 #     normalised (all coordinates ~0), not in the fused targets' template frame.
 #   source: every fused_scan.vtp resampled to 4096 points (CohortBatchLoader stacks
 #     the targets, so they need equal counts); smaller ones keep all their points

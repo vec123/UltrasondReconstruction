@@ -221,7 +221,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--run", required=True, help="resnet_lddmm run folder with apply/<case>/ (the EM data)")
     parser.add_argument("--flow-run", required=True, help="the SSM-trained cohort auto-decoder run (frozen)")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz",
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz",
                         help="the linear model whose mean the flow's template and the run's template are")
     parser.add_argument("--output-root", default="outputs/UpdatedSSM")
     parser.add_argument("--output-dir", default=None, help="default: <output-root>/<run name>/<variant name>")

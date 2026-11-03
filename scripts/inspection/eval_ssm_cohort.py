@@ -138,7 +138,7 @@ def main():
     parser.add_argument("--fit-run", required=True, help="the freeze_flow code-fit run on new samples")
     parser.add_argument("--train-data", required=True, help="sample_cohort.py output of the training set")
     parser.add_argument("--test-data", required=True, help="sample_cohort.py output of the new samples")
-    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--n-generate", type=int, default=1000)
     parser.add_argument("--batch", type=int, default=25)

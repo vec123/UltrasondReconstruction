@@ -28,8 +28,8 @@
 #   l / b / t         landmark markers / midline plane / light-dark theme
 #   u / y             undo / redo     s   save     r   camera     q   quit (saves if changed)
 
-template: ${PROJECT_ROOT}/Templates/baby_mean.vtp
-spec: ${PROJECT_ROOT}/Templates/deformation_modes/baby_mean.yaml
+template: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
+spec: ${PROJECT_ROOT}/assets/templates/deformation_modes/baby_mean.yaml
 
 window_size: [1500, 950]
 theme: light

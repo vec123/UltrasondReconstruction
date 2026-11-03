@@ -314,7 +314,7 @@ paths:
     aligned_landmarks_dir: nrrd_to_vtp.output_dir + /aligned/aligned_landmarks
 
   align_to_template:
-    template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+    template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     vtp_shapes_dir: align_to_reference.aligned_shapes_vtp_dir
     landmarks_csv_dir: align_to_reference.aligned_landmarks_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
@@ -350,61 +350,61 @@ paths:
   #---------SSM fits, round 1 (pre-fusion): fit each shape model as seg mask
   fetus_ssm_fit_init_pca:
     inputs: &fetus_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca.npz
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
-      template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp
+      template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca
 
   fetus_ssm_fit_init_pca_times_gaussian:
     inputs:
       <<: *fetus_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca_times_gaussian.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_times_gaussian.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian
 
   fetus_ssm_fit_init_pca_times_wendland:
     inputs:
       <<: *fetus_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca_times_wendland.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_times_wendland.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland
 
   fetus_ssm_fit_init_pca_sum_matern32:
     inputs:
       <<: *fetus_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca_sum_matern32.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_sum_matern32.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32
 
   baby_ssm_fit_init_pca:
     inputs: &baby_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
-      template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+      template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca
 
   baby_ssm_fit_init_pca_times_gaussian:
     inputs:
       <<: *baby_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_times_gaussian.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_gaussian.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian
 
   baby_ssm_fit_init_pca_times_wendland:
     inputs:
       <<: *baby_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_times_wendland.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_wendland.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland
 
   baby_ssm_fit_init_pca_sum_matern32:
     inputs:
       <<: *baby_init_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_sum_matern32.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32
 
@@ -429,31 +429,31 @@ paths:
   #---------SSM fits, round 2 (post-fusion): the three baby models against the
   baby_ssm_fit_pca:
     inputs: &baby_fused_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
       mesh_vtp: scan_fusion_ssm.output_dir + /fused_scan.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
-      template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+      template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca
 
   baby_ssm_fit_pca_times_gaussian:
     inputs:
       <<: *baby_fused_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_times_gaussian.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_gaussian.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_gaussian
 
   baby_ssm_fit_pca_times_wendland:
     inputs:
       <<: *baby_fused_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_times_wendland.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_wendland.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_wendland
 
   baby_ssm_fit_pca_sum_matern32:
     inputs:
       <<: *baby_fused_inputs
-      shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_sum_matern32.npz
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
     outputs:
       dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_sum_matern32
 
@@ -721,7 +721,7 @@ paths:
 #---------------------ResNetLDDMM with from the baby mean to the scan_fusion from the fetus_ssm
   similarity_transform_baby_mean:
     #source_vtp: baby_ssm_fit_pca.outputs.dir +  /init_shape.vtp
-    source_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+    source_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
     output_path: align_to_template.output_dir + /baby_mean_aligned.vtp
 
@@ -753,7 +753,7 @@ paths:
 
 
 #---------------------Baby SSM conditioned on the baby mean LDDMM match
-# Templates/baby_mean.vtp is the baby SSM's own mean, so the match's
+# assets/templates/baby_mean.vtp is the baby SSM's own mean, so the match's
 # world/deformed.vtp observes that SSM vertex for vertex, and its eval's
 # recon_dist_2_target says how far to trust each vertex - see
 # scripts/US/pipeline/stages/ssm_posterior.py. posterior_mean.vtp is in the
@@ -761,7 +761,7 @@ paths:
 # output_dir is named after its own settings, as ssm_posterior.variant_name
 # builds it - rename it with them.
   ssm_posterior_baby_mean_lddmm: &ssm_posterior_baby_mean_lddmm_paths
-    shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca_sum_matern32.npz
+    shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
     template_vtp: resnet_lddmm_apply_baby_mean.output_dir + /world/template_points.vtp
     observed_vtp: resnet_lddmm_apply_baby_mean.output_dir + /world/deformed.vtp
     error_vtp: recon_target_distance_baby_mean_lddmm.output_dir + /recon_w_distance.vtp
@@ -1590,8 +1590,8 @@ hyperparameters:
   #  field:
   #    <<: *resnet_lddmm_field
   #    modes:
-  #      spec: ${PROJECT_ROOT}/Templates/deformation_modes/baby_mean.yaml
-  #      template: ${PROJECT_ROOT}/Templates/baby_mean.vtp   # the source must be a posed copy of it
+  #      spec: ${PROJECT_ROOT}/assets/templates/deformation_modes/baby_mean.yaml
+  #      template: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp   # the source must be a posed copy of it
   #      names: [ mode_alar_strain]
   #      discount: 0.000002     # 1 = no cheaper than the network, 0 = free; 0.02 = 50x cheaper
   #      lr: 0.05           # amplitude learning rate: mm of peak displacement per step
