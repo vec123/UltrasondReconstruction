@@ -24,6 +24,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 from scripts.inspection.code_pca_modes import decode, with_points  # noqa: E402
 from scripts.inspection.code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
 from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
+from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")
@@ -38,8 +39,11 @@ def main():
     parser.add_argument("--similarity", default=None,
                         help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
                              "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
+    parser.add_argument("--model", default="src/SSM/saved_models/baby/baby_pca.npz",
+                        help="landmark fallback for members with no eval (see template_landmarks)")
     args = parser.parse_args()
     to_mm = similarity_map(args.similarity)
+    model = load_model_file(args.model)
 
     # Only the code mean (step 0) is needed; decode returns it once per component.
     # The zero code is decoded too: the auto-decoder's prior, which the mean need not be.
@@ -55,7 +59,7 @@ def main():
     recons = {i: with_points(template, to_mm(vtk_to_numpy(load_vtp(
         os.path.join(run, "apply", names[i], "world", "deformed.vtp")).GetPoints().GetData())))
         for i in order}
-    lmk = template_landmarks(run, names[0], to_mm)
+    lmk = template_landmarks(run, names[0], to_mm, model=model)
     cameras = [view_camera(lmk, list(recons.values()), view) for view in VIEWS]
     frontal = cameras[0]
 
@@ -74,7 +78,8 @@ def main():
         titles = (f"#{rank} {names[i].replace('_semanas', ' wk')}", f"left  code d={distance[i]:.2f}",
                   f"right  {shift:.2f} mm")
         tile = [(camera, (title, recons[i], MESH_COLOR, [])) for camera, title in zip(cameras, titles)]
-        tile.append((frontal, ("target", load_vtp(target_path(run, names[i])), SCAN_COLOR, [])))
+        target = load_vtp(target_path(run, names[i]))
+        tile.append((frontal, ("target", target, SCAN_COLOR, [])))
         tiles.append(tile)
 
     rows = []

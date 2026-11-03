@@ -173,6 +173,9 @@ def mesh_actor(poly, color):
     actor.SetMapper(mapper)
     actor.GetProperty().SetColor(color)
     actor.GetProperty().SetSpecular(0.2)
+    if poly.GetNumberOfPolys() == 0:
+        actor.GetProperty().SetRepresentationToPoints()
+        actor.GetProperty().SetPointSize(3)
     return actor
 
 

@@ -23,7 +23,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.vtk.io import load_vtp, save_vtp  # noqa: E402
 
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
 
@@ -92,33 +92,71 @@ def similarity_map(path):
     return lambda points: scale * np.asarray(points, dtype=np.float64) @ rotation.T + translation
 
 
-def template_landmarks(run, member, to_frame=None):
+def template_landmarks(run, member, to_frame=None, model=None):
     """{label: point} on the template, in the deformed templates' (world) frame.
 
     The eval stage moves the recon into its case's reference-scan frame, so its
     landmarks are carried back through their nearest recon vertex: deformed.vtp and
     recon_w_distance.vtp share the template's vertex order. ``to_frame`` (see
-    similarity_map) maps the world points first.
+    similarity_map) maps the world points first. Without an eval (no recon_w_distance.vtp
+    / recon_landmarks.vtp), ``model`` (a model_memory_io.load_model_file model, whose
+    landmark vertex indices address the SAME template - the run's apply is a per-vertex
+    flow decode of it) is used instead.
     """
     member_dir = os.path.join(run, "apply", member)
-    eval_points = vtk_to_numpy(load_vtp(os.path.join(member_dir, "eval", "recon_w_distance.vtp")).GetPoints().GetData())
     world_points = vtk_to_numpy(load_vtp(os.path.join(member_dir, "world", "deformed.vtp")).GetPoints().GetData())
     if to_frame is not None:
         world_points = to_frame(world_points)
-    lmk = read_landmarks(os.path.join(member_dir, "eval", "recon_landmarks.vtp"))
-    return {label: world_points[np.argmin(np.linalg.norm(eval_points - p, axis=1))] for label, p in lmk.items()}
+    eval_dir = os.path.join(member_dir, "eval")
+    if os.path.isfile(os.path.join(eval_dir, "recon_w_distance.vtp")):
+        eval_points = vtk_to_numpy(load_vtp(os.path.join(eval_dir, "recon_w_distance.vtp")).GetPoints().GetData())
+        lmk = read_landmarks(os.path.join(eval_dir, "recon_landmarks.vtp"))
+        return {label: world_points[np.argmin(np.linalg.norm(eval_points - p, axis=1))] for label, p in lmk.items()}
+    if model is None:
+        raise FileNotFoundError(f"no eval at {eval_dir}, and no model given for its landmark fallback")
+    return {name: world_points[i] for name, i in zip(model.landmark_names(), model.landmark_indices())}
 
 
-def target_path(run, member):
-    """The member's fused scan mesh: the one its eval scored (eval/distance_summary.json), else
-    the Casos_Mar layout beside the run; members are named <case>_<week>_semanas."""
+def target_path(run, member, to_mm=None):
+    """The member's fused scan mesh, in mm, with its original faces where available: the one
+    its eval scored (eval/distance_summary.json, already mm), else the Casos_Mar layout beside
+    the run (members named <case>_<week>_semanas, also already mm), else, for a training source
+    built by scripts/SSM/resample_fixed_points.py (whose resampling drops the faces for
+    CohortBatchLoader's equal-count stacking - see its TODO), the manifest resample_fixed_points
+    writes next to the run's own training config's source dir (``original_scans.json``:
+    member name -> its pre-resample fused_scan.vtp, with faces, already mm), else that
+    resampled, faceless source itself - in the run's OWN (world) frame, so ``to_mm`` (see
+    similarity_map) is applied and the result written to a temp file, whose path is returned."""
     summary = os.path.join(run, "apply", member, "eval", "distance_summary.json")
     if os.path.isfile(summary):
         with open(summary) as f:
             return json.load(f)["target_path"]
-    case, week = member.split("_", 1)
-    return os.path.join(os.path.dirname(os.path.normpath(run)),
-                        FUSED_SCAN.format(case=case, week=week.replace("_", " ")))
+    if "_" in member:
+        case, week = member.split("_", 1)
+        legacy = os.path.join(os.path.dirname(os.path.normpath(run)),
+                              FUSED_SCAN.format(case=case, week=week.replace("_", " ")))
+        if os.path.isfile(legacy):
+            return legacy
+    with open(os.path.join(run, "config.json")) as f:
+        source = json.load(f)["source"]
+    # Either beside the training source itself (resample_fixed_points.py's own --output-dir),
+    # or one level up (a frame conversion / train-test split sits between the two).
+    for manifest_dir in (source, os.path.dirname(os.path.normpath(source))):
+        manifest_path = os.path.join(manifest_dir, "original_scans.json")
+        if os.path.isfile(manifest_path):
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+            if member in manifest:
+                return manifest[member]
+    path = os.path.join(source, f"{member}.vtp")
+    if to_mm is None:
+        return path
+    scan = load_vtp(path)
+    scan.GetPoints().SetData(numpy_to_vtk(to_mm(vtk_to_numpy(scan.GetPoints().GetData())).astype(np.float32),
+                                         deep=True))
+    out = os.path.join(tempfile.mkdtemp(), f"{member}.vtp")
+    save_vtp(scan, out)
+    return out
 
 
 def render_thumbnails(run, names, chosen, panel_px, to_mm=None):
@@ -131,7 +169,7 @@ def render_thumbnails(run, names, chosen, panel_px, to_mm=None):
         for mesh in meshes.values():
             mesh.GetPoints().SetData(numpy_to_vtk(np.ascontiguousarray(
                 to_mm(vtk_to_numpy(mesh.GetPoints().GetData())), dtype=np.float32), deep=True))
-    targets = {i: load_vtp(target_path(run, names[i])) for i in chosen}
+    targets = {i: load_vtp(target_path(run, names[i], to_mm)) for i in chosen}
     cameras = [view_camera(lmk, list(meshes.values()), view) for view in ("frontal", "left", "right")]
     images = {}
     with tempfile.TemporaryDirectory() as tmp:

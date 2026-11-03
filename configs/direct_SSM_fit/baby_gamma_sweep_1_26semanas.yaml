@@ -1,0 +1,45 @@
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca.npz
+  mesh_vtp: /home/victor/Escritorio/Data/fused_scan_processing/Casos_Mar/1/26 semanas/fused_scan_ssm/fused_scan.vtp
+  landmarks_json: ${PROJECT_ROOT}/outputs/Casos_Mar/1/26 semanas/aligned_to_template/landmarks_csv
+  template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/direct_SSM_fit/fused_scan_targets/Casos_Mar/1/26_semanas/fused_scan_ssm
+
+steps:
+  gmm_2_template: false
+  align: true
+  landmark_fit: true
+  nicp: true
+  laplacian: false
+
+model:
+  normalize: false
+
+rigid:
+  iterations: 20
+  landmark_fit_learning_rate: 1.0
+  allow_scale: true
+
+nicp:
+  iterations: 10
+  save_every: 1
+  matching:
+    mode: constrained
+    dist_thresh: 0.00036187860831675476   # 2mm in this target's model units (scale 0.00018093930)
+    normal_thresh_deg: 30.0
+    k: 50
+    use_target_normals: true
+    one_to_one: true
+  model_optimization:
+    gammas: [1000, 2000, 3000, 5000, 15000, 50000, 70000, 90000, 100000, 150000, 200000]
+    learning_rate: 1.0
+    chi_clamp: null
+    variants:
+      - name: free
+        gamma: 0
+        chi_clamp: null
+      - name: clamped
+        gamma: 0
+        chi_clamp: 0.999999999

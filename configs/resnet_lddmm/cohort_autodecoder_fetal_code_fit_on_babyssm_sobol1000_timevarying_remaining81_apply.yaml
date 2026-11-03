@@ -1,0 +1,11 @@
+stage: resnet_lddmm_apply
+
+train_config: ${PROJECT_ROOT}/outputs/stage2_flow/babyssm-sobol1000-timevarying-mlp2x128-layernorm-kin200_codefrozen_code128_codereg0.62_edgeweight3sp-template2scan_remaining81/config.json
+checkpoint: ${PROJECT_ROOT}/outputs/stage2_flow/babyssm-sobol1000-timevarying-mlp2x128-layernorm-kin200_codefrozen_code128_codereg0.62_edgeweight3sp-template2scan_remaining81/checkpoints
+device: cuda
+shapes: null
+export:
+  deformed: true
+  trajectory: false
+  references: true
+  spaces: [world]

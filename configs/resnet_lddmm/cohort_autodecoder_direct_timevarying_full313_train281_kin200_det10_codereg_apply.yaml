@@ -1,0 +1,11 @@
+stage: resnet_lddmm_apply
+
+train_config: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281/config.json
+checkpoint: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281/checkpoints
+device: cuda
+shapes: null
+export:
+  deformed: true
+  trajectory: false
+  references: true
+  spaces: [world]

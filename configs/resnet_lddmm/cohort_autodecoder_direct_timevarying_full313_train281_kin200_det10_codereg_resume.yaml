@@ -1,0 +1,64 @@
+# Resumes the kin200/det10 run from its step_2000.pt checkpoint to finish the
+# planned 3000 steps (it stopped early, mid Fourier anneal).
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/resnet_lddmm/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_resume.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/fused_targets_full313/train
+target: /home/victor/Escritorio/Data/fused_targets_full313/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  grad_checkpointing: true
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: field_weighted_point2plane_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: landmark_weight
+      inherit_target_field: edge_weight
+      loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
+    target_to_source:
+      weight: 1
+      base_sigma: 0.01
+      field_name: support
+      inherit_source_field: false
+      loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
+  kinetic_weight: 200.0
+  code_reg_weight: 0.01
+  isometry_weight: 10.0
+  isometry_type: det
+  landmark_weight: 0.0
+  subsample_M: 1000
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 1000             # 3000 planned - 2000 already done
+  batch: 281
+  lr: 0.0001
+  seed: 42
+  log_every: 10
+  save_every: 500
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281/checkpoints
+  continue_step_count: true

@@ -1,0 +1,67 @@
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_layernorm_kin200.yaml with a
+# POSITION-AWARE 8x8x8x2 grid code (code.position_aware, grid_direct: like
+# cohort_autodecoder_casos_mar_fieldweighted_direct_g8c2_dist_svf.yaml's code) instead of a
+# global n_z=128 code. Same 1000 Sobol BabySSM samples, corresponded L2, field (mlp 6x256,
+# LayerNorm, kinetic 200), 20000 steps.
+#
+# Purpose: a global code pushed through this deep LayerNorm MLP only sculpts real facial
+# detail after the full 18000-20000 step pretraining (see
+# cohort_autodecoder_direct_full313_train281.yaml's finding: the same architecture, trained
+# from scratch for only 3000 steps on real targets, stayed under-detailed, while a
+# position-aware grid code - each facial region its own code channels - converged in 3000
+# steps even from scratch). A BabySSM flow pretrained with a grid code should therefore let
+# a later direct (not stage-2) fit to real targets, or a stage-2 free-LayerNorm fit, reach
+# good detail much faster too.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/resnet_lddmm/cohort_autodecoder_babyssm_sobol1000_grid8c2_mlp6x256_layernorm_kin200.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_grid8c2_mlp6x256_layernorm_kin200
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [256, 256, 256, 256, 256, 256]
+  activation: relu
+  norm: layer                       # LayerNorm (gamma, beta) after each hidden linear map
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 1024
+  position_aware: true
+  grid: 8
+  grid_channels: 2
+  grid_direct: true
+  grid_reg:
+    kind: distance
+    low: 0.0               # nodes near the face: free, as without regularisation
+    high: 1.0              # nodes towards the boundary
+    near: 0.5              # cells from the template up to which a node gets low
+    far: 1.0               # cells from the template from which a node gets high
+
+loss:
+  data_name: l2
+  sigma: 0.01              # data weight 1/(2 sigma^2), the scale of the chamfer runs' base_sigma
+  kinetic_weight: 200.0
+  code_reg_weight: 0.01    # times the weighted sum(code^2); only the far nodes count (grid_reg)
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 20000
+  batch: 64
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 2000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

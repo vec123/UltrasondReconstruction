@@ -1,0 +1,45 @@
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca.npz
+  mesh_vtp: /home/victor/Projects/UltrasondReconstruction/outputs/Casos_Mar/1/20 semanas/aligned_to_template/landmark_bbox_cut/1-20s-04.vtp
+  landmarks_json: ${PROJECT_ROOT}/outputs/Casos_Mar/1/20 semanas/aligned_to_template/landmarks_csv
+  template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp
+
+outputs:
+  dir: ${PROJECT_ROOT}/outputs/direct_SSM_fit/bounding_box_targets/Casos_Mar/1/20_semanas/1-20s-04
+
+steps:
+  gmm_2_template: false
+  align: true
+  landmark_fit: true
+  nicp: true
+  laplacian: false
+
+model:
+  normalize: false
+
+rigid:
+  iterations: 20
+  landmark_fit_learning_rate: 1.0
+  allow_scale: true
+
+nicp:
+  iterations: 10
+  save_every: 1
+  matching:
+    mode: constrained
+    dist_thresh: 0.0003614508269477242   # 2mm in case 1/20 semanas' model units (same landmarks/scale as the fused-scan fit)
+    normal_thresh_deg: 30.0
+    k: 50
+    use_target_normals: true
+    one_to_one: true
+  model_optimization:
+    gammas: [1000, 2000, 3000, 5000, 15000, 50000, 70000, 90000, 100000, 150000, 200000]
+    learning_rate: 1.0
+    chi_clamp: null
+    variants:
+      - name: free
+        gamma: 0
+        chi_clamp: null
+      - name: clamped
+        gamma: 0
+        chi_clamp: 0.999999999

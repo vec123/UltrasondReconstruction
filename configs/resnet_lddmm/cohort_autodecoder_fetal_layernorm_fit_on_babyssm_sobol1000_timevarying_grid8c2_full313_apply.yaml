@@ -1,0 +1,11 @@
+stage: resnet_lddmm_apply
+
+train_config: ${PROJECT_ROOT}/outputs/stage2_flow/babyssm-sobol1000-timevarying-grid8c2-mlp2x128-layernorm-kin200_free-layernorm-shared_fieldchange200_anchor0.01_codereg0.01dist_edgeweight3sp-template2scan_full313_train281/config.json
+checkpoint: ${PROJECT_ROOT}/outputs/stage2_flow/babyssm-sobol1000-timevarying-grid8c2-mlp2x128-layernorm-kin200_free-layernorm-shared_fieldchange200_anchor0.01_codereg0.01dist_edgeweight3sp-template2scan_full313_train281/checkpoints
+device: cuda
+shapes: null
+export:
+  deformed: true
+  trajectory: false
+  references: true
+  spaces: [world]
