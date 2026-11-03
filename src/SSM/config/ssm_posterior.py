@@ -1,4 +1,4 @@
-"""Config of the ssm_posterior stage (scripts/US/pipeline/stages/ssm_posterior.py)."""
+"""Config of the ssm_posterior stage (src/SSM/stages/ssm_posterior.py)."""
 
 import dataclasses
 from typing import Any, Dict
@@ -22,7 +22,7 @@ class NoiseModelConfig:
 @dataclasses.dataclass
 class SsmPosteriorConfig:
     """Conditions an SSM on the trusted vertices of a registration of its own
-    mean shape - see scripts/US/pipeline/stages/ssm_posterior.py."""
+    mean shape - see src/SSM/stages/ssm_posterior.py."""
 
     shape_model_mat: str = ""  # prior model (.npz / .mat) whose mean template_vtp is
     template_vtp: str = ""     # the model mean in observed_vtp's frame (resnet_lddmm_apply's world/template_points.vtp)

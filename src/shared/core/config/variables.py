@@ -1,7 +1,7 @@
 """``${NAME}`` variables in config strings.
 
 ``interpolate`` substitutes plain ``${NAME}`` variables. ``interpolate_paths``,
-which the stage pipelines (scripts/pipeline/cli.py) use, also understands
+which the stage pipelines (src/shared/core/pipeline/engine.py) use, also understands
 cross-stage references and path expressions.
 
 Paths are written relative to the project root using ``${PROJECT_ROOT}``
@@ -83,7 +83,7 @@ def interpolate_paths(value, variables: dict, resolve_ref=None):
     and path expressions. Each string is one of:
 
     - A bare cross-stage reference, e.g. ``nrrd_to_vtp.output_dir`` (only
-      recognized when ``resolve_ref`` is given - see ``pipeline/cli.py``).
+      recognized when ``resolve_ref`` is given - see ``src/shared/core/pipeline/engine.py``).
       Resolves to that field's actual value, unchanged in type.
     - A path expression: one or more terms joined by `` + ``, each either
       such a reference (stringified) or a literal with ``${NAME}``

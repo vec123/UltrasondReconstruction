@@ -756,7 +756,7 @@ paths:
 # assets/templates/baby_mean.vtp is the baby SSM's own mean, so the match's
 # world/deformed.vtp observes that SSM vertex for vertex, and its eval's
 # recon_dist_2_target says how far to trust each vertex - see
-# scripts/US/pipeline/stages/ssm_posterior.py. posterior_mean.vtp is in the
+# src/SSM/stages/ssm_posterior.py. posterior_mean.vtp is in the
 # same world frame as deformed.vtp, so it is scored exactly like it. Each
 # output_dir is named after its own settings, as ssm_posterior.variant_name
 # builds it - rename it with them.

@@ -2,7 +2,7 @@
 
 One dataclass per stage (named ``<StageName>Config``), plus the handful of
 nested config fragments a stage's own Config embeds. Each
-``scripts/US/pipeline/stages/*.py`` module imports its class from here
+``src/ultrasound/stages/*.py`` module imports its class from here
 (aliased back to the local name ``Config``) instead of defining it inline, so
 every stage's configuration surface lives in one place.
 """

@@ -1,7 +1,7 @@
 # End-to-end example wiring all three pipelines from one file:
 #
 # Any stage can be switched off with `enabled: false` (its config still binds,
-# so later stages can still reference its fields - see scripts/pipeline/cli.py).
+# so later stages can still reference its fields - see src/shared/core/pipeline/engine.py).
 #
 # Run with:
 #    python scripts/run_pipeline.py --config configs/master/end_to_end.yaml --set SUBJECT_ID=9992 --set REFERENCE_SCAN=SdeFrankterHaar-01 --set LANDMARKS_FRAME=LPS

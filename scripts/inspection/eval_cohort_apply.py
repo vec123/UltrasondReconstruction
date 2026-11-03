@@ -20,7 +20,6 @@ Run with:
 """
 
 import argparse
-import importlib.util
 import json
 import os
 
@@ -30,19 +29,11 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.inspection.code_pca_views import similarity_map  # noqa: E402
 from src.evaluation.config import ReconTargetDistanceConfig  # noqa: E402
+from src.evaluation.stages import recon_target_distance  # noqa: E402
 from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
 
 REFERENCE_RUN = "outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g4c8"
-
-
-def load_stage():
-    """The recon_target_distance stage module (scripts/US/pipeline/stages is not a package path)."""
-    path = os.path.join(ROOT, "scripts", "US", "pipeline", "stages", "recon_target_distance.py")
-    spec = importlib.util.spec_from_file_location("recon_target_distance", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def case_numbers(eval_dir):
@@ -68,7 +59,6 @@ def main():
     parser.add_argument("--cases", nargs="+", default=None, help="case folders to score (default: all)")
     args = parser.parse_args()
 
-    stage = load_stage()
     to_mm = similarity_map(args.similarity)
     apply_dir = os.path.join(args.run, "apply")
     cases = args.cases or sorted(n for n in os.listdir(apply_dir) if os.path.isdir(os.path.join(apply_dir, n)))
@@ -93,7 +83,7 @@ def main():
             save_vtp(recon, recon_path)
 
         eval_dir = os.path.join(apply_dir, case, "eval")
-        stage.run(ReconTargetDistanceConfig(target_path=target_path, recon_path=recon_path,
+        recon_target_distance.run(ReconTargetDistanceConfig(target_path=target_path, recon_path=recon_path,
                                             landmarks_path=landmarks_path, units="mm (original scan frame)",
                                             output_dir=eval_dir))
         rows[case] = {"run": case_numbers(eval_dir), "reference": case_numbers(reference_eval)}

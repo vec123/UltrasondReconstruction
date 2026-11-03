@@ -147,7 +147,7 @@ class DirectFlowApplyLayout(PairLayout):
 @register_layout("direct_flow_eval")
 @dataclass(frozen=True)
 class DirectFlowEvalLayout(PairLayout):
-    """The eval folder of a direct_flow apply member (scripts/US/pipeline/stages/recon_target_distance.py).
+    """The eval folder of a direct_flow apply member (src/evaluation/stages/recon_target_distance.py).
 
     recon      eval/recon_w_distance.vtp: world/deformed.vtp moved into the
                landmark frame (mm) by a similarity fitted on the heatmap

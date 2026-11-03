@@ -3,7 +3,7 @@
 
 Every case of a resnet_lddmm apply run is a deformation of the model mean, in
 vertex correspondence with it, and only part of it is near the scan. As in
-scripts/US/pipeline/stages/ssm_posterior.py, a noise model turns each vertex's
+src/SSM/stages/ssm_posterior.py, a noise model turns each vertex's
 error into an observation std and drops the vertices it does not trust, so each
 case observes a different subset of the vertices.
 
@@ -60,7 +60,7 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.US.pipeline.stages.ssm_posterior import (DIRECTION_TOKENS, POSE_TOKENS, fit_frame,
+from src.SSM.stages.ssm_posterior import (DIRECTION_TOKENS, POSE_TOKENS, fit_frame,
                                                       mesh_points, point_array,
                                                       target_to_recon_errors)
 from src.SSM.model.model_memory_io import ModelCacheSpec, load_model_file, save_model

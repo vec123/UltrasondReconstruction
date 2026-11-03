@@ -1,6 +1,6 @@
 """Converts Slicer .fcsv markup files into the plain .csv format the pipeline's
 align_to_reference / align_to_template stages read (landmarks_csv_dir expects
-'x', 'y', 'z', 'label' columns; see scripts/US/pipeline/landmarks.py).
+'x', 'y', 'z', 'label' columns; see src/shared/landmarks/annotations.py).
 
 Slicer's .fcsv keeps the column names in a '# columns = ...' comment line
 that only lists 14 names even though 5.8-era files write 16 fields per row

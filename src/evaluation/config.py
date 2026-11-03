@@ -1,6 +1,6 @@
 """Config dataclasses of the evaluation stages.
 
-``scripts/US/pipeline/stages/recon_target_distance.py`` and
+``src/evaluation/stages/recon_target_distance.py`` and
 ``distance_distribution_overlay.py`` import their class from here (aliased
 back to the local name ``Config``).
 """

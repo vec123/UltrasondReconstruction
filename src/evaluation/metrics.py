@@ -1,7 +1,7 @@
 """Distance metrics between a reconstruction and its target.
 
 The functions take plain arrays, so any model's output can be scored the same
-way: the stages scripts/US/pipeline/stages/recon_target_distance.py (which
+way: the stages src/evaluation/stages/recon_target_distance.py (which
 writes the distance fields) and distance_distribution_overlay.py (which
 compares them) both read them from here.
 """

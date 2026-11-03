@@ -3,10 +3,10 @@
 
 Lookup itself (name -> registered item, with a friendly "unknown X -
 available: [...]" error on a typo) is `src.shared.core.registry.TypedRegistry`. A
-registered item is a `StageSpec` (see `stage_spec.py`).
+registered item is a `StageSpec` (see `src/shared/core/pipeline/stage_spec.py`).
 
 Each pipeline owns the list of what it registers (e.g.
-`scripts/US/pipeline/registrations.py` for preprocess); this module only
+`src/ultrasound/registrations.py` for preprocess); this module only
 aggregates them into one shared registry so a master pipeline.yaml can name
 a stage from any of them.
 
@@ -25,8 +25,10 @@ from src.SSM.config import PipelineConfig
 from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
 
-from scripts.US.pipeline.registrations import STAGE_SPECS as _US_STAGE_SPECS
-from .stage_spec import StageSpec
+from src.evaluation.registrations import STAGE_SPECS as _EVALUATION_STAGE_SPECS
+from src.shared.core.pipeline import StageSpec
+from src.SSM.registrations import STAGE_SPECS as _SSM_STAGE_SPECS
+from src.ultrasound.registrations import STAGE_SPECS as _US_STAGE_SPECS
 
 
 def _run_ssm_fit(cfg):
@@ -47,6 +49,8 @@ def _run_resnet_lddmm_apply(cfg):
 STAGE_REGISTRY = TypedRegistry("stage")
 for _name, _spec in {
     **_US_STAGE_SPECS,
+    **_EVALUATION_STAGE_SPECS,
+    **_SSM_STAGE_SPECS,
     "ssm_fit": StageSpec(
         config_cls=PipelineConfig,
         run=_run_ssm_fit,

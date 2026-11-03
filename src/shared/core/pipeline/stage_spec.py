@@ -1,8 +1,9 @@
 """The unit every pipeline (preprocess, SSM fitting, resnet-lddmm training)
-registers under a stage name - see `scripts/pipeline/registry.py`.
+registers under a stage name - see `scripts/pipeline/registry.py`, which joins
+the `registrations.py` of each layer.
 
 Split out from `registry.py` so a pipeline's own registrations module (e.g.
-`scripts/US/pipeline/registrations.py`) can build `StageSpec`s without
+`src/ultrasound/registrations.py`) can build `StageSpec`s without
 importing the registry itself, which in turn imports every pipeline's
 registrations to assemble the shared `STAGE_REGISTRY`.
 """

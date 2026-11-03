@@ -4,16 +4,15 @@ and run() function.
 
 The registry engine itself (StageSpec, TypedRegistry-based lookup, YAML <->
 Config binding) is generic across every pipeline in this repo and lives in
-`scripts/pipeline/registry.py`; this module only holds the preprocess-specific
-list of what exists.
+`src/shared/core/pipeline/`; this module only holds the preprocess-specific
+list of what exists. scripts/pipeline/registry.py joins it with the lists of
+the other layers.
 """
 
-from scripts.pipeline.stage_spec import StageSpec
-
-from .stages import (
+from src.shared.core.pipeline import StageSpec
+from src.ultrasound.stages import (
     align_to_reference,
     align_to_template,
-    distance_distribution_overlay,
     echotexture,
     landmark_bbox_cut,
     landmark_distance_cut,
@@ -21,13 +20,11 @@ from .stages import (
     nrrd_to_vtp,
     nrrd_to_world_vtp,
     point_classify,
-    recon_target_distance,
     roughness_filter,
     scan_consistency,
     scan_fusion,
     similarity_transform,
     smoothing_filter,
-    ssm_posterior,
     vtp_to_nrrd_overlay,
 )
 
@@ -47,9 +44,4 @@ STAGE_SPECS = {
     "landmark_geodesics": StageSpec(landmark_geodesics.Config, landmark_geodesics.run),
     "similarity_transform": StageSpec(similarity_transform.Config, similarity_transform.run),
     "vtp_to_nrrd_overlay": StageSpec(vtp_to_nrrd_overlay.Config, vtp_to_nrrd_overlay.run),
-    "recon_target_distance": StageSpec(recon_target_distance.Config, recon_target_distance.run),
-    "distance_distribution_overlay": StageSpec(
-        distance_distribution_overlay.Config, distance_distribution_overlay.run
-    ),
-    "ssm_posterior": StageSpec(ssm_posterior.Config, ssm_posterior.run),
 }
