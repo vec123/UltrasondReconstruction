@@ -106,11 +106,12 @@ def detect_layout(case_dir) -> str:
 
 
 def discover_cases(root, layout: str = "auto") -> List[Path]:
-    """Every case folder below ``root`` that carries the marker of ``layout`` (any layout for "auto")."""
+    """Every case folder below ``root`` that is a case of ``layout`` (of any layout for "auto")."""
     root = Path(root)
     names = available_layouts() if layout == "auto" else [PAIR_LAYOUT.get(layout).name]
     found = {marker.parent for name in names
-             for marker in root.rglob(PAIR_LAYOUT.get(name).marker)}
+             for marker in root.rglob(PAIR_LAYOUT.get(name).marker)
+             if PAIR_LAYOUT.get(name).is_case(marker.parent)}
     return sorted(found)
 
 

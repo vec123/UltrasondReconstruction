@@ -142,3 +142,82 @@ class DirectFlowApplyLayout(PairLayout):
             recon_to_surface=recon_to_surface,
             landmarks_path=landmarks_path,
         )
+
+
+@register_layout("direct_flow_eval")
+@dataclass(frozen=True)
+class DirectFlowEvalLayout(PairLayout):
+    """The eval folder of a direct_flow apply member (scripts/US/pipeline/stages/recon_target_distance.py).
+
+    recon      eval/recon_w_distance.vtp: world/deformed.vtp moved into the
+               landmark frame (mm) by a similarity fitted on the heatmap
+               landmarks.
+    target     eval/target_w_distance.vtp, moved by the same similarity. Two kinds:
+               a mesh (the fused scan, as scripts/inspection/eval_cohort_apply.py
+               scores it) uses its own face normals; a point cloud must be the
+               cohort member, whose ``normal`` array that move did not rotate
+               (vtkTransformPolyDataFilter rotates only the active normals), so
+               the member's own normals are rotated with the similarity that is
+               recovered from the recon.
+    frame      eval -> world (that similarity, inverted), then the cohort's
+               similarity.json: the scan in mm.
+    landmarks  the same as for the apply member.
+    """
+
+    marker: ClassVar[str] = "target_w_distance.vtp"
+    recon_file: ClassVar[str] = "recon_w_distance.vtp"
+    #: largest misfit, in eval units, of the similarity recovered from the recon
+    tolerance: ClassVar[float] = 1e-3
+
+    @classmethod
+    def is_case(cls, case_dir: Path) -> bool:
+        case_dir = Path(case_dir)
+        return (case_dir / cls.marker).is_file() and DirectFlowApplyLayout.is_case(case_dir.parent)
+
+    def load(self, case_dir: Path, case_id: str) -> CorrespondencePair:
+        world = DirectFlowApplyLayout().load(case_dir.parent, case_id)
+        recon_path = case_dir / self.recon_file
+        target_path = case_dir / self.marker
+        recon = PointCloud.from_vtp(recon_path)
+        target = PointCloud.from_vtp(target_path)
+
+        world_to_eval = SimilarityTransform.from_correspondences(
+            world.recon.points, recon.points, stage="world->eval"
+        )
+        self._check_similar(case_dir, "recon", world_to_eval, world.recon.points, recon.points)
+
+        if target.faces is None:
+            self._check_similar(case_dir, "target", world_to_eval, world.target.points, target.points)
+            target = PointCloud(
+                target.points,
+                normals=world.target.normals @ world_to_eval.rotation.T,
+                fields={name: target.field(name) for name in target.field_names},
+            )
+        recon_to_surface = (None if world.recon_to_surface is None
+                            else world.recon_to_surface.compose(world_to_eval.inverse()))
+
+        return CorrespondencePair(
+            case_id=case_id,
+            layout=self.name,
+            case_dir=case_dir,
+            recon=recon,
+            target=target,
+            recon_path=recon_path,
+            target_path=target_path,
+            recon_to_surface=recon_to_surface,
+            landmarks_path=world.landmarks_path,
+        )
+
+    def _check_similar(self, case_dir, side, transform, world_points, eval_points):
+        """The eval points must be the world points under ``transform``."""
+        if len(world_points) == len(eval_points):
+            misfit = np.abs(transform.apply_points(world_points) - eval_points).max()
+            if misfit <= self.tolerance:
+                return
+            detail = f"misfit {misfit:.3g}"
+        else:
+            detail = f"{len(eval_points)} eval points, {len(world_points)} world points"
+        raise ValueError(
+            f"{case_dir}: the eval {side} is not the world {side} under one similarity "
+            f"({detail}); the eval and world files do not belong together"
+        )
