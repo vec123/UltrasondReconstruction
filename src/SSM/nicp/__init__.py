@@ -14,8 +14,8 @@ a correspondence-free fit is (none, chamfer, mahalanobis, gradient). Nothing in
 the code special-cases either combination.
 """
 
-from src.SSM.nicp.cloud import PointCloud
-from src.SSM.nicp.matching.correspondence import (
+from src.SSM.correspondence.cloud import PointCloud
+from src.SSM.correspondence.correspondence import (
     ConstrainedMatching,
     CorrespondenceError,
     Correspondences,

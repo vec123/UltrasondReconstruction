@@ -11,8 +11,8 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
+from scipy.spatial import cKDTree
 
-from src.SSM.correspondence.correspondence import build_kdtree
 from src.geometry import vertex_normals
 
 
@@ -97,7 +97,7 @@ class PointCloud:
     def tree(self):
         """cKDTree over the points, built once."""
         if self._tree is None:
-            self._tree = build_kdtree(self._points)
+            self._tree = cKDTree(self._points)
         return self._tree
 
     def query(self, points, k: int = 1):

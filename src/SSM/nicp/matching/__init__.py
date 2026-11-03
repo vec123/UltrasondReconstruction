@@ -1,1 +1,1 @@
-"""How model vertices are paired with target points: correspondence methods, Sinkhorn transport and neighbour search."""
+"""NICP-specific matching: Sinkhorn transport and torch neighbour search. The hard correspondence methods are in src.SSM.correspondence."""

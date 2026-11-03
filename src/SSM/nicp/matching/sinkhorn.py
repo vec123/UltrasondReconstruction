@@ -42,8 +42,8 @@ from typing import Optional
 import numpy as np
 import torch
 
-from src.SSM.nicp.cloud import PointCloud
-from src.SSM.nicp.matching.correspondence import (
+from src.SSM.correspondence.cloud import PointCloud
+from src.SSM.correspondence.correspondence import (
     Correspondences,
     CorrespondenceStrategy,
     register_correspondence,
