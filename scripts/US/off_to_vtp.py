@@ -5,7 +5,7 @@ import glob
 from dotenv import load_dotenv
 load_dotenv()
 
-from src.vtk.io import save_vtp
+from src.shared.vtk.io import save_vtp
 
 def convert_off_to_vtp_vtk(input_file, output_file):
     # 1. Parse the .off file

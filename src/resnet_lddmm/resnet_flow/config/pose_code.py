@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass, field as dataclass_field
 from typing import Optional, Tuple
-from src.core.config import reject_unknown_keys
+from src.shared.core.config import reject_unknown_keys
 
 
 @dataclass

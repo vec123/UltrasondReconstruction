@@ -8,7 +8,7 @@ import numpy as np
 import vtk
 from vtk.util import numpy_support
 
-from src.vtk.create import create_polydata
+from src.shared.vtk.create import create_polydata
 
 
 class MeshView:

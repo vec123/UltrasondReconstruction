@@ -21,7 +21,7 @@ class Localized(Kernel):
     and more controllable, since the region is stated rather than implied by a
     radius.
 
-    Where the weights come from: ``src/weight_field/`` already builds
+    Where the weights come from: ``src/shared/weight_field/`` already builds
     landmark-centred fields with per-axis decay for exactly this purpose. Pass
     the resulting per-vertex array as ``weights``.
 

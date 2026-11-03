@@ -7,14 +7,14 @@ import os
 import torch
 import numpy as np
 
-from src.vtk.io import load_vtp, load_obj, save_vtp
-from src.vtk.extract import (
+from src.shared.vtk.io import load_vtp, load_obj, save_vtp
+from src.shared.vtk.extract import (
     extract_all_vtp_point_fields,
     extract_vtp_points_cells,
     extract_vtp_point_fields,
 )
-from src.vtk.create import create_polydata
-from src.vtk.fields import add_point_field, add_point_fields
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.fields import add_point_field, add_point_fields
 
 
 @dataclass(frozen=True)

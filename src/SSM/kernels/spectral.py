@@ -120,7 +120,7 @@ class LaplaceBeltrami(Kernel):
         here rather than at module level, so ``src.SSM.kernels`` stays
         importable without them.
         """
-        from src.geometry.spectral_operators import compute_spectral_operators_fast
+        from src.shared.geometry.spectral_operators import compute_spectral_operators_fast
 
         points = np.asarray(points, dtype=np.float64)
         _, _, evals, evecs = compute_spectral_operators_fast(

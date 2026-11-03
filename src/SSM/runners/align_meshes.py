@@ -46,18 +46,18 @@ import vtk
 from scipy.spatial import cKDTree
 
 from src.SSM.config import AlignMeshesConfig, MeshSource
-from src.vtk.io import (
+from src.shared.vtk.io import (
     load_vtp,
     save_vtp
 )
-from src.vtk.extract import (
+from src.shared.vtk.extract import (
     get_vtp_faces,
     get_vtp_vertices
 )
-from src.vtk.create import (
+from src.shared.vtk.create import (
     create_polydata
 )
-from src.vtk.transform import (
+from src.shared.vtk.transform import (
     transform_polydata
 )
 

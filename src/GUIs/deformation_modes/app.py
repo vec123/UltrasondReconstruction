@@ -13,10 +13,10 @@ Working loop (mouse, or the keys in brackets):
   3. set its values: click the arrows or turn the wheel over a value (Left/Right, then , .);
   4. [compile] solves the selected mode (p, e for all) and its slider deforms the mesh.
 
-Everything is saved as recipes (see ``src.deformation_modes.spec``) - how each
+Everything is saved as recipes (see ``src.shared.deformation_modes.spec``) - how each
 region was made, not just which vertices - and every edit is undoable.
 
-This module only composes: the spec and its maths are ``src.deformation_modes``,
+This module only composes: the spec and its maths are ``src.shared.deformation_modes``,
 the document and its undo stack ``document.py``, the inspector rows
 ``properties.py``, the text ``formatting.py``, and every widget ``src.GUIs.core``.
 Its public methods are what the keys are bound to, so it can be driven
@@ -32,11 +32,11 @@ from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 
-from src.deformation_modes import (
+from src.shared.deformation_modes import (
     AwayFrom, Axis, Between, ConstraintSet, FieldThreshold, Mirror, Mode, NearLandmarks,
 )
-from src.deformation_modes import Brush as BrushOp
-from src.deformation_modes.field.compile import mode_sites, sample
+from src.shared.deformation_modes import Brush as BrushOp
+from src.shared.deformation_modes.field.compile import mode_sites, sample
 from src.GUIs.core import (
     DIVERGING, SEQUENTIAL, BrushTool, FieldPreview, FlatColoring, FrameGlyphs, Hud, Inspector,
     KeyboardRouter, KeyMap, ListPanel, MeshView, ModeSliderPanel, PanelGeometry, PlaneGlyph,

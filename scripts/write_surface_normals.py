@@ -33,8 +33,8 @@ import argparse
 
 import numpy as np
 
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.surface_measures import compute_vertex_normals
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.surface_measures import compute_vertex_normals
 
 
 def main():

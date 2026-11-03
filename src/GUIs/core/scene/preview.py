@@ -180,7 +180,7 @@ class FieldPreview:
         """Triangles the current deformation turns over - the folding check; None without faces."""
         if self.faces is None:
             return None
-        from src.geometry.geometry import face_normals
+        from src.shared.geometry.geometry import face_normals
         before = face_normals(self.rest, self.faces, normalized=False)
         after = face_normals(self.deformed(), self.faces, normalized=False)
         return int(((before * after).sum(-1) < 0).sum())

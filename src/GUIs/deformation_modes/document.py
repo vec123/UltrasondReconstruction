@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from src.deformation_modes import (
+from src.shared.deformation_modes import (
     AwayFromMidline, Axis, Between, CompiledMode, ModeSet, Selection, SurfaceNormal,
     TemplateMesh, compile_mode, faces_fingerprint, load_modeset, load_template_mesh,
     mode_signature, save_modeset,

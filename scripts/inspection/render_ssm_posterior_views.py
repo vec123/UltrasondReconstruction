@@ -28,9 +28,9 @@ from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 
 from scripts.inspection import render_frontal_views as views  # noqa: E402
-from src.transforms.similarity import SimilarityTransform  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 # Sequential ramp, light (std 0) -> dark (std-max and above).
 STD_RAMP = ("#fff5d6", "#fdd98b", "#f9a94b", "#e8712c", "#c44620", "#8f2618", "#561410")

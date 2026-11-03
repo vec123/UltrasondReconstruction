@@ -65,15 +65,15 @@ from scipy.spatial import cKDTree
 from vtk.util import numpy_support
 
 from src.ultrasound.config import ScanFusionConfig as Config
-from src.geometry import mesh_vertex_normals
-from src.vtk.create import create_polydata
-from src.vtk.extract import extract_vtp_points_cells
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.surface_measures import compute_vertex_normals, compute_vertex_roughness
-from src.vtk.process import extract_polydata_vertex_subset
+from src.shared.geometry import mesh_vertex_normals
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.extract import extract_vtp_points_cells
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.surface_measures import compute_vertex_normals, compute_vertex_roughness
+from src.shared.vtk.process import extract_polydata_vertex_subset
 
-from src.transforms.similarity import median_scale
+from src.shared.transforms.similarity import median_scale
 
 
 def fuse_reference_points(ref_points, ref_normals, subject_data, sigma, max_dist_sigma=3.0, normal_power=2.0):

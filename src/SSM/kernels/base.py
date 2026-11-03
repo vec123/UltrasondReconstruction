@@ -63,7 +63,7 @@ from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 import numpy as np
 
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 
 KERNELS = TypedRegistry("kernel")
 register_kernel = KERNELS.register

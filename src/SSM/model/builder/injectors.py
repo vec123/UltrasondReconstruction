@@ -150,7 +150,7 @@ def _read_point_field(path: Path, field_name: Optional[str]) -> np.ndarray:
     """One named point-data array off a mesh - what the weight-field script writes."""
     from vtk.util.numpy_support import vtk_to_numpy
 
-    from src.vtk.io import load_vtp
+    from src.shared.vtk.io import load_vtp
 
     if not field_name:
         raise ValueError(
@@ -168,20 +168,20 @@ def _read_point_field(path: Path, field_name: Optional[str]) -> np.ndarray:
 def _compute_weight_field(path: Path, ctx: BuildContext) -> np.ndarray:
     """Runs a landmark weight-field config. The one torch-touching path here.
 
-    Imported inside the function deliberately: ``src.weight_field`` pulls torch,
+    Imported inside the function deliberately: ``src.shared.weight_field`` pulls torch,
     and the point of the numpy boundary (section 14) is that building a model
     never needs it. A config that asks for this opts in; nothing else pays.
     """
     try:
         from src.resnet_lddmm.resnet_flow.io import load_shape
-        from src.core.config import load_yaml
-        from src.weight_field.landmark_weight_field import (
+        from src.shared.core.config import load_yaml
+        from src.shared.weight_field.landmark_weight_field import (
             LandmarkWeightFieldCfg,
             compute_landmark_weight_field,
         )
     except ImportError as error:
         raise ImportError(
-            f"computing a weight field from {path.name} needs src.weight_field, which "
+            f"computing a weight field from {path.name} needs src.shared.weight_field, which "
             f"imports torch. Either install it, or bake the field onto a mesh once with "
             f"scripts/weight_fields/write_landmark_weight_field.py and point 'weights' at "
             f"that .vtp instead ({error})"

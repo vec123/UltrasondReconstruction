@@ -251,7 +251,7 @@ class MeanDomain:
     def _geodesics(self) -> np.ndarray:
         """The all-pairs geodesic matrix, computed once and kept."""
         if "geodesics" not in self._cache:
-            from src.geometry.geometry import get_all_pairs_geodesic_distance
+            from src.shared.geometry.geometry import get_all_pairs_geodesic_distance
 
             self._cache["geodesics"] = np.asarray(
                 get_all_pairs_geodesic_distance(self.points, self.faces)

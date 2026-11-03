@@ -1,5 +1,5 @@
 """Stage: rigidly (+ scale) aligns one mesh into another's coordinate frame,
-via shared named landmarks - see src.landmarks.vtk_landmarks.fit_landmark_alignment.
+via shared named landmarks - see src.shared.landmarks.vtk_landmarks.fit_landmark_alignment.
 
 `source_vtp` must carry its own `heatmap_{label}` point fields (e.g.
 assets/templates/baby_mean.vtp, assets/templates/fetus_mean.vtp): the argmax vertex of each
@@ -17,8 +17,8 @@ read back (e.g. as resnet_lddmm_train's source).
 """
 
 from src.ultrasound.config import SimilarityTransformConfig as Config
-from src.landmarks.vtk_landmarks import fit_landmark_alignment
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.landmarks.vtk_landmarks import fit_landmark_alignment
+from src.shared.vtk.io import load_vtp, save_vtp
 from vtk.util.numpy_support import vtk_to_numpy
 
 

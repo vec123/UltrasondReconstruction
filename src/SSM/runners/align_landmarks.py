@@ -11,8 +11,8 @@ import vtk
 from vtk.util import numpy_support
 
 from src.SSM.config import AlignLandmarksConfig
-from src.landmarks.load_landmarks import load_landmarks
-from src.vtk.io import save_vtp as write_vtp
+from src.shared.landmarks.load_landmarks import load_landmarks
+from src.shared.vtk.io import save_vtp as write_vtp
 
 
 def get_rigid_transform(source_pts, target_pts, allow_scale: bool = True):

@@ -16,7 +16,7 @@ class StageSpec:
     config_cls: Type
     run: Callable[[object], object]
     # None -> bind via the generic nested-dataclass binder
-    # (src.core.config.from_dict). Set this when the stage's own
+    # (src.shared.core.config.from_dict). Set this when the stage's own
     # system already has a stricter/richer binder that needs to run instead
     # (e.g. one with cross-field validation or nested unions).
     from_dict: Optional[Callable[[dict], object]] = None

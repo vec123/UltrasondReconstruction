@@ -42,10 +42,10 @@ from scripts.inspection import render_ssm_posterior_views as post  # noqa: E402 
 from scripts.SSM.update_ssm_em import load_cases  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
 from src.SSM.model.inference.posterior import posterior, posterior_with_pose  # noqa: E402
-from src.transforms.similarity import SimilarityTransform  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.fields import add_point_fields  # noqa: E402
-from src.vtk.io import load_vtp, save_vtp  # noqa: E402
+from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.fields import add_point_fields  # noqa: E402
+from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 
 views = post.views
 VIEWS = ("frontal", "left", "right")

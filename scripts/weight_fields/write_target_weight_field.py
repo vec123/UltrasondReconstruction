@@ -24,9 +24,9 @@ Usage:
 
 import argparse
 
-from src.core.config import load_yaml
+from src.shared.core.config import load_yaml
 from src.resnet_lddmm.resnet_flow.io import load_shape, export_shape, FrameTransform
-from src.weight_field.target_weight_field import (
+from src.shared.weight_field.target_weight_field import (
     TargetWeightFieldCfg,
     compute_target_weight_field,
 )

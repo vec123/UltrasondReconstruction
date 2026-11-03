@@ -32,7 +32,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from scripts.pipeline.cli import pipeline_main  # noqa: E402
-from src.core.config import interpolate_paths, path_variables  # noqa: E402
+from src.shared.core.config import interpolate_paths, path_variables  # noqa: E402
 
 RUN_PIPELINE = Path(__file__).resolve().parent / "run_pipeline.py"
 STATUS_COLUMNS = ("case", "week", "n_scans", "exit", "minutes", "status")

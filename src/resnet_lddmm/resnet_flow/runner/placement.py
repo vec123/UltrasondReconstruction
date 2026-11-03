@@ -107,7 +107,7 @@ def _place_modes(cfg, source_norm, transform, flow):
     The modes are compiled on the template their spec was drawn on and carried
     onto the source by the similarity that maps one onto the other -- the source
     must be a posed copy of that template, as similarity_transform writes (see
-    src/deformation_modes/field/transport.py). Each field is scaled so its peak over
+    src/shared/deformation_modes/field/transport.py). Each field is scaled so its peak over
     the source is 1 world unit (mm) per unit time, so an amplitude reads as mm.
     Training only: apply restores the fields from the checkpoint's buffers.
 
@@ -125,7 +125,7 @@ def _place_modes(cfg, source_norm, transform, flow):
     if modes_cfg is None:
         return
     # Local import: compiling pulls in the geodesic solver, which only mode runs need.
-    from src.deformation_modes import transport_modes
+    from src.shared.deformation_modes import transport_modes
 
     field = flow.field
     scale = float(transform.scale)

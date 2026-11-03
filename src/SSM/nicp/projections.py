@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 import torch
 from scipy.stats import chi2
 
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 from src.SSM.nicp.shape import ShapeSpace
 
 PROJECTIONS = TypedRegistry("projection")

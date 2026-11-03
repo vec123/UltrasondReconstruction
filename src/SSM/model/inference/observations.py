@@ -34,7 +34,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.special import expit
 
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 
 NOISE_MODELS = TypedRegistry("noise_model")
 register_noise_model = NOISE_MODELS.register

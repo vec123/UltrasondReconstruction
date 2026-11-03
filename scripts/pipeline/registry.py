@@ -2,7 +2,7 @@
 (preprocess, SSM fitting, resnet-lddmm training).
 
 Lookup itself (name -> registered item, with a friendly "unknown X -
-available: [...]" error on a typo) is `src.core.registry.TypedRegistry`. A
+available: [...]" error on a typo) is `src.shared.core.registry.TypedRegistry`. A
 registered item is a `StageSpec` (see `stage_spec.py`).
 
 Each pipeline owns the list of what it registers (e.g.
@@ -14,13 +14,13 @@ a stage from any of them.
 (plain dataclasses, no optional deps) and imported eagerly like every
 preprocess stage's; their `run` underneath pulls in a full training/fitting
 stack (torch, for resnet-lddmm), so - same reasoning as
-`src.core.registry.LazyRegistry` elsewhere in this repo - that import is
+`src.shared.core.registry.LazyRegistry` elsewhere in this repo - that import is
 deferred to the function body, only paid by a pipeline run that actually
 reaches that stage.
 """
 
-from src.core.registry import TypedRegistry
-from src.core.config import ConfigClient
+from src.shared.core.registry import TypedRegistry
+from src.shared.core.config import ConfigClient
 from src.SSM.config import PipelineConfig
 from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg

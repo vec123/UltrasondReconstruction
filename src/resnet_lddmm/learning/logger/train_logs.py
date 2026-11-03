@@ -6,10 +6,10 @@ import matplotlib
 matplotlib.use("Agg")  # headless backend: save PNGs without a display / GUI event loop
 import matplotlib.pyplot as plt
 
-from src.vtk.io import save_vtp
-from src.vtk.create import create_polydata, create_polydata_w_lines
-from src.vtk.fields import add_point_field
-from src.graphs.graphs import get_individual_graph, get_bipartite_graph
+from src.shared.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata, create_polydata_w_lines
+from src.shared.vtk.fields import add_point_field
+from src.resnet_lddmm.graphs.graphs import get_individual_graph, get_bipartite_graph
 
 
 

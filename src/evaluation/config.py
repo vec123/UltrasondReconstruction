@@ -54,7 +54,7 @@ class DistanceDistributionSourceConfig:
     """One reconstruction whose distance distribution is drawn as a line."""
 
     # Legend text, e.g. "LDDMM from baby mean". Avoid ' + ' - in a pipeline YAML
-    # that is the path-concatenation operator (see src/core/config/variables.py)
+    # that is the path-concatenation operator (see src/shared/core/config/variables.py)
     # and the surrounding spaces would be eaten.
     label: str = ""
 

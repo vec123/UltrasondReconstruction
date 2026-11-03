@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.deformation_modes import AwayFrom, Axis, Between, ConstraintSet, Mode
+from src.shared.deformation_modes import AwayFrom, Axis, Between, ConstraintSet, Mode
 from src.GUIs.deformation_modes.document import GROUP_NOUNS, SETTINGS, EditorDocument, ItemRef
 from src.GUIs.deformation_modes.properties import split_rule
 

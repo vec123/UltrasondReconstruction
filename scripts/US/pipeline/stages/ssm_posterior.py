@@ -68,10 +68,10 @@ from src.SSM.config import SsmPosteriorConfig as Config
 from src.SSM.model.model_memory_io import load_model_file
 from src.SSM.model.inference.observations import Observations, build_noise_model
 from src.SSM.model.inference.posterior import posterior, posterior_with_pose, save_posterior
-from src.transforms.similarity import SimilarityTransform
-from src.vtk.create import create_polydata
-from src.vtk.fields import add_point_field, add_point_fields
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.transforms.similarity import SimilarityTransform
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.fields import add_point_field, add_point_fields
+from src.shared.vtk.io import load_vtp, save_vtp
 
 
 def mesh_points(polydata, n_vertices, path):

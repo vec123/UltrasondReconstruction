@@ -5,8 +5,8 @@ import torch
 from torch import Tensor
 import logging
 from pathlib import Path
-from src.vtk.create import create_polydata
-from src.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.io import save_vtp
 
 from .pose import apply_pose
 from .sampling import _combine_weights, _draw_pair_indices, _gather_field, _take_normals, _take_vertices

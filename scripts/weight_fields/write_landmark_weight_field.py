@@ -22,9 +22,9 @@ Usage:
 
 import argparse
 
-from src.core.config import load_yaml
+from src.shared.core.config import load_yaml
 from src.resnet_lddmm.resnet_flow.io import load_shape, export_shape, FrameTransform
-from src.weight_field.landmark_weight_field import (
+from src.shared.weight_field.landmark_weight_field import (
     LandmarkWeightFieldCfg,
     compute_landmark_weight_field,
 )

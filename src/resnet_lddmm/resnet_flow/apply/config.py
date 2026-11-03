@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass, field as dataclass_field, replace as dataclass_replace
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from src.core.config import load_yaml, reject_unknown_keys
+from src.shared.core.config import load_yaml, reject_unknown_keys
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
 
 if TYPE_CHECKING:

@@ -29,11 +29,11 @@ from scipy.spatial import cKDTree
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from src.ultrasound.config import ScanConsistencyConfig as Config
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.process import filter_largest_component
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.process import filter_largest_component
 
-from src.transforms.similarity import median_scale
+from src.shared.transforms.similarity import median_scale
 
 
 def build_point_trees(meshes):

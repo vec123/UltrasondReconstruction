@@ -4,7 +4,7 @@ Nothing here knows about shape models, landmarks or config files: each piece
 takes plain arrays and callbacks, so a new tool is composed from them rather
 than copied from an existing one. (The geometry behind deformation modes -
 frames, direction rules, the midline, generated fields - is in
-``src.deformation_modes``, which training uses too; the pieces here only draw
+``src.shared.deformation_modes``, which training uses too; the pieces here only draw
 and edit its results.)
 
     Viewer            window, renderer, interactor, camera

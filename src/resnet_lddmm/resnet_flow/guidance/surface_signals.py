@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 import numpy as np
 from scipy.spatial import cKDTree
 
-from src.geometry.geometry import mesh_vertex_normals
+from src.shared.geometry.geometry import mesh_vertex_normals
 
 SIGNAL_KINDS = ("curvedness", "mean_curvature")
 _MIN_NEIGHBOURS = 6   # a quadric has 6 coefficients

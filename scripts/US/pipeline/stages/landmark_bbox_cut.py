@@ -35,11 +35,11 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.ultrasound.config import LandmarkBboxCutConfig as Config
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.process import extract_polydata_vertex_subset, filter_largest_component
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.process import extract_polydata_vertex_subset, filter_largest_component
 
-from src.file_name_matching.matching import match_by_subject_id
-from src.transforms.similarity import load_subject_transform
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
+from src.shared.transforms.similarity import load_subject_transform
 
 
 def offsets_mm(cfg: Config):

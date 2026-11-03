@@ -41,7 +41,7 @@ import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 FUSED_EVAL = "fetus_ssm/{case}/{week}/end_to_end/fused_scan_ssm/eval"
 # scan_consistency's union of the scans' high-confidence (>= 0.8) parts, as the fused eval's target

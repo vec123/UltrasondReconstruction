@@ -3,7 +3,7 @@ import glob
 import vtk
 from vtk.util import numpy_support
 import SimpleITK as sitk
-from src.nrrd.preprocess import preprocess_volume
+from src.ultrasound.nrrd.preprocess import preprocess_volume
 
 def convert_nrrd_to_vti(nrrd_path, vti_path, preprocess=True,
                         denoise="median", denoise_radius=1,

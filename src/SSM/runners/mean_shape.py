@@ -24,11 +24,11 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from src.SSM.config import MeanShapeConfig
-from src.geometry import compute_mean_curvature
-from src.vtk.io import save_vtp
-from src.vtk.create import create_polydata
-from src.vtk.fields import add_point_field
-from src.geometry.heatmap import landmark_heatmaps
+from src.shared.geometry import compute_mean_curvature
+from src.shared.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.fields import add_point_field
+from src.shared.geometry.heatmap import landmark_heatmaps
 from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
 

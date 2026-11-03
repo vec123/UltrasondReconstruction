@@ -80,9 +80,9 @@ class PoseShapeExporter(Callback):
             return  # no pose was applied; before and after would be identical
 
         from src.resnet_lddmm.resnet_flow.losses.terms import apply_pose
-        from src.vtk.create import create_polydata
-        from src.vtk.fields import add_point_field
-        from src.vtk.io import save_vtp
+        from src.shared.vtk.create import create_polydata
+        from src.shared.vtk.fields import add_point_field
+        from src.shared.vtk.io import save_vtp
 
         before = mapping_error.last_fwd_traj.end.detach()
         after = apply_pose(before, rotation, translation).detach()

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from src.SSM.model.builder import BuildContext, ModelSource, build_model, resolve_kernel_spec
 from src.SSM.model.model_memory_io import ModelCacheSpec, save_model
-from src.core.config import ConfigClient
+from src.shared.core.config import ConfigClient
 from src.SSM.config import GpmmModelConfig
 
 

@@ -13,11 +13,11 @@ import glob
 import os
 
 from src.ultrasound.config import AlignToReferenceConfig as Config
-from src.vtk.io import glob_meshes, load_mesh, save_vtp
+from src.shared.vtk.io import glob_meshes, load_mesh, save_vtp
 
-from src.landmarks.vtk_landmarks import landmarks_csv_to_polydata
-from src.file_name_matching.matching import match_by_subject_id
-from src.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
+from src.shared.landmarks.vtk_landmarks import landmarks_csv_to_polydata
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
+from src.shared.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
 
 
 def run(cfg: Config):

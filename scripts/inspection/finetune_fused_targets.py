@@ -76,8 +76,8 @@ from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
 from src.resnet_lddmm.resnet_flow.fields.fourier import FourierStationaryField  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 VARIANTS = ("code", "head", "lora", "detail", "kernel", "full")
 

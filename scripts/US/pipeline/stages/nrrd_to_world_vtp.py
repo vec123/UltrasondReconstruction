@@ -16,7 +16,7 @@ import vtk
 from vtk.util import numpy_support
 
 from src.ultrasound.config import NrrdToWorldVtpConfig as Config
-from src.vtk.io import save_vtp
+from src.shared.vtk.io import save_vtp
 
 
 def sitk_to_vtk_image(sitk_img):

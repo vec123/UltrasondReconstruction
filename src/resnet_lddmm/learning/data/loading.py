@@ -4,11 +4,11 @@ import glob
 import torch
 import numpy as np
 
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.create import create_polydata_w_lines
-from src.vtk.extract import extract_vtp_points_cells, extract_vtp_point_fields
-from src.vtk.fields import add_point_field
-from src.graphs.graphs import (
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.create import create_polydata_w_lines
+from src.shared.vtk.extract import extract_vtp_points_cells, extract_vtp_point_fields
+from src.shared.vtk.fields import add_point_field
+from src.resnet_lddmm.graphs.graphs import (
     get_graphs_from_vertices, 
     build_super_graph,
     get_individual_graph,

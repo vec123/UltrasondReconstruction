@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from src.graphs.graphs import get_graphs_from_vertices, build_super_graph
+from src.resnet_lddmm.graphs.graphs import get_graphs_from_vertices, build_super_graph
 
 
 class GraphBuilder(ABC):
@@ -92,5 +92,5 @@ class KNNGraphBuilder(GraphBuilder):
         raise NotImplementedError(
             "KNNGraphBuilder is not implemented yet. Use RadiusGraphBuilder, or "
             "implement kNN graph construction here (model it after RadiusGraphBuilder "
-            "and src/graphs/graphs.py's build_radius_graph)."
+            "and src/resnet_lddmm/graphs/graphs.py's build_radius_graph)."
         )

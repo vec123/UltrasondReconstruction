@@ -111,7 +111,7 @@ hyperparameters:
     contour_value: 70  # fallback only - ignored while auto_contour is true
     auto_contour: false  # pick contour_value per volume via Otsu's method, so it adapts to each NRRD source's own intensity scale instead of a hand-tuned absolute number
     reduction_factor: 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     min_bridge_relative: false
     compute_curvedness: false
     curvedness_n_rings: 5
@@ -185,7 +185,7 @@ hyperparameters:
     threshold: 0.9  # keep vertices with roughness below this fraction of the field's range - scale-invariant, unaffected by align_to_reference/align_to_template's scale
     neighbors: knn  # "knn" | "rings"
     max_neighbors: 32
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     min_bridge_relative: false
 
   align_to_reference:
@@ -209,20 +209,20 @@ hyperparameters:
     z_min_offset_mm: 20.0 
     z_max_offset_mm: 5.0   
     keep_largest_component: false  # re-extract the largest component after the distance cut instead (below)
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     min_bridge_relative: false
 
   landmark_distance_cut:
     max_distance_mm: 15.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
     keep_largest_component: false  # re-extract the largest component after the distance cut
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
+    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     min_bridge_relative: false
 
   scan_consistency:
     sigma_mm: 2.0  # spatial tolerance in mm; points within sigma_mm score highly
     apply_denoise_threshold: true
     min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
-    denoise_min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/vtk
+    denoise_min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     denoise_min_bridge_relative: true
 
   scan_fusion:

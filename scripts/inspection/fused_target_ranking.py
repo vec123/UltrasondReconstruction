@@ -25,7 +25,7 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from scripts.inspection.render_frontal_views import SCAN_COLOR, face_frame, view_camera, write_grid  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 HEATMAP_LABELS = ("n", "enR", "enL", "exR", "exL", "aR", "aL", "acR", "acL", "sn", "ls", "pg", "prn")
 VIEWS = ("frontal", "left", "right")

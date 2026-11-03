@@ -3,7 +3,7 @@
 from typing import Optional
 import torch
 from torch import Tensor
-from src.core.config import reject_unknown_keys
+from src.shared.core.config import reject_unknown_keys
 
 
 ROBUST_KINDS = ("quadratic", "linear", "truncated", "exponential")

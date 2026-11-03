@@ -38,9 +38,9 @@ from vtk.util import numpy_support
 
 from src.ultrasound.config import VtpToNrrdOverlayConfig as Config
 
-from src.file_name_matching.matching import match_by_subject_id
-from src.landmarks.vtk_landmarks import fit_landmark_alignment
-from src.transforms.similarity import load_subject_transform
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
+from src.shared.landmarks.vtk_landmarks import fit_landmark_alignment
+from src.shared.transforms.similarity import load_subject_transform
 
 
 def _load_vtp_points(vtp_path):

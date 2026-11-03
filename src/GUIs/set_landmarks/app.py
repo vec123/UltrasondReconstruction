@@ -32,9 +32,9 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from src.SSM.config import PlaceLandmarksConfig
-from src.geometry import compute_mean_curvature
-from src.geometry.heatmap import landmark_heatmaps
-from src.geometry.landmark_fields import build_landmark_field_polydata
+from src.shared.geometry import compute_mean_curvature
+from src.shared.geometry.heatmap import landmark_heatmaps
+from src.shared.geometry.landmark_fields import build_landmark_field_polydata
 from src.GUIs.core import (
     DIVERGING, SEQUENTIAL, FlatColoring, Hud, KeyboardRouter, KeyMap, MeshView,
     ModeSliderPanel, PanelGeometry, ScalarColoring, SurfaceColoring, TextPrompt, TextSlot,
@@ -46,7 +46,7 @@ from src.GUIs.set_landmarks.formatting import (
 )
 from src.GUIs.set_landmarks.shape_space import load_shape_space
 from src.SSM.model.sources.landmarks import read_landmark_map, write_landmark_map
-from src.vtk.io import save_vtp
+from src.shared.vtk.io import save_vtp
 
 # -- layout ---------------------------------------------------------------------
 # The slider column on the left (same region as sample_shapes.py, so a user of

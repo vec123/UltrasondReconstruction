@@ -17,8 +17,8 @@ import glob
 import os
 
 from src.ultrasound.config import SmoothingFilterConfig as Config
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.process import smooth_vtp
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.process import smooth_vtp
 
 
 def process_one(vtp_path, cfg: Config):

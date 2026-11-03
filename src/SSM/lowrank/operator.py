@@ -42,7 +42,7 @@ from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 import numpy as np
 
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 from src.SSM.kernels.base import KernelStructure, expand_indices, resolve_indices
 from src.SSM.lowrank.truncation import KEEP_ALL, Decomposition, Truncation
 

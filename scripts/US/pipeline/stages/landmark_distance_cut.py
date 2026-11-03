@@ -23,13 +23,13 @@ from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.ultrasound.config import LandmarkDistanceCutConfig as Config
-from src.vtk.extract import threshold_vtp_by_point_field
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.process import filter_largest_component
+from src.shared.vtk.extract import threshold_vtp_by_point_field
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.process import filter_largest_component
 
-from src.file_name_matching.matching import match_by_subject_id
-from src.transforms.similarity import load_subject_transform
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
+from src.shared.transforms.similarity import load_subject_transform
 
 
 def nearest_landmark_distance(mesh_points, lmk_points):

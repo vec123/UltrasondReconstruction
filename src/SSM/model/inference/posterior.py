@@ -59,7 +59,7 @@ from src.SSM.model.inference.continuous_inference import build_inference
 from src.SSM.model.model import StatisticalShapeModel
 from src.SSM.model.model_memory_io import ModelCacheSpec, save_model
 from src.SSM.model.inference.observations import Observations
-from src.transforms.similarity import SimilarityTransform
+from src.shared.transforms.similarity import SimilarityTransform
 
 
 @dataclass

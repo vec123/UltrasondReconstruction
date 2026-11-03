@@ -43,7 +43,7 @@ from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
 from scripts.SSM.sample_cohort import draw_cohort  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import cohort_paths  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
 
 RENDER_SCALE = 1e4         # model units -> about millimetres (bbox diagonal 0.02 -> 200)
 VIEWS = ("frontal", "left", "right")

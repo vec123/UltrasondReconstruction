@@ -44,7 +44,7 @@ class MatchingConfig:
     use_target_normals: bool = False
     # nearest/constrained only: reject many-to-one matches in either direction,
     # keeping only the closest pair per source vertex and per target point (see
-    # src.SSM.correspondence.compute.heuristic_estimate.deduplicate_pairs). Off by default - several model
+    # src.shared.correspondence.compute.heuristic_estimate.deduplicate_pairs). Off by default - several model
     # vertices legitimately sharing one nearest target point is normal, not an
     # error, when the target is denser than the model.
     one_to_one: bool = False

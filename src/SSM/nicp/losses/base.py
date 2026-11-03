@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 import torch
-from src.SSM.correspondence.base import Correspondences
+from src.shared.correspondence.base import Correspondences
 from src.SSM.nicp.matching.neighbours import build_tree
-from src.core.registry import RegistryError, TypedRegistry
+from src.shared.core.registry import RegistryError, TypedRegistry
 from src.SSM.nicp.shape import ShapeSpace
 
 

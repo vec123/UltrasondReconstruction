@@ -20,10 +20,10 @@ from scipy.sparse.csgraph import dijkstra
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from src.ultrasound.config import LandmarkGeodesicsConfig as Config
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.io import load_vtp, save_vtp
 
-from src.landmarks.vtk_landmarks import points_to_labeled_polydata
-from src.file_name_matching.matching import subject_id_from_path
+from src.shared.landmarks.vtk_landmarks import points_to_labeled_polydata
+from src.ultrasound.file_name_matching.matching import subject_id_from_path
 
 def build_mesh_graph(polydata):
     """

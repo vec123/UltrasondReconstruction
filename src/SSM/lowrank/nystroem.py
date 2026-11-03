@@ -104,7 +104,7 @@ def select_inducing(operator, n_inducing: int, selection: str = "farthest", seed
             "selection='random'/'uniform'."
         )
 
-    from src.geometry.geometry import farthest_point_sampling
+    from src.shared.geometry.geometry import farthest_point_sampling
 
     # Returns a boolean mask rather than indices, and the caller wants indices.
     mask = farthest_point_sampling(np.asarray(points, dtype=np.float64), m)

@@ -39,14 +39,14 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 from scripts.inspection import render_frontal_views as views  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
-from src.core.config import from_dict  # noqa: E402
+from src.shared.core.config import from_dict  # noqa: E402
 from scripts.pipeline.registry import STAGE_REGISTRY  # noqa: E402
 from scripts.US.pipeline.stages.ssm_posterior import variant_name  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.transforms.similarity import SimilarityTransform  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.fields import add_point_field  # noqa: E402
-from src.vtk.io import load_vtp, save_vtp  # noqa: E402
+from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.fields import add_point_field  # noqa: E402
+from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 
 DEFAULT_MODEL = "assets/shape_models/baby/baby_pca.npz"
 MM_PER_UNIT = 5335.0  # the baby models' frame against the mm templates

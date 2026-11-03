@@ -34,4 +34,4 @@ from .loss import (  # noqa: F401
     reject_renamed_loss_distance_keys,
 )
 from .pose_code import CodeCfg, GridRegCfg, PoseCfg, _parse_code_config  # noqa: F401
-from src.core.config import reject_unknown_keys  # noqa: F401  (name other modules import from here)
+from src.shared.core.config import reject_unknown_keys  # noqa: F401  (name other modules import from here)

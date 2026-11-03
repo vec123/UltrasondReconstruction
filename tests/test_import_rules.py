@@ -3,7 +3,7 @@
 Each package of src/ belongs to one layer (LAYERS), and a layer may import
 only itself and the layers in ALLOWED:
 
-    shared       core, geometry, vtk, transforms, correspondence, ...
+    shared       src/shared: core, geometry, vtk, transforms, correspondence, ...
     ultrasound   the ultrasound processing        -> shared
     gpmm, lddmm  the two models                   -> shared
     evaluation   the metrics on model outputs     -> shared
@@ -29,17 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Path prefix -> layer. The longest matching prefix wins.
 LAYERS = {
     "src/__init__.py": "shared",
-    "src/core": "shared",
-    "src/geometry": "shared",
-    "src/vtk": "shared",
-    "src/transforms": "shared",
-    "src/landmarks": "shared",
-    "src/graphs": "shared",
-    "src/nrrd": "shared",
-    "src/file_name_matching": "shared",
-    "src/deformation_modes": "shared",
-    "src/weight_field": "shared",
-    "src/SSM/correspondence": "shared",
+    "src/shared": "shared",
     "src/ultrasound": "ultrasound",
     "src/SSM": "gpmm",
     "src/resnet_lddmm": "lddmm",
@@ -62,19 +52,19 @@ SKIP = ("src/SSM/BabyFM",)
 
 KNOWN_VIOLATIONS = {
     # PipelineOutputFiles (the GPMM output names): to models/gpmm/outputs.py
-    ("src/SSM/correspondence/loader/layouts.py", "src.SSM.config.pipeline"),
+    ("src/shared/correspondence/loader/layouts.py", "src.SSM.config.pipeline"),
     # load_shape and _robust_penalty: to shared
     ("src/SSM/model/builder/injectors.py", "src.resnet_lddmm.resnet_flow.io"),
     ("src/SSM/nicp/losses/chamfer.py", "src.resnet_lddmm.resnet_flow.losses.data_terms"),
     # the landmark GUI, re-exported as a runner
     ("src/SSM/runners/__init__.py", "src.GUIs.set_landmarks"),
     # Shape, reject_unknown_keys and the landmark readers: to shared
-    ("src/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.config"),
-    ("src/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.guidance.landmarks"),
-    ("src/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.io"),
-    ("src/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.config"),
-    ("src/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.guidance.landmarks"),
-    ("src/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.io"),
+    ("src/shared/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.config"),
+    ("src/shared/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.guidance.landmarks"),
+    ("src/shared/weight_field/landmark_weight_field.py", "src.resnet_lddmm.resnet_flow.io"),
+    ("src/shared/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.config"),
+    ("src/shared/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.guidance.landmarks"),
+    ("src/shared/weight_field/target_weight_field.py", "src.resnet_lddmm.resnet_flow.io"),
 }
 
 
@@ -106,7 +96,7 @@ def imported_modules(path: Path):
                 module = ".".join(base + ([node.module] if node.module else []))
             else:
                 module = node.module
-            # `from src.SSM import correspondence` imports src.SSM.correspondence.
+            # `from src.shared import correspondence` imports src.shared.correspondence.
             candidates = [f"{module}.{alias.name}" if is_module(f"{module}.{alias.name}") else module
                           for alias in node.names]
         else:

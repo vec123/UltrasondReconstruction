@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.core.config import ConfigClient
+from src.shared.core.config import ConfigClient
 from src.SSM.config import MeanShapeConfig
 from src.SSM.runners import MeanShapeRunner
 

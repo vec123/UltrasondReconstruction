@@ -42,8 +42,8 @@ from typing import ClassVar, Optional, Tuple
 import numpy as np
 import torch
 
-from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.base import (
+from src.shared.correspondence.cloud import PointCloud
+from src.shared.correspondence.base import (
     Correspondences,
     CorrespondenceStrategy,
     register_correspondence,

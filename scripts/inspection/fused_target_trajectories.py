@@ -25,7 +25,7 @@ from scripts.inspection.fused_target_ranking import (  # noqa: E402
     find_targets, reference_landmarks, session_scale, session_scan_count,
 )
 from scripts.inspection.render_frontal_views import SCAN_COLOR, view_camera, write_grid  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 DATASET_ORDER = ("Casos_Mar", "Estudio_Dexeus", "Casos_Maternitat")
 SHORT_NAME = {"Casos_Mar": "Mar", "Estudio_Dexeus": "Dex", "Casos_Maternitat": "Mat"}

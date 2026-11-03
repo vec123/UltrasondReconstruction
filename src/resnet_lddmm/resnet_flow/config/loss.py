@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dataclass_field
 from typing import Any, List, Optional
-from src.core.config import reject_unknown_keys
+from src.shared.core.config import reject_unknown_keys
 
 
 # The flat robust_* keys a data term used to take, each now a key of ONE

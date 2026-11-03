@@ -8,9 +8,9 @@ pattern (placenta: homogeneous "cotyledon" texture; fetal bone: hyperechoic
 with acoustic shadowing). This stage samples a small voxel neighborhood around
 each surface vertex, back in the source volume, and attaches local
 intensity/gradient statistics as point fields (see
-`src.vtk.echotexture.sample_echotexture`) - a signal orthogonal to anything
+`src.shared.vtk.echotexture.sample_echotexture`) - a signal orthogonal to anything
 geometric. It also attaches gradient-STRUCTURE-TENSOR shape descriptors (see
-`src.vtk.echotexture.sample_structure_tensor`): a different question from
+`src.shared.vtk.echotexture.sample_structure_tensor`): a different question from
 intensity/gradient MAGNITUDE - whether nearby edges point the same way, all
 lie along one shared plane, or point every-which-way: `echo_planarity` is
 high on a flat sheet-like boundary (e.g. a face/skull profile), `echo_linearity`
@@ -21,7 +21,7 @@ gradient energy those three ratios are normalized by - near zero (flat,
 edge-free region) makes the ratios unreliable.
 
 Every field (echo_* and structure-tensor alike) also gets a companion
-`*_variability` field (see `src.vtk.echotexture.compute_field_variability`):
+`*_variability` field (see `src.shared.vtk.echotexture.compute_field_variability`):
 the standard deviation of that field's OWN value among vertices within
 `variability_radius_mm` of each vertex, on the mesh's own surface. A
 uniformly bright region has high `echo_local_mean` but low
@@ -51,11 +51,11 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.ultrasound.config import EchotextureConfig as Config
-from src.nrrd.preprocess import load_and_preprocess_volume, volume_dimension
+from src.ultrasound.nrrd.preprocess import load_and_preprocess_volume, volume_dimension
 from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
-from src.file_name_matching.matching import match_by_subject_id
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
 
 
 def process_one(vtp, nrrd_path, cfg: Config):

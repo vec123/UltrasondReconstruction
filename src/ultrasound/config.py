@@ -81,7 +81,7 @@ class EchotextureConfig:
 
     # Integration-scale radius (mm) for the structure-tensor orientation-
     # coherence fields (echo_linearity/planarity/sphericity/energy) - see
-    # the stage module docstring and src.vtk.echotexture.sample_structure_tensor.
+    # the stage module docstring and src.shared.vtk.echotexture.sample_structure_tensor.
     structure_tensor_radius_mm: float = 1.5
 
     # Radius (mm, on the mesh's own un-aligned surface) each field's *_variability
@@ -339,7 +339,7 @@ class LandmarkAlignConfig:
 @dataclasses.dataclass
 class SimilarityTransformConfig:
     """Rigidly (+ scale) moves source_vtp into landmark_path's frame, via
-    shared named landmarks - see src.landmarks.vtk_landmarks.fit_landmark_alignment.
+    shared named landmarks - see src.shared.landmarks.vtk_landmarks.fit_landmark_alignment.
 
     Typical use: a standalone template (e.g. assets/templates/baby_mean.vtp, which
     carries its own heatmap_{label} point fields) needs to land in the same

@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.io import load_vtp, save_vtp
 
 VECTOR_ARRAYS = ("normal",)   # point arrays that rotate with the frame
 

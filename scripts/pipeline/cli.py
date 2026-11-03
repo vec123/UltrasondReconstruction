@@ -2,7 +2,7 @@
 
 import os
 
-from src.core.config import from_dict, interpolate_paths, load_yaml, path_variables
+from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
 
 from .registry import STAGE_REGISTRY
 
@@ -12,7 +12,7 @@ def _bind_stage_config(stage_name, raw, source):
 
     Uses the stage's own binder (`StageSpec.from_dict`) when it has one -
     resnet-lddmm's configs check across fields and accept aliases - and the
-    strict generic binder (src.core.config.from_dict) otherwise. `source`
+    strict generic binder (src.shared.core.config.from_dict) otherwise. `source`
     names the YAML in the error messages.
     """
     spec = STAGE_REGISTRY.get(stage_name)
@@ -74,7 +74,7 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
     A field may reference an earlier stage's own (already-resolved) field
     directly, e.g. `vtp_shapes_dir: nrrd_to_vtp.output_dir`, or build a path
     out of one, e.g. `transforms_dir: align_to_reference.output_dir + /transforms`
-    - see `src/core/config/variables.py::interpolate_paths`. References use the target's `id`
+    - see `src/shared/core/config/variables.py::interpolate_paths`. References use the target's `id`
     and may only point at stages listed earlier in `stages:`. `name` may be
     any stage registered in `STAGE_REGISTRY`, from any pipeline - a preprocess
     stage, `ssm_fit`, or `resnet_lddmm_train` - so one file can wire all three

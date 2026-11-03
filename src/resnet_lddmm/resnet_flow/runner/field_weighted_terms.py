@@ -49,7 +49,7 @@ def _ensure_source_normals(cfg, source_norm):
                 "'normal' point array nor faces to derive one from."
             )
         # Local import: geometry pulls in heavier deps than this module's own.
-        from src.geometry import mesh_vertex_normals
+        from src.shared.geometry import mesh_vertex_normals
         normals = mesh_vertex_normals(verts=source_norm.points[0].detach().cpu().numpy(),
                                       faces=source_norm.faces.cpu().numpy())
         source_norm.normals = torch.tensor(normals, dtype=source_norm.points.dtype).unsqueeze(0)

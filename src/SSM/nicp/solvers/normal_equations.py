@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 import torch
 from src.SSM.nicp.problem import FitProblem
-from src.core.registry import RegistryError
+from src.shared.core.registry import RegistryError
 
 from .base import SolveResult, Solver, _format, _should_refresh, register_solver
 

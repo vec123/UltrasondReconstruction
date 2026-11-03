@@ -2,7 +2,7 @@
 fields already attached by an earlier stage (by default, echotexture's
 echo_* fields) as each point's feature vector - an exploratory first attempt
 at separating tissue types (face, placenta, hand/limb, noise, ...) with NO
-labeled training data (see `src.vtk.classify` for the clustering itself and
+labeled training data (see `src.shared.vtk.classify` for the clustering itself and
 what a cluster id does/doesn't mean).
 
 Deliberately NOT wired into pipeline.yaml's `stages:`/`paths:`/`hyperparameters:`
@@ -11,12 +11,12 @@ to try it on: `python scripts/run_stage.py --config configs/06_point_classify.ya
 It only READS an existing mesh (or directory of meshes) and WRITES its own
 new output_dir + one new point field, so nothing else in the pipeline
 references or depends on it. EASY TO REMOVE entirely: delete this file,
-src/vtk/classify.py, configs/06_point_classify.yaml, and the "point_classify"
+src/shared/vtk/classify.py, configs/06_point_classify.yaml, and the "point_classify"
 import + STAGE_REGISTRY entry in pipeline/registry.py.
 
 Fits ONE clustering model across every input subject's points pooled
 together, so a cluster id means the same thing from one subject to the
-next - see src.vtk.classify.fit_predict_clusters.
+next - see src.shared.vtk.classify.fit_predict_clusters.
 """
 
 import os
@@ -24,10 +24,10 @@ import os
 import numpy as np
 
 from src.ultrasound.config import PointClassifyConfig as Config
-from src.vtk.classify import describe_clusters, fit_predict_clusters
-from src.vtk.extract import extract_vtp_point_fields
-from src.vtk.fields import add_point_field
-from src.vtk.io import glob_meshes, load_mesh, save_vtp
+from src.shared.vtk.classify import describe_clusters, fit_predict_clusters
+from src.shared.vtk.extract import extract_vtp_point_fields
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import glob_meshes, load_mesh, save_vtp
 
 
 def _resolve_feature_fields(cfg: Config, first_mesh):

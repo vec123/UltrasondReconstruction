@@ -36,8 +36,8 @@ import numpy as np
 from scripts.SSM.sample_cohort import draw_cohort
 from scripts.SSM.target_to_ssm_frame import similarity
 from src.SSM.model.model_memory_io import load_model_file
-from src.vtk.create import create_polydata
-from src.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.io import save_vtp
 
 
 def main():

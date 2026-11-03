@@ -1,13 +1,13 @@
 """Lazy component Registry.
 
-A thin instance of ``src.core.registry.LazyRegistry`` - see there for what it
+A thin instance of ``src.shared.core.registry.LazyRegistry`` - see there for what it
 actually does (maps ``(category, name)`` to a ``"module.path:ClassName"``
 STRING, resolved only on the first ``Registry.create()`` call for that entry,
 so nothing is imported until something asks for it by name - the reason
 e3nn/torch_geometric stay out of the common import path).
 """
 
-from src.core.registry import LazyRegistry
+from src.shared.core.registry import LazyRegistry
 
 Registry = LazyRegistry()
 

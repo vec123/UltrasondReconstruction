@@ -18,25 +18,25 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 import torch
 
-from src.core.config import ConfigClient
+from src.shared.core.config import ConfigClient
 from src.SSM.config import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
-from src.SSM.correspondence.vtk import save_matching_lines
-from src.transforms.similarity import SimilarityTransform
-from src.vtk.io import (
+from src.shared.correspondence.vtk import save_matching_lines
+from src.shared.transforms.similarity import SimilarityTransform
+from src.shared.vtk.io import (
     load_vtp,
     save_vtp
 )
-from src.vtk.extract import (
+from src.shared.vtk.extract import (
     extract_all_vtp_point_fields,
     get_vtp_faces,
     get_vtp_vertices
 )
-from src.vtk.create import (
+from src.shared.vtk.create import (
     create_polydata
 )
 from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
-from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.base import build_correspondence
+from src.shared.correspondence.cloud import PointCloud
+from src.shared.correspondence.base import build_correspondence
 from src.SSM.nicp.losses import build_loss
 from src.SSM.nicp.metrics import coefficient_metrics, displacement_metrics, surface_metrics
 from src.SSM.nicp.priors import build_prior

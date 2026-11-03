@@ -7,7 +7,7 @@
     config.py      DeformationModesConfig
 
 The spec being edited, and everything that turns it into fields, is
-``src.deformation_modes`` - shared with training, independent of this GUI.
+``src.shared.deformation_modes`` - shared with training, independent of this GUI.
 """
 
 from src.GUIs.deformation_modes.app import DeformationModesApp, DeformationModesResult

@@ -50,7 +50,7 @@ import vtk
 from vtk.util import numpy_support
 
 from src.SSM.config import SampleShapesConfig
-from src.vtk.create import create_polydata
+from src.shared.vtk.create import create_polydata
 from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 
 
@@ -571,7 +571,7 @@ class SampleShapesRunner:
         if self.faces is None:
             self.mean_normals = None
             return
-        from src.geometry.geometry import mesh_vertex_normals
+        from src.shared.geometry.geometry import mesh_vertex_normals
 
         self.mean_normals = np.ascontiguousarray(
             mesh_vertex_normals(np.asarray(self.mean, dtype=np.float64), self.faces),
@@ -1435,7 +1435,7 @@ class SampleShapesRunner:
             self._attach_field_array(polydata, "alpha_sigma", self.alpha / self.sigma)
             self._attach_field_array(polydata, "mahalanobis", [self._mahalanobis()])
 
-        from src.vtk.io import save_vtp
+        from src.shared.vtk.io import save_vtp
 
         save_vtp(polydata, str(path), binary=cfg.binary)
         self.written_files.append(path)

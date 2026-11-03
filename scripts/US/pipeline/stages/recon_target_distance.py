@@ -58,15 +58,15 @@ from src.evaluation.metrics import (
     resolve_metric,
     summarize,
 )
-from src.landmarks.vtk_landmarks import (
+from src.shared.landmarks.vtk_landmarks import (
     fit_landmark_alignment,
     heatmap_landmark_vertex_indices,
     landmarks_csv_to_polydata,
     points_to_labeled_polydata,
 )
 from src.resnet_lddmm.resnet_flow.guidance.landmarks import aggregate, load_annotations, select_annotations
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
 
 
 

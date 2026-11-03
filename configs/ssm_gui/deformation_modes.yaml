@@ -6,7 +6,7 @@
 # from the template's landmarks), constraint sets (anchor / slide / rigid
 # regions) and modes (displacement along an axis, or strain in a local frame),
 # with a live preview of each mode's generated field. The result is a YAML
-# spec (src/deformation_modes/spec.py) that stores every region as the recipe
+# spec (src/shared/deformation_modes/spec.py) that stores every region as the recipe
 # that made it.
 #
 # Controls (also shown at the bottom of the window):

@@ -16,7 +16,7 @@ from typing import Callable, List, Tuple
 
 import numpy as np
 
-from src.deformation_modes import (
+from src.shared.deformation_modes import (
     CONSTRAINT_KINDS, MODE_KINDS, AwayFrom, AwayFromMidline, Axis, Between, ConstraintSet,
     MidlineNormal, Mode, Reversed, SurfaceNormal, Tangential,
 )

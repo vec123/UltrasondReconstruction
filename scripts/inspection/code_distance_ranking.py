@@ -25,7 +25,7 @@ from scripts.inspection.code_pca_modes import decode, with_points  # noqa: E402
 from scripts.inspection.code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
 from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")
 

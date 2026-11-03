@@ -104,10 +104,10 @@ class EncoderGraphLogger(Callback):
             name: base filename (e.g. "graph")
         """
         try:
-            from src.vtk.create import create_polydata_w_lines
-            from src.vtk.fields import add_point_field
-            from src.vtk.io import save_vtp
-            from src.graphs.graphs import get_individual_graph
+            from src.shared.vtk.create import create_polydata_w_lines
+            from src.shared.vtk.fields import add_point_field
+            from src.shared.vtk.io import save_vtp
+            from src.resnet_lddmm.graphs.graphs import get_individual_graph
             import torch
         except ImportError:
             print(f"[EncoderGraphLogger] VTK utilities not available, skipping export")
@@ -154,8 +154,8 @@ class EncoderGraphLogger(Callback):
         alongside the graph. Saves as template_points.vtp and sample_points_{idx}.vtp.
         """
         try:
-            from src.vtk.create import create_polydata
-            from src.vtk.io import save_vtp
+            from src.shared.vtk.create import create_polydata
+            from src.shared.vtk.io import save_vtp
 
             template, sample = batch
             stepper = getattr(self, '_current_stepper', None)
@@ -226,10 +226,10 @@ class EncoderGraphLogger(Callback):
         Uses get_bipartite_graph to show the aggregation structure.
         """
         try:
-            from src.vtk.create import create_polydata_w_lines
-            from src.vtk.fields import add_point_field
-            from src.vtk.io import save_vtp
-            from src.graphs.graphs import get_bipartite_graph
+            from src.shared.vtk.create import create_polydata_w_lines
+            from src.shared.vtk.fields import add_point_field
+            from src.shared.vtk.io import save_vtp
+            from src.resnet_lddmm.graphs.graphs import get_bipartite_graph
             import torch
         except ImportError:
             print(f"[EncoderGraphLogger] VTK utilities not available, skipping supergraph export")

@@ -20,19 +20,19 @@ from typing import List
 import torch
 
 from src.ultrasound.config import NrrdToVtpConfig as Config
-from src.geometry import (
+from src.shared.geometry import (
     compute_mean_curvature,
     from_basis,
     get_operators,
     mesh_vertex_normals,
     to_basis,
 )
-from src.nrrd.preprocess import convert_single_nrrd, volume_dimension
-from src.vtk.extract import get_vtp_faces, get_vtp_vertices, threshold_vtp_by_point_field
-from src.vtk.fields import add_point_field
-from src.vtk.io import save_vtp
-from src.vtk.surface_measures import compute_flat_region_area, compute_vertex_curvedness
-from src.vtk.process import clean_vtp, filter_largest_component, reduce_vtp
+from src.ultrasound.nrrd.preprocess import convert_single_nrrd, volume_dimension
+from src.shared.vtk.extract import get_vtp_faces, get_vtp_vertices, threshold_vtp_by_point_field
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import save_vtp
+from src.shared.vtk.surface_measures import compute_flat_region_area, compute_vertex_curvedness
+from src.shared.vtk.process import clean_vtp, filter_largest_component, reduce_vtp
 
 
 def process_one(nrrd_path, cfg: Config):

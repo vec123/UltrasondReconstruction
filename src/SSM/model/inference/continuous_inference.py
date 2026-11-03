@@ -44,7 +44,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import scipy.linalg as sla
 
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 from src.SSM.kernels.base import expand_indices, resolve_indices
 
 INFERENCE = TypedRegistry("inference")
@@ -282,7 +282,7 @@ class Barycentric(ContinuousInference):
     ``kernel_regression``.
 
     Accuracy at a vertex is ~1e-7 relative rather than machine precision, and
-    the reason is worth recording so it is not chased: ``src.vtk.create`` casts
+    the reason is worth recording so it is not chased: ``src.shared.vtk.create`` casts
     points to float32 on the way into VTK, so the cell locator answers in
     float32 and the barycentric weights inherit that. It is far below any
     modelling error here, but it is a floor, not noise - a check demanding 1e-12
@@ -301,7 +301,7 @@ class Barycentric(ContinuousInference):
             )
         import vtk
 
-        from src.vtk.create import create_polydata
+        from src.shared.vtk.create import create_polydata
 
         self._basis = np.ascontiguousarray(np.asarray(basis, dtype=np.float64))
         self._n_modes = self._basis.shape[1]

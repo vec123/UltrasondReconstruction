@@ -49,14 +49,14 @@ from vtk.util.numpy_support import vtk_to_numpy
 from scripts.inspection import render_frontal_views as views  # noqa: E402
 import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels: colour None draws the point scalars)
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
-from src.core.config import load_yaml  # noqa: E402
+from src.shared.core.config import load_yaml  # noqa: E402
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 ERROR_MAX_MM = 3.0
 

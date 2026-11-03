@@ -10,7 +10,7 @@ source volume and summarize it as local intensity/gradient statistics - a
 signal orthogonal to anything geometric (curvature, roughness, ...).
 
 Callers are responsible for passing `points_world` in the SAME frame `volume`'s
-own `spacing`/`origin` define (see `src.geometry.load_and_preprocess_volume`).
+own `spacing`/`origin` define (see `src.shared.geometry.load_and_preprocess_volume`).
 """
 
 import numpy as np

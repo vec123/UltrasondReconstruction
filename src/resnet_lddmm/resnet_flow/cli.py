@@ -9,7 +9,7 @@ import sys
 
 import yaml
 
-from src.core.config import load_yaml
+from src.shared.core.config import load_yaml
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg
 from src.resnet_lddmm.resnet_flow.runner import run
 

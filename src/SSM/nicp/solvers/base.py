@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 import torch
 from src.SSM.nicp.problem import FitProblem
-from src.core.registry import TypedRegistry
+from src.shared.core.registry import TypedRegistry
 
 
 SOLVERS = TypedRegistry("solver")

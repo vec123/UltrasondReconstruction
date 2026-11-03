@@ -179,7 +179,7 @@ class ChamferSide:
 def _load_field(path: str, name: str):
     """One named point array from a .vtp, plus a description of where it came from."""
     # Local import: vtk is heavy and only this branch needs it.
-    from src.vtk.io import load_vtp
+    from src.shared.vtk.io import load_vtp
 
     polydata = load_vtp(str(path))
     point_data = polydata.GetPointData()

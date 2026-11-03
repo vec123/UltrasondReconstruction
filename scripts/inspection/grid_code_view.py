@@ -30,7 +30,7 @@ from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.resnet_lddmm.resnet_flow.io import load_shape  # noqa: E402
 from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points  # noqa: E402
 from src.resnet_lddmm.resnet_flow.runner import _normalization_domain, cohort_paths, load_cohort  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")
 TEMPLATE_OPACITY = 0.25

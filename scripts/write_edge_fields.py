@@ -29,9 +29,9 @@ from pathlib import Path
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.vtk.fields import add_point_field
-from src.vtk.io import load_vtp, save_vtp
-from src.vtk.surface_measures import compute_point_cloud_edges
+from src.shared.vtk.fields import add_point_field
+from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.surface_measures import compute_point_cloud_edges
 
 
 def main():

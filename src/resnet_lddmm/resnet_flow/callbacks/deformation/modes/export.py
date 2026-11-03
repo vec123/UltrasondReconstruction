@@ -32,7 +32,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from src.deformation_modes.geometry.landmarks import landmark_vertices
+from src.shared.deformation_modes.geometry.landmarks import landmark_vertices
 from src.resnet_lddmm.resnet_flow.callbacks.deformation.modes.parts import (
     NETWORK, PartsTrajectory, decompose, flow_with, modal_field,
 )

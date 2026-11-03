@@ -24,27 +24,27 @@ from typing import Optional
 
 import numpy as np
 
-from src.core.config import ConfigClient
+from src.shared.core.config import ConfigClient
 from src.SSM.config import PipelineConfig
-from src.SSM.correspondence.vtk import save_matching_lines, save_correspondence_field
-from src.landmarks.load_landmarks import load_landmarks
-from src.transforms.similarity import SimilarityTransform
-from src.geometry.spectral_operators import (
+from src.shared.correspondence.vtk import save_matching_lines, save_correspondence_field
+from src.shared.landmarks.load_landmarks import load_landmarks
+from src.shared.transforms.similarity import SimilarityTransform
+from src.shared.geometry.spectral_operators import (
     compute_spectral_operators,
     load_spectral_data,
     save_spectral_data,
     test_LBO_spectrum,
 )
-from src.vtk.io import (
+from src.shared.vtk.io import (
     load_vtp,
     save_vtp
 )
-from src.vtk.fields import copy_point_data
-from src.vtk.extract import (
+from src.shared.vtk.fields import copy_point_data
+from src.shared.vtk.extract import (
     get_vtp_faces,
     get_vtp_vertices
 )
-from src.vtk.create import (
+from src.shared.vtk.create import (
     create_polydata
 )
 

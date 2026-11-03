@@ -22,11 +22,11 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.ultrasound.config import AlignToTemplateConfig as Config
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.io import load_vtp, save_vtp
 
-from src.landmarks.vtk_landmarks import landmarks_to_lps, points_to_labeled_polydata
-from src.file_name_matching.matching import match_by_subject_id
-from src.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
+from src.shared.landmarks.vtk_landmarks import landmarks_to_lps, points_to_labeled_polydata
+from src.ultrasound.file_name_matching.matching import match_by_subject_id
+from src.shared.transforms.similarity import SimilarityTransform, compose_with_previous, save_subject_transform
 
 
 def extract_landmarks_from_heatmap_vtp(target_vtp_path, heatmap_prefix=""):

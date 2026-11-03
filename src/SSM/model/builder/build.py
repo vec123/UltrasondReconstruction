@@ -58,8 +58,8 @@ def _resolve_mean(spec, source: ModelSource) -> np.ndarray:
     if path.suffix.lower() == ".npy":
         return np.asarray(np.load(path), dtype=np.float64).reshape(-1)
     if path.suffix.lower() in (".vtp", ".vtk"):
-        from src.vtk.extract import get_vtp_vertices
-        from src.vtk.io import load_vtp
+        from src.shared.vtk.extract import get_vtp_vertices
+        from src.shared.vtk.io import load_vtp
 
         return np.asarray(get_vtp_vertices(load_vtp(str(path))), dtype=np.float64).reshape(-1)
     raise ValueError(f"mean must be 'data' or a path to a .vtp / .npy, got {spec!r}")

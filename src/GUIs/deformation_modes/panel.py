@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from src.deformation_modes import Axis, Brush, ConstraintSet, FieldThreshold, Mirror, Mode, NearLandmarks
+from src.shared.deformation_modes import Axis, Brush, ConstraintSet, FieldThreshold, Mirror, Mode, NearLandmarks
 from src.GUIs.core import BLANK, Cell, Inspector, Row
 from src.GUIs.deformation_modes.document import GROUP_NOUNS, SETTINGS, EditorDocument, ItemRef
 

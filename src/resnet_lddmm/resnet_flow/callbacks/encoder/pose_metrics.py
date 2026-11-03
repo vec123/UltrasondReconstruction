@@ -8,8 +8,8 @@ from dataclasses import dataclass
 
 from src.resnet_lddmm.learning.callbacks.base import Callback
 from src.resnet_lddmm.resnet_flow.io import FrameTransform
-from src.vtk.create import create_polydata
-from src.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.io import save_vtp
 
 
 @dataclass

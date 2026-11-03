@@ -37,8 +37,8 @@ from pathlib import Path
 import numpy as np
 
 from src.SSM.model.model_memory_io import load_model_file
-from src.vtk.create import create_polydata
-from src.vtk.io import save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.io import save_vtp
 
 
 def draw_cohort(model, n, n_modes=None, clip=None, seed=0, sampling="random"):

@@ -34,9 +34,9 @@ from pathlib import Path
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.vtk.create import create_polydata
-from src.vtk.fields import add_point_fields
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.fields import add_point_fields
+from src.shared.vtk.io import load_vtp, save_vtp
 
 
 def resample(scan, n_points, rng):

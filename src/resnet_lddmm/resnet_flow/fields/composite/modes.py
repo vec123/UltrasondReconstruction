@@ -3,7 +3,7 @@
     v(x, t) = v_net(x, t) + sum_m h_m(t) phi_m(x)
 
 ``phi_m`` are fixed fields designed in the deformation-mode editor
-(``src/deformation_modes``) - e.g. "widen the alae, the cheek beside them
+(``src/shared/deformation_modes``) - e.g. "widen the alae, the cheek beside them
 slides but does not bulge" - and ``h_m(t)`` one learned amplitude per mode and
 Euler step. The point is the price: the kinetic term charges only the
 network's part (``Trajectory.free_velocities``), and the modes' part is charged

@@ -66,10 +66,10 @@ from scripts.US.pipeline.stages.ssm_posterior import (DIRECTION_TOKENS, POSE_TOK
 from src.SSM.model.model_memory_io import ModelCacheSpec, load_model_file, save_model
 from src.SSM.model.inference.observations import Observations, build_noise_model
 from src.SSM.model.inference.posterior import _posterior_model, condition_whitened
-from src.transforms.similarity import SimilarityTransform
-from src.vtk.create import create_polydata
-from src.vtk.fields import add_point_fields
-from src.vtk.io import load_vtp, save_vtp
+from src.shared.transforms.similarity import SimilarityTransform
+from src.shared.vtk.create import create_polydata
+from src.shared.vtk.fields import add_point_fields
+from src.shared.vtk.io import load_vtp, save_vtp
 
 
 @dataclass

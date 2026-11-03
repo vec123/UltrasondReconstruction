@@ -43,8 +43,8 @@ from scripts.inspection.render_ssm_posterior_views import ramp_colors, with_colo
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
 from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.vtk.create import create_polydata  # noqa: E402
-from src.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.io import load_vtp  # noqa: E402
 
 CASOS = "outputs/Casos_Mar"
 # All 110 fused targets (not the 30-pair cherry-tree subset), so every case has a fit.
