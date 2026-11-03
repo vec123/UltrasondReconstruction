@@ -2,8 +2,8 @@
 
 Pure functions on PointClouds. Each returns the pairs as numpy arrays
 ``(rows, cols, dists)``: ``rows`` index the source (query) cloud and ``cols``
-the target cloud. The strategy classes in src.SSM.correspondence.correspondence
-hold the settings, check them, and wrap these arrays into a Correspondences.
+the target cloud. The strategy classes in src.SSM.correspondence.methods hold
+the settings, check them, and wrap these arrays into a Correspondences.
 """
 
 from __future__ import annotations

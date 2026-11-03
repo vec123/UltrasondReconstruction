@@ -43,7 +43,7 @@ import numpy as np
 import torch
 
 from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.correspondence import (
+from src.SSM.correspondence.base import (
     Correspondences,
     CorrespondenceStrategy,
     register_correspondence,

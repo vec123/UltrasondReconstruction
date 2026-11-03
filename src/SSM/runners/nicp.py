@@ -36,7 +36,7 @@ from src.vtk.create import (
 )
 from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.correspondence import build_correspondence
+from src.SSM.correspondence.base import build_correspondence
 from src.SSM.nicp.losses import build_loss
 from src.SSM.nicp.metrics import coefficient_metrics, displacement_metrics, surface_metrics
 from src.SSM.nicp.priors import build_prior

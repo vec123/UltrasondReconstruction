@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.correspondence import CorrespondenceStrategy, Correspondences
+from src.SSM.correspondence.base import CorrespondenceStrategy, Correspondences
 from src.SSM.nicp.losses import Loss, LossContext
 from src.SSM.nicp.priors import Prior
 from src.SSM.nicp.projections import Projection
@@ -123,7 +123,7 @@ def build_problem(spec, space: ShapeSpace, target: PointCloud,
     the standalone runner and the pipeline stage build the same problem from
     the same spec and cannot drift apart.
     """
-    from src.SSM.correspondence.correspondence import build_correspondence
+    from src.SSM.correspondence.base import build_correspondence
     from src.SSM.nicp.losses import build_loss
     from src.SSM.nicp.priors import build_prior
     from src.SSM.nicp.projections import build_projection

@@ -15,7 +15,7 @@ the code special-cases either combination.
 """
 
 from src.SSM.correspondence.cloud import PointCloud
-from src.SSM.correspondence.correspondence import (
+from src.SSM.correspondence import (
     ConstrainedMatching,
     CorrespondenceError,
     Correspondences,

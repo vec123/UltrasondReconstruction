@@ -5,7 +5,7 @@ import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.SSM.correspondence.correspondence import Correspondences
+from src.SSM.correspondence.base import Correspondences
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.fields import add_cell_field, add_point_field, add_point_fields
 from src.vtk.create import create_polydata_w_lines
