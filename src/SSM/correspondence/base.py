@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 
@@ -135,6 +135,8 @@ class CorrespondenceStrategy(ABC):
 
     #: registry key, set by @register_correspondence
     name = "?"
+    #: settings that are distances, so a caller can convert them from another frame
+    distance_kwargs: ClassVar[Tuple[str, ...]] = ()
 
     @abstractmethod
     def estimate(self, source, target) -> Optional[Correspondences]:

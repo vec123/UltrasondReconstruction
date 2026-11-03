@@ -15,7 +15,7 @@ The classes hold and check the settings. The search itself is in
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import ClassVar, Optional, Tuple
 
 from src.SSM.correspondence.base import (
     Correspondences,
@@ -63,6 +63,8 @@ class NearestNeighbourMatching(CorrespondenceStrategy):
     trim_ratio: float = 0.0
     one_to_one: bool = False
 
+    distance_kwargs: ClassVar[Tuple[str, ...]] = ("max_dist",)
+
     def __post_init__(self):
         if self.max_dist is not None and self.max_dist <= 0:
             raise ValueError(f"max_dist must be positive or null, got {self.max_dist}")
@@ -108,6 +110,8 @@ class ConstrainedMatching(CorrespondenceStrategy):
     use_target_normals: bool = True
     trim_ratio: float = 0.0
     one_to_one: bool = False
+
+    distance_kwargs: ClassVar[Tuple[str, ...]] = ("max_dist",)
 
     def __post_init__(self):
         if self.max_dist <= 0:
@@ -166,6 +170,8 @@ class SymmetricMatching(CorrespondenceStrategy):
     source_ratio: float = 0.0
     target_ratio: float = 0.0
     seed: Optional[int] = None
+
+    distance_kwargs: ClassVar[Tuple[str, ...]] = ("max_dist",)
 
     def __post_init__(self):
         if self.forward_weight < 0 or self.backward_weight < 0:

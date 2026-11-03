@@ -37,7 +37,7 @@ Implementation notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import ClassVar, Optional, Tuple
 
 import numpy as np
 import torch
@@ -143,6 +143,8 @@ class SinkhornMatching(CorrespondenceStrategy):
     normalize  rescale the emitted weights to average 1, so that prior weights
                tuned against unweighted matching keep their meaning.
     """
+
+    distance_kwargs: ClassVar[Tuple[str, ...]] = ("blur", "reach", "max_dist")
 
     blur: float = 5.0e-4
     reach: Optional[float] = 2.6e-3
