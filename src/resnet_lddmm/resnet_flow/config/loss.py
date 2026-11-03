@@ -324,7 +324,7 @@ class LossCfg:
     # without bound. breakpoint is in the same normalised length units as sigma
     # below. Its optional power (default 2) replaces the quadratic below the
     # breakpoint with d**power -- power: 1 is L1, pulling small residuals as hard
-    # as large ones. See data_terms.LossDistanceHandle / _robust_penalty for
+    # as large ones. See data_terms.LossDistanceHandle / robust_penalty for
     # exactly what each kind does.
     #
     # data_name: field_weighted_chamfer and field_weighted_point2plane_chamfer take

@@ -14,12 +14,12 @@ from typing import ClassVar, Optional
 import numpy as np
 
 from src.shared.correspondence.cloud import PointCloud
-from src.shared.correspondence.loader.pair_loader import (
+from src.evaluation.loader.pair_loader import (
     CorrespondencePair,
     PairLayout,
     register_layout,
 )
-from src.SSM.config.pipeline import PipelineOutputFiles
+from src.SSM.outputs import PipelineOutputFiles
 from src.shared.transforms.similarity import SimilarityTransform
 
 _SSM_FILES = PipelineOutputFiles()

@@ -37,9 +37,9 @@ import torch
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import dijkstra
 
-from src.resnet_lddmm.resnet_flow.config import reject_unknown_keys
-from src.resnet_lddmm.resnet_flow.io import Shape
-from src.resnet_lddmm.resnet_flow.guidance.landmarks import aggregate, load_annotations
+from src.shared.core.config import reject_unknown_keys
+from src.shared.geometry.shape import Shape
+from src.shared.landmarks.annotations import aggregate, load_annotations
 from src.shared.weight_field.landmark_fields import (
     AXES,
     DEFAULT_DECAY_SCALE,

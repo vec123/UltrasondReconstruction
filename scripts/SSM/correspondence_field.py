@@ -1,6 +1,6 @@
 """Correspondence field of one case: matches the recon to the target and writes it onto copies of both.
 
-The case folder is read by src.shared.correspondence.loader (any registered
+The case folder is read by src.evaluation.loader (any registered
 layout). The recon is the query: each recon vertex looks for a target point.
 The outputs go to <case_dir>/<name>/, where <name> spells out the method and
 every one of its settings:
@@ -26,7 +26,7 @@ from pathlib import Path
 import numpy as np
 
 from src.shared.correspondence import CORRESPONDENCE, build_correspondence
-from src.shared.correspondence.loader import FRAMES, load_pair
+from src.evaluation.loader import FRAMES, load_pair
 from src.shared.correspondence.vtk import save_correspondence_field, save_matching_lines
 from src.shared.vtk.fields import add_point_field
 from src.shared.vtk.io import load_vtp

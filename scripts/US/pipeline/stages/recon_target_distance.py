@@ -64,7 +64,7 @@ from src.shared.landmarks.vtk_landmarks import (
     landmarks_csv_to_polydata,
     points_to_labeled_polydata,
 )
-from src.resnet_lddmm.resnet_flow.guidance.landmarks import aggregate, load_annotations, select_annotations
+from src.shared.landmarks.annotations import aggregate, load_annotations, select_annotations
 from src.shared.vtk.fields import add_point_field
 from src.shared.vtk.io import load_vtp, save_vtp
 

@@ -1,6 +1,6 @@
 """Reconstruction/target pairs from run output folders. Importing the package registers the built-in layouts."""
 
-from src.shared.correspondence.loader.pair_loader import (
+from src.evaluation.loader.pair_loader import (
     FRAMES,
     CorrespondencePair,
     PairLayout,
@@ -11,7 +11,7 @@ from src.shared.correspondence.loader.pair_loader import (
     load_pair,
     register_layout,
 )
-from src.shared.correspondence.loader import layouts  # noqa: F401  (registers the layouts)
+from src.evaluation.loader import layouts  # noqa: F401  (registers the layouts)
 
 __all__ = [
     "FRAMES",

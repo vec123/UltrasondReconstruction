@@ -60,7 +60,7 @@ class TwoSidedDataTerm(DataTerm):
                 tau, power}`` (see LossDistanceHandle.from_dict), or None
                 (default) to keep plain squared-distance Chamfer -- bit-for-bit
                 the pre-existing behaviour.
-                kind: one of ROBUST_KINDS; see _robust_penalty for what each does.
+                kind: one of ROBUST_KINDS; see robust_penalty for what each does.
                 breakpoint: the distance (not squared) where behaviour changes
                     from the near-zero interior regime, in the same normalised
                     length units as loss.sigma. Required for every kind other

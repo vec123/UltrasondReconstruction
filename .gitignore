@@ -24,3 +24,5 @@ src\SSM\BabyFM\BabyFaceModel.mat
 theory*
 docs*
 outputs*
+# ...but not the output-name modules of the models (src/SSM/outputs.py)
+!src/**/outputs.py

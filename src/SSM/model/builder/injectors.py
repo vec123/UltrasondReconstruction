@@ -173,7 +173,7 @@ def _compute_weight_field(path: Path, ctx: BuildContext) -> np.ndarray:
     never needs it. A config that asks for this opts in; nothing else pays.
     """
     try:
-        from src.resnet_lddmm.resnet_flow.io import load_shape
+        from src.shared.geometry.shape import load_shape
         from src.shared.core.config import load_yaml
         from src.shared.weight_field.landmark_weight_field import (
             LandmarkWeightFieldCfg,

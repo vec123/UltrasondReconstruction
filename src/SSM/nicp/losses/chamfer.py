@@ -9,7 +9,7 @@ from src.SSM.nicp.weight_fields import ChamferSide
 # The robust penalties are pure functions of a squared-distance tensor with
 # nothing LDDMM-specific in them, and they are already documented and exercised
 # there. Importing beats keeping a second copy of the same four kernels in step.
-from src.resnet_lddmm.resnet_flow.losses.data_terms import ROBUST_KINDS, _robust_penalty
+from src.shared.losses.robust import ROBUST_KINDS, robust_penalty
 
 from .base import Loss, LossContext, LossValue, _check_ratio, _subsample, register_loss
 
@@ -101,7 +101,7 @@ class ChamferLoss(Loss):
     def _penalty(self, d2: torch.Tensor) -> torch.Tensor:
         """Squared distance, robustified if asked, then dropped to p=1 if asked."""
         if self.robust_kernel not in (None, "quadratic"):
-            d2 = _robust_penalty(d2, self.robust_kernel, self.robust_breakpoint,
+            d2 = robust_penalty(d2, self.robust_kernel, self.robust_breakpoint,
                                  slope=self.robust_slope, tau=self.robust_tau)
         return d2 if self.p == 2 else (d2 + 1e-24).sqrt()
 
