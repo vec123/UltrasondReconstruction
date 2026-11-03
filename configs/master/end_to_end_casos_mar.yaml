@@ -789,7 +789,7 @@ paths:
 #---------------------Fit summaries: the distance distributions of several fits
 #                     overlaid as lines, one .png per direction.
 #
-# NB: ' + ' is this file's path-concatenation operator (see pipeline/config.py),
+# NB: ' + ' is this file's path-concatenation operator (see src/core/config/variables.py),
 # so 'PCA sum Matern32' is spelled out in the labels below rather than written
 # as 'PCA + Matern32', whose surrounding spaces would be eaten.
 

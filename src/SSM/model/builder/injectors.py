@@ -174,7 +174,7 @@ def _compute_weight_field(path: Path, ctx: BuildContext) -> np.ndarray:
     """
     try:
         from src.resnet_lddmm.resnet_flow.io import load_shape
-        from src.weight_field.config import load_yaml_mapping
+        from src.core.config import load_yaml
         from src.weight_field.landmark_weight_field import (
             LandmarkWeightFieldCfg,
             compute_landmark_weight_field,
@@ -187,7 +187,7 @@ def _compute_weight_field(path: Path, ctx: BuildContext) -> np.ndarray:
             f"that .vtp instead ({error})"
         ) from error
 
-    cfg = LandmarkWeightFieldCfg.from_dict(load_yaml_mapping(str(path)))
+    cfg = LandmarkWeightFieldCfg.from_dict(load_yaml(str(path)))
     weights = compute_landmark_weight_field(load_shape(cfg.vtp), cfg)
     return np.asarray(weights.detach().cpu().numpy(), dtype=np.float64).reshape(-1)
 

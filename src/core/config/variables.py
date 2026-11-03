@@ -1,23 +1,21 @@
-"""Pipeline-specific parts of stage configuration.
+"""``${NAME}`` variables in config strings.
 
-Loading a YAML file and binding it onto a dataclass is shared with every other
-pipeline - see ``src.core.config`` (``load_yaml``, ``from_dict``), where unknown
-keys (typos) fail loudly instead of being silently ignored. What lives here is
-only what a stage pipeline adds on top: the ``${PROJECT_ROOT}`` / ``${DATA_ROOT}``
-variables, and an ``interpolate`` that also understands cross-stage references
-and path expressions.
+``interpolate`` substitutes plain ``${NAME}`` variables. ``interpolate_paths``,
+which the stage pipelines (scripts/pipeline/cli.py) use, also understands
+cross-stage references and path expressions.
 
 Paths are written relative to the project root using ``${PROJECT_ROOT}``
 interpolation, e.g. ``${PROJECT_ROOT}/US_samples/...`` - the same env var
 (from ``.env``, via ``python-dotenv``) every script in this repo already uses.
 """
 
+from __future__ import annotations
+
 import os
 import re
+from typing import Dict
 
-from dotenv import load_dotenv
-
-from src.core.config import substitute_variables
+from src.core.paths import get_project_root
 
 # Matches a bare cross-stage reference like `nrrd_to_vtp.output_dir` or
 # `align_to_reference.aligned_shapes_vtp_dir` - a dotted chain of identifiers,
@@ -25,18 +23,50 @@ from src.core.config import substitute_variables
 REFERENCE_PATTERN = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+$")
 
 
-def project_root() -> str:
-    load_dotenv()
-    root = os.environ.get("PROJECT_ROOT")
-    if not root:
-        raise RuntimeError("PROJECT_ROOT is not set. Define it in the repo's .env file.")
-    return root
+def substitute_variables(text: str, variables: Dict[str, str], hint: str = "") -> str:
+    """Substitutes ``${NAME}`` in one string.
+
+    Args:
+        text: the string to substitute into
+        variables: replacement text for each ``${NAME}``
+        hint: appended to the error message, e.g. how to supply a missing variable
+
+    Raises:
+        ValueError: if a ``${...}`` placeholder has no matching variable
+    """
+    for name, replacement in variables.items():
+        text = text.replace(f"${{{name}}}", replacement)
+    if "${" in text:
+        raise ValueError(
+            f"Unresolved '${{...}}' placeholder in '{text}'. "
+            f"Known variables: {sorted(variables)}." + (f" {hint}" if hint else "")
+        )
+    return text
+
+
+def interpolate(value, variables: Dict[str, str]):
+    """Recursively substitutes ``${NAME}`` in every string leaf of ``value``.
+
+    Args:
+        value: a (possibly nested) dict/list/str/other config value
+        variables: replacement text for each ``${NAME}``
+
+    Raises:
+        ValueError: if a ``${...}`` placeholder has no matching variable
+    """
+    if isinstance(value, str):
+        return substitute_variables(value, variables)
+    if isinstance(value, dict):
+        return {k: interpolate(v, variables) for k, v in value.items()}
+    if isinstance(value, list):
+        return [interpolate(v, variables) for v in value]
+    return value
 
 
 def path_variables() -> dict:
     """The ``${NAME}`` variables every config can use: PROJECT_ROOT, and DATA_ROOT
     (the raw ultrasound data folder) when the repo's .env defines it."""
-    variables = {"PROJECT_ROOT": project_root()}
+    variables = {"PROJECT_ROOT": str(get_project_root())}
     if os.environ.get("DATA_ROOT"):
         variables["DATA_ROOT"] = os.environ["DATA_ROOT"]
     return variables
@@ -46,11 +76,11 @@ def _substitute_vars(text: str, variables: dict) -> str:
     return substitute_variables(text, variables, hint="Pass missing ones via --set NAME=VALUE.")
 
 
-def interpolate(value, variables: dict, resolve_ref=None):
+def interpolate_paths(value, variables: dict, resolve_ref=None):
     """Recursively resolves every string leaf of a (possibly nested) config value.
 
-    Extends ``src.core.config.interpolate`` (plain ``${NAME}`` substitution) with
-    references and path expressions. Each string is one of:
+    Extends ``interpolate`` (plain ``${NAME}`` substitution) with references
+    and path expressions. Each string is one of:
 
     - A bare cross-stage reference, e.g. ``nrrd_to_vtp.output_dir`` (only
       recognized when ``resolve_ref`` is given - see ``pipeline/cli.py``).
@@ -78,7 +108,7 @@ def interpolate(value, variables: dict, resolve_ref=None):
         ]
         return os.path.normpath("".join(resolved_terms))
     if isinstance(value, dict):
-        return {k: interpolate(v, variables, resolve_ref) for k, v in value.items()}
+        return {k: interpolate_paths(v, variables, resolve_ref) for k, v in value.items()}
     if isinstance(value, list):
-        return [interpolate(v, variables, resolve_ref) for v in value]
+        return [interpolate_paths(v, variables, resolve_ref) for v in value]
     return value

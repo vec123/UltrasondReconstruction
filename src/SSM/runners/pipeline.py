@@ -24,7 +24,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.config.SSM.client import ConfigClient
+from src.core.config import ConfigClient
 from src.config.SSM.schema import PipelineConfig
 from src.SSM.correspondence.vtk import save_matching_lines, save_correspondence_field
 from src.landmarks.load_landmarks import load_landmarks

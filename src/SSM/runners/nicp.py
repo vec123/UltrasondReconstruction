@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 import torch
 
-from src.config.SSM.client import ConfigClient
+from src.core.config import ConfigClient
 from src.config.SSM.schema import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
 from src.SSM.correspondence.vtk import save_matching_lines
 from src.transforms.similarity import SimilarityTransform

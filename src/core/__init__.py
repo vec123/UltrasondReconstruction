@@ -4,7 +4,7 @@
 Nothing in here knows about meshes, landmarks, or any specific model - it is
 just the plumbing every pipeline was independently reinventing: loading a
 YAML file into a typed dataclass, resolving the project root, and looking up
-a pluggable component by name. See config.py, paths.py and registry.py for
+a pluggable component by name. See config/, paths.py and registry.py for
 the pieces themselves.
 """
 

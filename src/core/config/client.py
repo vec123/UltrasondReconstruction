@@ -23,6 +23,8 @@ from typing import Any, Mapping, Type, TypeVar, Union, get_args, get_origin
 
 import yaml
 
+from src.core.paths import get_project_root
+
 T = TypeVar("T")
 
 _VAR = re.compile(r"\$\{(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>[^}]*))?\}")
@@ -41,7 +43,7 @@ class ConfigClient:
 
     def __init__(self, project_root=None, env: Mapping[str, str] | None = None, strict: bool = True):
         self.env = dict(os.environ if env is None else env)
-        root = project_root or self.env.get("PROJECT_ROOT") or Path(__file__).resolve().parents[2]
+        root = project_root or self.env.get("PROJECT_ROOT") or get_project_root()
         self.project_root = Path(root).expanduser().resolve()
         self.env["PROJECT_ROOT"] = str(self.project_root)
         self.strict = strict
@@ -218,7 +220,3 @@ class ConfigClient:
             path = self.project_root / path
         return Path(os.path.normpath(path))
 
-
-def load_config(config_path, schema: Type[T], **client_kwargs) -> T:
-    """Convenience wrapper: ``load_config("configs/pipeline.yaml", PipelineConfig)``."""
-    return ConfigClient(**client_kwargs).load(config_path, schema)

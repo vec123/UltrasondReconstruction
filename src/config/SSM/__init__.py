@@ -1,6 +1,5 @@
 """YAML configuration: client + config object classes."""
 
-from src.config.SSM.client import ConfigClient, ConfigError, load_config
 from src.config.SSM.schema import (
     AlignLandmarksConfig,
     AlignLandmarksOutputs,
@@ -46,9 +45,6 @@ from src.config.SSM.schema import (
 )
 
 __all__ = [
-    "ConfigClient",
-    "ConfigError",
-    "load_config",
     "AlignLandmarksConfig",
     "AlignLandmarksOutputs",
     "AlignMeshesConfig",

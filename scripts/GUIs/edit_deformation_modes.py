@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.config.SSM.client import ConfigClient
+from src.core.config import ConfigClient
 from src.GUIs.deformation_modes import DeformationModesApp, DeformationModesConfig
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "deformation_modes.yaml"

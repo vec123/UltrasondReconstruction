@@ -31,7 +31,7 @@ from scripts.inspection.code_pca_views import similarity_map, template_landmarks
 from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.resnet_lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from scripts.pipeline.cli import _no_pipeline_context  # noqa: E402
-from scripts.pipeline.config import interpolate, path_variables  # noqa: E402
+from src.core.config import interpolate_paths, path_variables  # noqa: E402
 from src.core.config import load_yaml  # noqa: E402
 from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg, load_training_config  # noqa: E402
 from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import load_checkpoint, resolve_checkpoint  # noqa: E402
@@ -86,8 +86,8 @@ def decode(apply_config, steps, region=None, extra=None):
     # As run_stage.py reads a stage config: drop the stage name, fill ${PROJECT_ROOT} etc.
     raw = load_yaml(apply_config)
     raw.pop("stage", None)
-    apply_cfg = ApplyCfg.from_dict(interpolate(raw, path_variables(),
-                                               resolve_ref=_no_pipeline_context))
+    apply_cfg = ApplyCfg.from_dict(interpolate_paths(raw, path_variables(),
+                                                     resolve_ref=_no_pipeline_context))
     train_cfg = load_training_config(apply_cfg)
     ref = resolve_checkpoint(apply_cfg.checkpoint, apply_cfg.step)
     cfg = apply_cfg.resolved(train_cfg, ref)

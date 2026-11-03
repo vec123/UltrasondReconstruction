@@ -20,7 +20,7 @@ reaches that stage.
 """
 
 from src.core.registry import TypedRegistry
-from src.config.SSM.client import ConfigClient
+from src.core.config import ConfigClient
 from src.config.SSM.schema import PipelineConfig
 from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg
 from src.resnet_lddmm.resnet_flow.config import ExperimentCfg

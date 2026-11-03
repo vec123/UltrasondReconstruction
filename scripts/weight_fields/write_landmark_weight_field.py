@@ -22,7 +22,7 @@ Usage:
 
 import argparse
 
-from src.weight_field.config import load_yaml_mapping
+from src.core.config import load_yaml
 from src.resnet_lddmm.resnet_flow.io import load_shape, export_shape, FrameTransform
 from src.weight_field.landmark_weight_field import (
     LandmarkWeightFieldCfg,
@@ -37,7 +37,7 @@ def main():
                                         "(see configs/landmark_weight_field.yaml)")
     args = parser.parse_args()
 
-    cfg = LandmarkWeightFieldCfg.from_dict(load_yaml_mapping(args.config))
+    cfg = LandmarkWeightFieldCfg.from_dict(load_yaml(args.config))
 
     shape = load_shape(cfg.vtp)
     weight = compute_landmark_weight_field(shape, cfg)

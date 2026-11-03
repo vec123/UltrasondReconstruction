@@ -2,9 +2,8 @@
 
 import os
 
-from src.core.config import from_dict, load_yaml
+from src.core.config import from_dict, interpolate_paths, load_yaml, path_variables
 
-from .config import interpolate, path_variables
 from .registry import STAGE_REGISTRY
 
 
@@ -38,7 +37,7 @@ def stage_main(config_path, extra_vars=None):
     if stage_name is None:
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
 
-    raw = interpolate(raw, variables, resolve_ref=_no_pipeline_context)
+    raw = interpolate_paths(raw, variables, resolve_ref=_no_pipeline_context)
     spec, cfg = _bind_stage_config(stage_name, raw)
 
     print(f"Running stage '{stage_name}' from '{config_path}'")
@@ -75,7 +74,7 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
     A field may reference an earlier stage's own (already-resolved) field
     directly, e.g. `vtp_shapes_dir: nrrd_to_vtp.output_dir`, or build a path
     out of one, e.g. `transforms_dir: align_to_reference.output_dir + /transforms`
-    - see `pipeline/config.py::interpolate`. References use the target's `id`
+    - see `src/core/config/variables.py::interpolate_paths`. References use the target's `id`
     and may only point at stages listed earlier in `stages:`. `name` may be
     any stage registered in `STAGE_REGISTRY`, from any pipeline - a preprocess
     stage, `ssm_fit`, or `resnet_lddmm_train` - so one file can wire all three
@@ -146,7 +145,7 @@ def pipeline_main(pipeline_config_path, extra_vars=None):
             )
         raw = {**stage_paths, **stage_hyperparameters}
 
-        raw = interpolate(raw, variables, resolve_ref=resolve_ref)
+        raw = interpolate_paths(raw, variables, resolve_ref=resolve_ref)
         spec, cfg = _bind_stage_config(stage_name, raw)
 
         # Bind and resolve the config either way, so later stages can still

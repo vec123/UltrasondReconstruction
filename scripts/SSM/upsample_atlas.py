@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.config.SSM.client import ConfigClient
+from src.core.config import ConfigClient
 from src.config.SSM.schema import UpsampleAtlasConfig
 from src.SSM.runners import UpsampleAtlasRunner
 

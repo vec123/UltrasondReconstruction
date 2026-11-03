@@ -32,7 +32,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from scripts.pipeline.cli import pipeline_main  # noqa: E402
-from scripts.pipeline.config import interpolate, path_variables  # noqa: E402
+from src.core.config import interpolate_paths, path_variables  # noqa: E402
 
 RUN_PIPELINE = Path(__file__).resolve().parent / "run_pipeline.py"
 STATUS_COLUMNS = ("case", "week", "n_scans", "exit", "minutes", "status")
@@ -84,7 +84,7 @@ def run_sessions(args, extra_vars):
         variables = {**extra_vars, "CASES_ROOT": str(args.cases_root), "DATASET": args.dataset,
                      "SUBJECT_ID": case, "WEEK": week, "REFERENCE_SCAN": scans[0].stem}
         if args.skip_if_exists and os.path.exists(
-                interpolate(args.skip_if_exists, {**path_variables(), **variables})):
+                interpolate_paths(args.skip_if_exists, {**path_variables(), **variables})):
             skipped += 1
             continue
         jobs.append((case, week, len(scans), variables))
