@@ -1,5 +1,5 @@
 inputs:
-  shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/baby/baby_pca.npz
+  shape_model_mat: ${PROJECT_ROOT}/shape_models/baby/baby_pca.npz
   mesh_vtp: /home/victor/Projects/UltrasondReconstruction/outputs/Casos_Mar/1/20 semanas/aligned_to_template/landmark_bbox_cut/1-20s-01.vtp
   landmarks_json: ${PROJECT_ROOT}/outputs/Casos_Mar/1/20 semanas/aligned_to_template/landmarks_csv
   template_vtp: ${PROJECT_ROOT}/Templates/baby_mean.vtp

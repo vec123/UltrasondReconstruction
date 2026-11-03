@@ -42,9 +42,9 @@ from src.vtk.io import save_vtp
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--baby-model", default="src/SSM/saved_models/baby/baby_pca.npz")
+    parser.add_argument("--baby-model", default="shape_models/baby/baby_pca.npz")
     parser.add_argument("--baby-data", required=True, help="sample_cohort.py output of the baby samples")
-    parser.add_argument("--fetus-model", default="src/SSM/saved_models/fetus/fetus_pca.npz")
+    parser.add_argument("--fetus-model", default="shape_models/fetus/fetus_pca.npz")
     parser.add_argument("--fetus-landmarks", default="src/SSM/FetusModel_x4/landmarks.json",
                         help="fetus landmark name -> vertex index")
     parser.add_argument("--template", required=True, help="the baby mean with its point arrays, in the baby frame")

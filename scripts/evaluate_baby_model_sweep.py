@@ -18,7 +18,7 @@ SUBJECT = "1"
 TARGET = ROOT / "outputs/fetus_ssm/1/end_to_end/fused_scan_ssm/fused_scan.vtp"
 LANDMARKS = ROOT / "outputs/1/20_semanas/aligned_to_template/landmarks_csv/1-20s-01.csv"
 TEMPLATE = ROOT / "Templates/baby_mean.vtp"
-MODEL_ROOT = ROOT / "src/SSM/saved_models/baby"
+MODEL_ROOT = ROOT / "shape_models/baby"
 OUTPUT_ROOT = ROOT / "outputs/baby_ssm/1/model_sweep"
 
 # Base weights are anchored to the existing calibrated normalized-mahalanobis

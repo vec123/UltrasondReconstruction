@@ -17,7 +17,7 @@ venv/
 /fetus_ssm_outputs/
 /Templates/
 # Built GPMMs (configs/ssm/build_configs writes here); ~3 GB, all reproducible.
-/src/SSM/saved_models/
+/shape_models/
 
 src\SSM\BabyFM\BabyFaceModel.mat
 

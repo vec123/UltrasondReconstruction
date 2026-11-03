@@ -21,5 +21,5 @@ approximation:
 inference:
   name: none
 output:
-  dir: ${PROJECT_ROOT}/src/SSM/saved_models/baby
+  dir: ${PROJECT_ROOT}/shape_models/baby
   filename: baby_pca.npz

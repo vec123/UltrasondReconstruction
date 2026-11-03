@@ -8,7 +8,7 @@ any of them with
 python -m scripts.SSM.build_model configs/ssm/build_configs/fetus/pca_times_matern52.yaml
 ```
 
-Models land in `src/SSM/saved_models/<domain>/<domain>_<name>.npz`.
+Models land in `shape_models/<domain>/<domain>_<name>.npz`.
 
 ## Naming
 

@@ -85,7 +85,7 @@ paths:
     transforms_dir: align_to_template.transforms_dir
   fetus_ssm_fit_init_pca:
     inputs:
-      shape_model_mat: ${PROJECT_ROOT}/src/SSM/saved_models/fetus/fetus_pca.npz
+      shape_model_mat: ${PROJECT_ROOT}/shape_models/fetus/fetus_pca.npz
       mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/Templates/fetus_mean.vtp

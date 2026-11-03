@@ -44,7 +44,7 @@ outputs/UpdatedSSM) unless ``--output-dir`` is given:
 Usage:
     python scripts/SSM/update_ssm_em.py \\
         --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry \\
-        --model src/SSM/saved_models/baby/baby_pca_sum_matern32.npz
+        --model shape_models/baby/baby_pca_sum_matern32.npz
 """
 
 import argparse

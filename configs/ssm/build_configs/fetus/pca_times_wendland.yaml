@@ -38,5 +38,5 @@ approximation:
 inference:
   name: none
 output:
-  dir: ${PROJECT_ROOT}/src/SSM/saved_models/fetus
+  dir: ${PROJECT_ROOT}/shape_models/fetus
   filename: fetus_pca_times_wendland.npz

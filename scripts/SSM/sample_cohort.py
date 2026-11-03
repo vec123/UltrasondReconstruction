@@ -27,7 +27,7 @@ the l2 term does not need them, but surface renders do.
 
 Usage:
     python scripts/SSM/sample_cohort.py \\
-        --model src/SSM/saved_models/baby/baby_pca.npz \\
+        --model shape_models/baby/baby_pca.npz \\
         --output-dir outputs/baby_ssm_cohort/n5000 --n 5000 --seed 0
 """
 

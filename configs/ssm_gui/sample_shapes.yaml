@@ -22,12 +22,12 @@
 
 # Where the built models live. Every archive under here is offered in the
 # dropdown, named by its path without the redundant folder prefix:
-# src/SSM/saved_models/fetus/fetus_pca_times_matern52.npz -> 'fetus/pca_times_matern52'.
+# shape_models/fetus/fetus_pca_times_matern52.npz -> 'fetus/pca_times_matern52'.
 # This is exactly what scripts/SSM/build_model.py writes from
 # configs/ssm/build_configs/, so building a new kernel puts it in the window
 # with no edit here.
 library:
-  root: ${PROJECT_ROOT}/src/SSM/saved_models
+  root: ${PROJECT_ROOT}/shape_models
   pattern: "*.npz"
   camera_axis: "+z"
   view_up: "+y"

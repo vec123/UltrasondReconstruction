@@ -17,7 +17,7 @@
 # member the balance between them stays as in training.
 #
 # Inputs, written by:
-#    python scripts/SSM/sample_cohort.py --model src/SSM/saved_models/baby/baby_pca.npz \
+#    python scripts/SSM/sample_cohort.py --model shape_models/baby/baby_pca.npz \
 #        --output-dir /home/victor/Escritorio/Data/BabySSMData_test200 --n 200 --seed 1
 #
 # Run with:

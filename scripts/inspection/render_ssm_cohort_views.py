@@ -116,7 +116,7 @@ def main():
                         help="eval_ssm_cohort.py output (arrays.npz, summary.json); omit to compute the errors here")
     parser.add_argument("--pca-k", type=int, default=None,
                         help="K of the PCA-K column (default: the eval's train_equivalent_pca_modes)")
-    parser.add_argument("--model", default="src/SSM/saved_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
     parser.add_argument("--output-dir", default=None, help="default: <eval-dir>/views")
     parser.add_argument("--n-generate", type=int, default=6)
     parser.add_argument("--max-error-pct", type=float, default=2.0)

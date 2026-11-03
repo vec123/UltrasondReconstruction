@@ -117,7 +117,7 @@ def main():
     parser.add_argument("--cases", nargs="+", default=["16_26", "13_26", "11_36"])
     parser.add_argument("--fused-dir", default=f"{CASOS}/cohort/fused_targets")
     parser.add_argument("--aligned-template", default=f"{CASOS}/cohort/template_baby_mean_aligned.vtp")
-    parser.add_argument("--model", default="src/SSM/saved_models/baby/baby_pca.npz")
+    parser.add_argument("--model", default="shape_models/baby/baby_pca.npz")
     parser.add_argument("--variants", nargs="+", default=["data", "gauss1", "gauss3", "gauss10", "gauss30"])
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=2e-4)
