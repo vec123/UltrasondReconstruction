@@ -31,7 +31,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from src.config.SSM.schema import PlaceLandmarksConfig
+from src.SSM.config import PlaceLandmarksConfig
 from src.geometry import compute_mean_curvature
 from src.geometry.heatmap import landmark_heatmaps
 from src.geometry.landmark_fields import build_landmark_field_polydata

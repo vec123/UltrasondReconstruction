@@ -29,7 +29,7 @@ import numpy as np
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.inspection.code_pca_views import similarity_map  # noqa: E402
-from src.config.US.schema import ReconTargetDistanceConfig  # noqa: E402
+from src.evaluation.config import ReconTargetDistanceConfig  # noqa: E402
 from src.vtk.io import load_vtp, save_vtp  # noqa: E402
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
 

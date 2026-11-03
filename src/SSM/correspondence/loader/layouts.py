@@ -19,7 +19,7 @@ from src.SSM.correspondence.loader.pair_loader import (
     PairLayout,
     register_layout,
 )
-from src.config.SSM.schema.pipeline import PipelineOutputFiles
+from src.SSM.config.pipeline import PipelineOutputFiles
 from src.transforms.similarity import SimilarityTransform
 
 _SSM_FILES = PipelineOutputFiles()

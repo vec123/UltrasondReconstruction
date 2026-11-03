@@ -22,7 +22,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import LandmarkDistanceCutConfig as Config
+from src.ultrasound.config import LandmarkDistanceCutConfig as Config
 from src.vtk.extract import threshold_vtp_by_point_field
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp

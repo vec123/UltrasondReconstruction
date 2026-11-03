@@ -21,7 +21,7 @@ import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import AlignToTemplateConfig as Config
+from src.ultrasound.config import AlignToTemplateConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
 from src.landmarks.vtk_landmarks import landmarks_to_lps, points_to_labeled_polydata

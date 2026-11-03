@@ -32,7 +32,7 @@ filtering can run standalone against any directory of .vtp meshes.
 import glob
 import os
 
-from src.config.US.schema import RoughnessFilterConfig as Config
+from src.ultrasound.config import RoughnessFilterConfig as Config
 from src.vtk.extract import threshold_vtp_by_point_field
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.surface_measures import compute_vertex_roughness

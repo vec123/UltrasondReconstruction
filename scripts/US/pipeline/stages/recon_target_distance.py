@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import ReconTargetDistanceConfig as Config
+from src.evaluation.config import ReconTargetDistanceConfig as Config
 from src.evaluation.metrics import (
     COVERAGE_PERCENT_STEP,
     coverage_curve,

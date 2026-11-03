@@ -1,7 +1,7 @@
 """Build and save a GPMM from a typed YAML configuration.
 
 Usage:
-    python -m scripts.SSM.build_model src/config/SSM/model_pca.yaml
+    python -m scripts.SSM.build_model <model config>.yaml
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pathlib import Path
 from src.SSM.model.builder import BuildContext, ModelSource, build_model, resolve_kernel_spec
 from src.SSM.model.model_memory_io import ModelCacheSpec, save_model
 from src.core.config import ConfigClient
-from src.config.SSM.schema import GpmmModelConfig
+from src.SSM.config import GpmmModelConfig
 
 
 def build_and_save(config_path, *, verbose: bool = True):

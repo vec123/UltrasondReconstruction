@@ -25,7 +25,7 @@ from typing import Optional
 import numpy as np
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import PipelineConfig
+from src.SSM.config import PipelineConfig
 from src.SSM.correspondence.vtk import save_matching_lines, save_correspondence_field
 from src.landmarks.load_landmarks import load_landmarks
 from src.transforms.similarity import SimilarityTransform
@@ -373,7 +373,7 @@ class PipelineRunner:
         residual = np.sqrt(((self.template_vertices - self.shape_model.mean.reshape(-1, 3)) ** 2).sum(1).mean())
         self._log(f"direction={sub.direction} scale={transform.scale:.6g} residual_rms={residual:.3e}")
 
-        # Saved so scripts/sim_tf.py can replay it (or its inverse) onto other meshes.
+        # Saved so it can be replayed (or inverted) onto other meshes.
         tf_path = cfg.outputs.path("gmm_2_template_transform")
         np.savez(str(tf_path), R=transform.rotation, t=transform.translation, s=transform.scale,
                  direction=sub.direction, template=str(sub.template_vtp))

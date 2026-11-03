@@ -19,7 +19,7 @@ from typing import List
 
 import torch
 
-from src.config.US.schema import NrrdToVtpConfig as Config
+from src.ultrasound.config import NrrdToVtpConfig as Config
 from src.geometry import (
     compute_mean_curvature,
     from_basis,

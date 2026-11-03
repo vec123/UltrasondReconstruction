@@ -15,7 +15,7 @@ import SimpleITK as sitk
 import vtk
 from vtk.util import numpy_support
 
-from src.config.US.schema import NrrdToWorldVtpConfig as Config
+from src.ultrasound.config import NrrdToWorldVtpConfig as Config
 from src.vtk.io import save_vtp
 
 

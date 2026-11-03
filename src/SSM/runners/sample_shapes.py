@@ -49,7 +49,7 @@ import numpy as np
 import vtk
 from vtk.util import numpy_support
 
-from src.config.SSM.schema import SampleShapesConfig
+from src.SSM.config import SampleShapesConfig
 from src.vtk.create import create_polydata
 from src.SSM.model.sources.load import load_shape_model, load_shape_model_triangulation
 

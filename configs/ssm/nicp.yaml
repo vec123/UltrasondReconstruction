@@ -75,7 +75,7 @@ inputs:
 #     <run>/world/iterations/iter_0000.vtp ...
 #
 # The transform is written whether it was solved here or loaded, so the folder
-# is self-contained and scripts/sim_tf.py can replay it onto any other mesh.
+# is self-contained and can be replayed onto any other mesh.
 #
 # All meshes carry the model's triangulation rather than being bare point
 # clouds, so they render as surfaces.

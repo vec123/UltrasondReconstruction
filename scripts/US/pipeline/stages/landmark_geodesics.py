@@ -19,7 +19,7 @@ import vtk
 from scipy.sparse.csgraph import dijkstra
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.config.US.schema import LandmarkGeodesicsConfig as Config
+from src.ultrasound.config import LandmarkGeodesicsConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 
 from src.landmarks.vtk_landmarks import points_to_labeled_polydata

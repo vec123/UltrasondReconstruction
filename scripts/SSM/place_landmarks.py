@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import PlaceLandmarksConfig
+from src.SSM.config import PlaceLandmarksConfig
 from src.GUIs.set_landmarks import SetLandmarksApp
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "place_landmarks.yaml"

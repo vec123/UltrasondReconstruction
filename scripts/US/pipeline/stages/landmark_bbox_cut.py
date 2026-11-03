@@ -34,7 +34,7 @@ import os
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import LandmarkBboxCutConfig as Config
+from src.ultrasound.config import LandmarkBboxCutConfig as Config
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import extract_polydata_vertex_subset, filter_largest_component
 

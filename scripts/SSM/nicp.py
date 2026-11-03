@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import NicpFitConfig
+from src.SSM.config import NicpFitConfig
 from src.SSM.runners import NicpRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "nicp.yaml"

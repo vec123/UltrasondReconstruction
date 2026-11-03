@@ -16,7 +16,7 @@ the moved points, this stage's whole job is producing a mesh other stages can
 read back (e.g. as resnet_lddmm_train's source).
 """
 
-from src.config.US.schema import SimilarityTransformConfig as Config
+from src.ultrasound.config import SimilarityTransformConfig as Config
 from src.landmarks.vtk_landmarks import fit_landmark_alignment
 from src.vtk.io import load_vtp, save_vtp
 from vtk.util.numpy_support import vtk_to_numpy

@@ -64,7 +64,7 @@ from scipy.spatial import cKDTree
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import SsmPosteriorConfig as Config
+from src.SSM.config import SsmPosteriorConfig as Config
 from src.SSM.model.model_memory_io import load_model_file
 from src.SSM.model.inference.observations import Observations, build_noise_model
 from src.SSM.model.inference.posterior import posterior, posterior_with_pose, save_posterior

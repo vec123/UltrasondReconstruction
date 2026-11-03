@@ -12,7 +12,7 @@ processed result back onto the subject's original mesh frame.
 import glob
 import os
 
-from src.config.US.schema import AlignToReferenceConfig as Config
+from src.ultrasound.config import AlignToReferenceConfig as Config
 from src.vtk.io import glob_meshes, load_mesh, save_vtp
 
 from src.landmarks.vtk_landmarks import landmarks_csv_to_polydata

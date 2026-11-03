@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import AlignMeshesConfig
+from src.SSM.config import AlignMeshesConfig
 from src.SSM.runners import AlignMeshesRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "align_fetus_to_baby.yaml"

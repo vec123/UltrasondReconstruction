@@ -17,7 +17,7 @@ from src.geometry.heatmap import landmark_heatmaps
 from src.vtk.create import create_polydata
 from src.vtk.fields import add_point_field
 
-# Matches fields.mode_count's default in MeanShapeFields (src/config/schema.py).
+# Matches fields.mode_count's default in MeanShapeFields (src/SSM/config/mean_shape.py).
 DEFAULT_MODE_COUNT = 5
 
 

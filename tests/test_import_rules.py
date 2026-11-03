@@ -30,7 +30,6 @@ ROOT = Path(__file__).resolve().parents[1]
 LAYERS = {
     "src/__init__.py": "shared",
     "src/core": "shared",
-    "src/config": "shared",
     "src/geometry": "shared",
     "src/vtk": "shared",
     "src/transforms": "shared",
@@ -42,9 +41,7 @@ LAYERS = {
     "src/weight_field": "shared",
     "src/SSM/correspondence": "shared",
     "src/ultrasound": "ultrasound",
-    "src/config/US": "ultrasound",
     "src/SSM": "gpmm",
-    "src/config/SSM": "gpmm",
     "src/resnet_lddmm": "lddmm",
     "src/evaluation": "evaluation",
     "src/GUIs": "apps",
@@ -65,7 +62,7 @@ SKIP = ("src/SSM/BabyFM",)
 
 KNOWN_VIOLATIONS = {
     # PipelineOutputFiles (the GPMM output names): to models/gpmm/outputs.py
-    ("src/SSM/correspondence/loader/layouts.py", "src.config.SSM.schema.pipeline"),
+    ("src/SSM/correspondence/loader/layouts.py", "src.SSM.config.pipeline"),
     # load_shape and _robust_penalty: to shared
     ("src/SSM/model/builder/injectors.py", "src.resnet_lddmm.resnet_flow.io"),
     ("src/SSM/nicp/losses/chamfer.py", "src.resnet_lddmm.resnet_flow.losses.data_terms"),

@@ -117,7 +117,7 @@ class FitProblem:
 
 def build_problem(spec, space: ShapeSpace, target: PointCloud,
                   alpha0=None, seed: Optional[int] = None) -> FitProblem:
-    """Resolves a :class:`~src.config.SSM.schema.NicpFitSpec` into a FitProblem.
+    """Resolves a :class:`~src.SSM.config.NicpFitSpec` into a FitProblem.
 
     The single place the five registries are turned into an assembled fit, so
     the standalone runner and the pipeline stage build the same problem from

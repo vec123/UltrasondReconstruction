@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
+from src.SSM.config import NicpFitConfig, NicpFitSpec, deep_merge, resolve_fit_specs
 from src.SSM.correspondence.vtk import save_matching_lines
 from src.transforms.similarity import SimilarityTransform
 from src.vtk.io import (
@@ -190,7 +190,7 @@ class NicpRunner:
         self._write_mesh(self.initial_vertices, outputs.path("model_init"))
 
         # Written whether it was solved here or loaded, so the output folder is
-        # self-contained: scripts/sim_tf.py can replay it (or its inverse) onto
+        # self-contained: SimilarityTransform can replay it (or its inverse) onto
         # any other mesh without needing to know where it came from.
         if self.transform is not None and space_cfg.save_transform:
             path = outputs.path("transform")

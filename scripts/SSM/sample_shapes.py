@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import SampleShapesConfig
+from src.SSM.config import SampleShapesConfig
 from src.SSM.runners import SampleShapesRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "sample_shapes.yaml"

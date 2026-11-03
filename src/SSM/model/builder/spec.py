@@ -18,7 +18,7 @@ def _get(spec, key: str, default=None):
 
     The same accommodation ``build_kernel`` makes, and for the same reason: the
     builder must take both a plain dict written in a test and the config
-    dataclass of section 13, without depending on ``src.config``. An explicit
+    dataclass of section 13, without depending on ``src.SSM.config``. An explicit
     ``null`` in YAML reads as the default, which is what makes
     ``n_components: null`` mean "no cap" rather than an error.
     """

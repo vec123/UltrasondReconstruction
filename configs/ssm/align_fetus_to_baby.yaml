@@ -54,7 +54,7 @@ target:
 
 outputs:
   dir: ${PROJECT_ROOT}/outputs/align_fetus_to_baby
-  transform: similarity_transform.npz   # R, t, s - replayable with scripts/sim_tf.py
+  transform: similarity_transform.npz   # R, t, s - replayable onto other meshes
   aligned: fetus_mean_in_baby_space.vtp
   # The target as the runner consumed it: cropped, triangulated, fields intact.
   # A second name so the input it came from is never overwritten.

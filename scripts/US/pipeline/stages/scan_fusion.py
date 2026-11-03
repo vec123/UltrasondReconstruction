@@ -64,7 +64,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from vtk.util import numpy_support
 
-from src.config.US.schema import ScanFusionConfig as Config
+from src.ultrasound.config import ScanFusionConfig as Config
 from src.geometry import mesh_vertex_normals
 from src.vtk.create import create_polydata
 from src.vtk.extract import extract_vtp_points_cells

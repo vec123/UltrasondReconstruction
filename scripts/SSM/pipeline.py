@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import PipelineConfig
+from src.SSM.config import PipelineConfig
 from src.SSM.runners import PipelineRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "pipeline.yaml"

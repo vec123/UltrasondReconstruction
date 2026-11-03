@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import DistanceDistributionOverlayConfig as Config
+from src.evaluation.config import DistanceDistributionOverlayConfig as Config
 from src.vtk.io import load_vtp
 
 # One definition of the curve, shared with the stage that writes the meshes

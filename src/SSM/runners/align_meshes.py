@@ -45,7 +45,7 @@ import numpy as np
 import vtk
 from scipy.spatial import cKDTree
 
-from src.config.SSM.schema import AlignMeshesConfig, MeshSource
+from src.SSM.config import AlignMeshesConfig, MeshSource
 from src.vtk.io import (
     load_vtp,
     save_vtp
@@ -540,8 +540,7 @@ class AlignMeshesRunner:
         np.savez(str(path), R=best.R, t=best.t, s=best.s,
                  direction="source_to_target", residual=best.residual)
         self.written_files.append(path)
-        self._log(f"\ntransform written to {path.name} (x' = s R x + t, replayable "
-                  f"with scripts/sim_tf.py)")
+        self._log(f"\ntransform written to {path.name} (x' = s R x + t)")
 
         moved = transform_polydata(self.source_polydata, best.R, best.t, best.s)
         path = cfg.outputs.path("aligned")

@@ -36,7 +36,7 @@ import vtk
 from scipy.ndimage import binary_dilation
 from vtk.util import numpy_support
 
-from src.config.US.schema import VtpToNrrdOverlayConfig as Config
+from src.ultrasound.config import VtpToNrrdOverlayConfig as Config
 
 from src.file_name_matching.matching import match_by_subject_id
 from src.landmarks.vtk_landmarks import fit_landmark_alignment

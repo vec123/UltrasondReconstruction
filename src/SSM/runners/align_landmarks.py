@@ -10,7 +10,7 @@ import scipy.io as sio
 import vtk
 from vtk.util import numpy_support
 
-from src.config.SSM.schema import AlignLandmarksConfig
+from src.SSM.config import AlignLandmarksConfig
 from src.landmarks.load_landmarks import load_landmarks
 from src.vtk.io import save_vtp as write_vtp
 

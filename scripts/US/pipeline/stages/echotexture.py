@@ -50,7 +50,7 @@ import os
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.config.US.schema import EchotextureConfig as Config
+from src.ultrasound.config import EchotextureConfig as Config
 from src.nrrd.preprocess import load_and_preprocess_volume, volume_dimension
 from src.ultrasound.echotexture import compute_field_variability, sample_echotexture, sample_structure_tensor
 from src.vtk.fields import add_point_field

@@ -1,0 +1,121 @@
+"""Config dataclasses of the evaluation stages.
+
+``scripts/US/pipeline/stages/recon_target_distance.py`` and
+``distance_distribution_overlay.py`` import their class from here (aliased
+back to the local name ``Config``).
+"""
+
+import dataclasses
+from typing import List, Optional
+
+
+@dataclasses.dataclass
+class ReconTargetDistanceConfig:
+    target_path: str = ""
+    recon_path: str = ""
+    landmarks_path: str = ""
+    landmarks_frame: str = "LPS"  # frame landmarks_path is written in: "LPS" (as-is) or "RAS" (flipped to LPS)
+
+    # Distance thresholds for the `fraction_within` block of each direction's
+    # stats - the share of points closer than each one, in the SAME units as
+    # `units` (so these are mm only while landmarks_path is a mm-frame CSV).
+    # Empty, the block is omitted.
+    coverage_thresholds: List[float] = dataclasses.field(
+        default_factory=lambda: [1.0, 2.0, 3.0]
+    )
+
+    # Label for the frame `landmarks_path` is in, used in the printed lines,
+    # the plot axis and the JSON outputs. Left unset, "landmark frame units".
+    units: str = ""
+
+    # 3x3 metric matrix M of the landmark Mahalanobis distance
+    # sqrt(d^T M d), d = (recon landmark - CSV landmark) in landmark-frame
+    # coordinates. Left unset, the identity - i.e. plain Euclidean distance.
+    # Pass the inverse of a landmark covariance here to weight the axes.
+    landmark_metric: List[List[float]] = dataclasses.field(default_factory=list)
+
+    # Optional: a resnet_lddmm_train run's dumped config.json. When set, the
+    # target landmarks that run guided on (its `landmarks` folder, filtered by
+    # loss.landmark_kwargs and averaged per label) are carried into the
+    # landmark frame and saved as lddmm_landmarks.vtp. They are in that run's
+    # world frame, so only set this when recon_path / target_path are too
+    # (e.g. its apply's world/deformed.vtp against the fused or merged scan).
+    lddmm_train_config: str = ""
+
+    # Directory to save target_w_distance.vtp / recon_w_distance.vtp /
+    # distance_summary.json / landmark_distances.json into. Left unset, saves
+    # next to target_path / recon_path respectively (the .json alongside
+    # recon_path).
+    output_dir: str = ""
+
+
+@dataclasses.dataclass
+class DistanceDistributionSourceConfig:
+    """One reconstruction whose distance distribution is drawn as a line."""
+
+    # Legend text, e.g. "LDDMM from baby mean". Avoid ' + ' - in a pipeline YAML
+    # that is the path-concatenation operator (see src/core/config/variables.py)
+    # and the surrounding spaces would be eaten.
+    label: str = ""
+
+    # The `output_dir` of the recon_target_distance run that produced this
+    # reconstruction's distances - the directory holding recon_w_distance.vtp
+    # and target_w_distance.vtp.
+    eval_dir: str = ""
+
+    # Explicit overrides, for meshes that don't sit in a recon_target_distance
+    # output_dir. Left unset, both are derived from eval_dir.
+    recon_path: str = ""
+    target_path: str = ""
+
+    color: str = ""  # hex override; left unset, takes the next palette slot
+
+
+@dataclasses.dataclass
+class DistanceDistributionOverlayConfig:
+    """Overlays several runs' point-distance histograms as lines."""
+
+    sources: List[DistanceDistributionSourceConfig] = dataclasses.field(default_factory=list)
+
+    # Directory the two .png files and the summary .json are written into.
+    output_dir: str = ""
+    recon_to_target_plot_name: str = "recon_to_target_distribution.png"
+    target_to_recon_plot_name: str = "target_to_recon_distribution.png"
+    summary_name: str = "distance_distribution_overlay.json"
+
+    bins: int = 100
+
+    # Upper percentile of the pooled distances the x-axis is cut at, so a
+    # handful of far outliers don't squash the bulk of the distribution into
+    # the first few bins. 100 draws the full range. Points beyond the cut are
+    # still counted (in the last bin), never dropped.
+    clip_percentile: float = 99.5
+
+    # "fraction" (share of that mesh's points, comparable across meshes of
+    # different vertex counts), "density" (integrates to 1), or "count" (raw).
+    normalize: str = "fraction"
+
+    # Log y-axis. Distance distributions are heavy-tailed - the near-zero spike
+    # can flatten the whole tail - and a log y separates the curves out there.
+    log_y: bool = False
+
+    # Distance-over-percentage curves: one figure per direction carrying every
+    # source's curve, plus the sampled curves themselves as JSON.
+    recon_to_target_coverage_plot_name: str = "recon_to_target_coverage.png"
+    target_to_recon_coverage_plot_name: str = "target_to_recon_coverage.png"
+    coverage_name: str = "distance_coverage_overlay.json"
+
+    # Marked on the coverage figures and reported per source, in `units`.
+    coverage_thresholds: List[float] = dataclasses.field(
+        default_factory=lambda: [1.0, 2.0, 3.0]
+    )
+
+    # Per-landmark comparison, read from the landmark_distances.json
+    # recon_target_distance writes into each source's eval_dir. Sources
+    # without that file are left out of the figure and listed in the JSON.
+    landmark_plot_name: str = "landmark_distances.png"
+    landmark_summary_name: str = "landmark_distance_overlay.json"
+
+    units: str = "landmark frame units"
+    recon_to_target_title: str = "Reconstruction to target"
+    target_to_recon_title: str = "Target to reconstruction"

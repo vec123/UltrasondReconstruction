@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 import numpy as np
 from scipy.spatial import cKDTree
 
-from src.config.SSM.schema import MeanShapeConfig
+from src.SSM.config import MeanShapeConfig
 from src.geometry import compute_mean_curvature
 from src.vtk.io import save_vtp
 from src.vtk.create import create_polydata

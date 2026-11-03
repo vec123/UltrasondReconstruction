@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.core.config import ConfigClient
-from src.config.SSM.schema import MeanShapeConfig
+from src.SSM.config import MeanShapeConfig
 from src.SSM.runners import MeanShapeRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "mean_shape.yaml"

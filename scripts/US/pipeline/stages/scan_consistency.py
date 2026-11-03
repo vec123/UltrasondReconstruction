@@ -28,7 +28,7 @@ import vtk
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.config.US.schema import ScanConsistencyConfig as Config
+from src.ultrasound.config import ScanConsistencyConfig as Config
 from src.vtk.fields import add_point_field
 from src.vtk.io import load_vtp, save_vtp
 from src.vtk.process import filter_largest_component
