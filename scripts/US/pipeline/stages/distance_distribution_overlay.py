@@ -56,10 +56,7 @@ from src.vtk.io import load_vtp
 
 # One definition of the curve, shared with the stage that writes the meshes
 # this one reads back.
-from scripts.US.pipeline.stages.recon_target_distance import (
-    COVERAGE_PERCENT_STEP,
-    coverage_curve,
-)
+from src.evaluation.metrics import COVERAGE_PERCENT_STEP, coverage_curve, fraction_within
 
 
 # Categorical slots 1-3 validate all-pairs for both normal and CVD vision;
@@ -283,10 +280,7 @@ def coverage_entry(values, coverage_thresholds):
         "n_points": int(values.size),
         "percent": [round(float(value), 4) for value in percent],
         "distance": [round(float(value), 6) for value in distance],
-        "fraction_within": {
-            f"{float(threshold):g}": float((values < threshold).mean())
-            for threshold in coverage_thresholds
-        },
+        "fraction_within": fraction_within(values, coverage_thresholds),
     }
 
 
