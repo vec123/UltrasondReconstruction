@@ -137,9 +137,9 @@ class PipelineOutputFiles:
     nicp_fit: str = "nicp_refined_vertices_{name}.vtp"
     nicp_fit_matching: str = "nicp_matching_field_{name}.vtp"
     # Copies of nicp_fit / rigid_alignment with the correspondence field
-    # (save_correspondence_field): partner index, distance, weight, count and
-    # correspondence_rgb, where equal colors mark a correspondence. One pair
-    # per fit, since the matches depend on which fit produced them.
+    # (save_correspondence_field): correspondence_id, colored with one range so
+    # that equal colors mark a correspondence, and correspondence_weight, the
+    # mask. One pair per fit, since the matches depend on which fit produced them.
     nicp_fit_colors: str = "nicp_refined_vertices_{name}_colors.vtp"
     nicp_fit_target_colors: str = "rigid_alignment_{name}_colors.vtp"
     nicp_fit_iteration: str = "nicp_refined_vertices_{name}_iter_{iteration:04d}.vtp"
