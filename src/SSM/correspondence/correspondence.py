@@ -21,6 +21,9 @@ Three methods ship here:
 ``None`` and an empty match set mean different things and are kept distinct:
 ``None`` is "no pairing was asked for", empty is "a pairing was asked for and
 nothing survived the filters", which is a configuration error.
+
+The classes here hold and check the settings. The search itself is in
+``compute/heuristic_estimate.py``.
 """
 
 from __future__ import annotations
@@ -32,6 +35,11 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 import numpy as np
 
 from src.SSM.correspondence.cloud import PointCloud
+from src.SSM.correspondence.compute.heuristic_estimate import (
+    constrained_pairs,
+    nearest_pairs,
+    symmetric_pairs,
+)
 from src.core.registry import RegistryError, TypedRegistry
 
 #: kept as the public name; the registry raises this for correspondence failures
@@ -161,57 +169,6 @@ class CorrespondenceStrategy(ABC):
         return repr(self)
 
 
-def _trim(rows, cols, dists, ratio: float):
-    """Drops the worst ``ratio`` fraction of pairs by distance.
-
-    The relative counterpart to ``max_dist``: that is an absolute cut that never
-    moves, this one always removes the tail whatever the current scale. Early in
-    a fit, when everything is far, ``max_dist`` does the work; near convergence
-    it is this. Trimmed ICP, in one line.
-    """
-    if ratio <= 0.0 or rows.size == 0:
-        return rows, cols, dists
-    keep = max(1, int(round(rows.size * (1.0 - ratio))))
-    order = np.argsort(dists)[:keep]
-    return rows[order], cols[order], dists[order]
-
-
-def _deduplicate(rows, cols, dists):
-    """Keeps only the closest pair per source row and per target column.
-
-    Two passes, each a distance-sorted ``np.unique``: first collapse every
-    target claimed by more than one source down to its closest source, then do
-    the same the other way round on what is left. The second pass only removes
-    rows, so it cannot reintroduce a target duplicate - what comes out has each
-    source and each target at most once, i.e. one-to-one in both directions.
-
-    This is a greedy heuristic, not the optimal one-to-one assignment (that is
-    the Hungarian algorithm): a source that loses its closest target in the
-    first pass is not given a second-best target, it just goes unmatched. Good
-    enough for NICP, where a strategy that re-estimates every few iterations
-    (``refresh_every``) self-corrects whatever the greedy choice got wrong.
-    """
-    if rows.size == 0:
-        return rows, cols, dists
-
-    def _best_per_key(keys):
-        order = np.argsort(dists)
-        _, first = np.unique(keys[order], return_index=True)
-        return order[first]
-
-    keep = _best_per_key(cols)
-    rows, cols, dists = rows[keep], cols[keep], dists[keep]
-    keep = _best_per_key(rows)
-    rows, cols, dists = rows[keep], cols[keep], dists[keep]
-    return rows, cols, dists
-
-
-def _normal_agreement(src_normals, tgt_reference, rows, cols, threshold_deg):
-    """Mask of pairs whose normals agree to within ``threshold_deg``."""
-    dots = np.einsum("ij,ij->i", src_normals[rows], tgt_reference[cols])
-    return dots >= np.cos(np.deg2rad(threshold_deg))
-
-
 CORRESPONDENCE = TypedRegistry("correspondence method")
 register_correspondence = CORRESPONDENCE.register
 
@@ -247,7 +204,7 @@ class NearestNeighbourMatching(CorrespondenceStrategy):
     only when the target covers the whole model.
 
     ``one_to_one`` rejects many-to-one matches in either direction (see
-    :func:`_deduplicate`) - off by default because a plain 1-NN pairing is
+    :func:`~src.SSM.correspondence.compute.heuristic_estimate.deduplicate_pairs`) - off by default because a plain 1-NN pairing is
     usually many-to-one by construction (several model vertices legitimately
     share a nearest target point on a denser target), and turning it on drops
     every model vertex but the closest one to each target point.
@@ -266,20 +223,10 @@ class NearestNeighbourMatching(CorrespondenceStrategy):
     def estimate(self, source, target) -> Correspondences:
         src = PointCloud.as_cloud(source)
         tgt = PointCloud.as_cloud(target)
-
-        dists, indices = tgt.query(src.points, k=1)
-        dists = dists[:, 0]
-        indices = indices[:, 0]
-
-        keep = np.isfinite(dists)
-        if self.max_dist is not None:
-            keep &= dists <= self.max_dist
-
-        rows = np.flatnonzero(keep)
-        cols, dists = indices[rows], dists[rows]
-        if self.one_to_one:
-            rows, cols, dists = _deduplicate(rows, cols, dists)
-        rows, cols, dists = _trim(rows, cols, dists, self.trim_ratio)
+        rows, cols, dists = nearest_pairs(
+            src, tgt, max_dist=self.max_dist, trim_ratio=self.trim_ratio,
+            one_to_one=self.one_to_one,
+        )
         return Correspondences.from_arrays(
             rows, cols, dists, n_source=len(src), n_target=len(tgt)
         )
@@ -301,7 +248,7 @@ class ConstrainedMatching(CorrespondenceStrategy):
     normals. It is kept for reproducing old runs, not because it is meaningful.
 
     ``one_to_one`` additionally rejects many-to-one matches in either direction
-    (see :func:`_deduplicate`): each target point ends up claimed by at most
+    (see :func:`~src.SSM.correspondence.compute.heuristic_estimate.deduplicate_pairs`): each target point ends up claimed by at most
     one model vertex, and vice versa, rather than several model vertices
     piling onto the same target point.
     """
@@ -326,28 +273,11 @@ class ConstrainedMatching(CorrespondenceStrategy):
     def estimate(self, source, target) -> Correspondences:
         src = PointCloud.as_cloud(source)
         tgt = PointCloud.as_cloud(target)
-
-        dists, indices = tgt.query(src.points, k=self.k)
-
-        # candidates within range; scipy pads with inf when k exceeds the cloud
-        valid = np.isfinite(dists) & (dists <= self.max_dist)
-
-        src_normals = src.normals
-        reference = tgt.normals if self.use_target_normals else tgt.points
-        # dot(model normal, reference vector) per candidate -> (N, k)
-        dots = np.einsum("ij,ikj->ik", src_normals, reference[indices])
-        valid &= dots >= np.cos(np.deg2rad(self.normal_thresh_deg))
-
-        # first accepted candidate per vertex (query returns them sorted by distance)
-        has_match = valid.any(axis=1)
-        first = np.argmax(valid, axis=1)
-
-        rows = np.flatnonzero(has_match)
-        cols = first[rows]
-        cols, dists = indices[rows, cols], dists[rows, cols]
-        if self.one_to_one:
-            rows, cols, dists = _deduplicate(rows, cols, dists)
-        rows, cols, dists = _trim(rows, cols, dists, self.trim_ratio)
+        rows, cols, dists = constrained_pairs(
+            src, tgt, max_dist=self.max_dist, normal_thresh_deg=self.normal_thresh_deg,
+            k=self.k, use_target_normals=self.use_target_normals,
+            trim_ratio=self.trim_ratio, one_to_one=self.one_to_one,
+        )
         return Correspondences.from_arrays(
             rows, cols, dists, n_source=len(src), n_target=len(tgt),
         )
@@ -403,57 +333,15 @@ class SymmetricMatching(CorrespondenceStrategy):
             if not 0.0 <= ratio <= 1.0:
                 raise ValueError(f"{label} must be in [0, 1] (0 = use all), got {ratio}")
 
-    def _direction(self, src, tgt, rows, cols, dists):
-        """Applies the rejection rules to one direction's pairs."""
-        keep = np.isfinite(dists)
-        if self.max_dist is not None:
-            keep &= dists <= self.max_dist
-        if self.normal_thresh_deg is not None:
-            keep &= _normal_agreement(src.normals, tgt.normals, rows, cols, self.normal_thresh_deg)
-
-        rows, cols, dists = rows[keep], cols[keep], dists[keep]
-        return _trim(rows, cols, dists, self.trim_ratio)
-
-    def _sample(self, cloud: PointCloud, ratio: float, rng):
-        """A random ``ratio`` of the cloud, with the indices needed to map back."""
-        total = len(cloud)
-        if ratio <= 0.0 or ratio >= 1.0:
-            return cloud, np.arange(total)
-        n = max(1, int(round(total * ratio)))
-        if n >= total:
-            return cloud, np.arange(total)
-        keep = np.sort(rng.choice(total, size=n, replace=False))
-        return PointCloud(cloud.points[keep]), keep
-
     def estimate(self, source, target) -> Correspondences:
-        src_full = PointCloud.as_cloud(source)
-        tgt_full = PointCloud.as_cloud(target)
-
-        rng = np.random.default_rng(self.seed)
-        src, src_map = self._sample(src_full, self.source_ratio, rng)
-        tgt, tgt_map = self._sample(tgt_full, self.target_ratio, rng)
-
-        rows, cols, dists, weights = [], [], [], []
-
-        if self.forward_weight > 0:
-            d, j = tgt.query(src.points, k=1)
-            r, c, dd = self._direction(
-                src, tgt, np.arange(len(src)), j[:, 0], d[:, 0]
-            )
-            rows.append(r); cols.append(c); dists.append(dd)
-            weights.append(np.full(r.size, self.forward_weight))
-
-        if self.backward_weight > 0:
-            d, i = src.query(tgt.points, k=1)
-            r, c, dd = self._direction(
-                src, tgt, i[:, 0], np.arange(len(tgt)), d[:, 0]
-            )
-            rows.append(r); cols.append(c); dists.append(dd)
-            weights.append(np.full(r.size, self.backward_weight))
-
-        # indices are into the sampled clouds; map them back to the originals
+        src = PointCloud.as_cloud(source)
+        tgt = PointCloud.as_cloud(target)
+        rows, cols, dists, weights = symmetric_pairs(
+            src, tgt, forward_weight=self.forward_weight, backward_weight=self.backward_weight,
+            max_dist=self.max_dist, trim_ratio=self.trim_ratio,
+            normal_thresh_deg=self.normal_thresh_deg, source_ratio=self.source_ratio,
+            target_ratio=self.target_ratio, seed=self.seed,
+        )
         return Correspondences.from_arrays(
-            src_map[np.concatenate(rows)], tgt_map[np.concatenate(cols)],
-            np.concatenate(dists), weight=np.concatenate(weights),
-            n_source=len(src_full), n_target=len(tgt_full),
+            rows, cols, dists, weight=weights, n_source=len(src), n_target=len(tgt),
         )
