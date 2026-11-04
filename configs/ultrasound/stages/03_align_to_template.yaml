@@ -3,18 +3,25 @@
 # the original (stage 1) mesh frame into template space.
 stage: align_to_template
 
-template_vtp: ${PROJECT_ROOT}/scripts/US/mean_shape/model_space/mean_shape.vtp
-vtp_shapes_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned/aligned_shapes_vtp
-landmarks_csv_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned/aligned_landmarks
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
 
-output_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template
-transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned_to_template/transforms
+# Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
+paths:
+  template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
+  vtp_shapes_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_shapes_vtp
+  landmarks_csv_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_landmarks
+  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template
+  out_shapes_vtp_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/shapes_vtp
+  out_landmarks_vtp_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_vtp
+  out_landmarks_csv_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv
+  transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms
+  previous_transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/transforms
 
-# The transforms_dir written by 02_align_to_reference.yaml. This literal path
-# makes standalone runs (run_stage.py) work on their own; when run through
-# run_pipeline.py it could instead be set to "@previous".
-previous_transforms_dir: ${PROJECT_ROOT}/US_samples/VTP_Casos_Mar/US_samples_fetusnet_full/prepared/1/nrrd/aligned/transforms
-
-heatmap_prefix: heatmap_
-with_scale: true
-landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
+# What a pipeline takes over with `config: ultrasound/stages/03_align_to_template.yaml`.
+hyperparameters:
+  heatmap_prefix: heatmap_
+  with_scale: true
+  landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)

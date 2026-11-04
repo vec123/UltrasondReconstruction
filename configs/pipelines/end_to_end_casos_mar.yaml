@@ -15,16 +15,22 @@ stages:
 
 #-----------Preprocessing
   - name: nrrd_to_vtp
+    config: ultrasound/stages/01_nrrd_to_vtp.yaml
     enabled: true
   - name: align_to_reference
+    config: ultrasound/stages/02_align_to_reference.yaml
     enabled: true
   - name: align_to_template
+    config: ultrasound/stages/03_align_to_template.yaml
     enabled: true
   - name: roughness_filter
+    config: ultrasound/stages/01b_roughness_filter.yaml
     enabled: true
   - name: landmark_bbox_cut
+    config: ultrasound/stages/03a_landmark_bbox_cut.yaml
     enabled: true
   - name: scan_consistency
+    config: ultrasound/stages/04_scan_consistency.yaml
     enabled: true
 
 
@@ -34,6 +40,7 @@ stages:
 #-----------fetus ssm (pre-fusion)
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca
+    config: gpmm/fit/nicp/fetus_init_pca.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -132,6 +139,7 @@ stages:
 #-----------scan fusion
   - name: scan_fusion
     id: scan_fusion_ssm
+    config: ultrasound/stages/04b_scan_fusion.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -1061,43 +1069,6 @@ paths:
 
 #---------Hyperparameters:
 hyperparameters:
-  nrrd_to_vtp:
-    contour_value: 70
-    auto_contour: false
-    reduction_factor: 0.1
-    min_bridge_width: 0
-    min_bridge_relative: false
-    compute_curvedness: false
-    curvedness_n_rings: 5
-    curvedness_scale_invariant: false
-    operators: false
-    k_eig: 200
-    flat:
-      enabled: false
-      n_rings: 5
-      thresh: 0.1
-      max_area: 0.05
-    volume:
-      denoise: null
-      denoise_radius: 5
-      normalize: false
-      clip_percentiles: [1.0, 99.0]
-      norm_out_max: 255.0
-      crop: false
-      crop_threshold: 0
-      crop_margin: 0
-      four_d: skip  # 4D (x, y, z, t) volumes: skip (with a warning) | mean | median | <frame index>
-
-  align_to_reference:
-    reference_subject_id: ${REFERENCE_SCAN}  # scan every other scan is aligned onto; the REFERENCE_SCAN paths read its outputs
-    with_scale: true
-    landmarks_frame: ${LANDMARKS_FRAME}  # frame the landmark CSVs are written in: Lmks_Antonia (subjects 1, 2, 14) is RAS, 9992's Lmks is LPS, 9999's LMKS is RAS
-
-  align_to_template:
-    heatmap_prefix: heatmap_
-    with_scale: true
-    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
-
   # Applies to every recon_target_distance_* id (cli.py falls back from the id
   # to the stage name). `units` is only a label - it does not rescale anything;
   # it has to match whatever frame that id's landmarks_path is in, which for
@@ -1117,34 +1088,6 @@ hyperparameters:
     # units above, so these are millimetres.
     coverage_thresholds: [1.0, 2.0, 3.0]
     landmark_metric: []
-
-  roughness_filter:
-    n_rings: 5
-    scale_invariant: false
-    method: quadric
-    threshold: 0.9
-    neighbors: knn
-    max_neighbors: 32
-    min_bridge_width: 0
-    min_bridge_relative: false
-
-  landmark_bbox_cut:
-    x_min_offset_mm: 10.0
-    x_max_offset_mm: 10.0
-    y_min_offset_mm: 3.0
-    y_max_offset_mm: 35.0
-    z_min_offset_mm: 20.0
-    z_max_offset_mm: 5.0
-    keep_largest_component: false
-    min_bridge_width: 0
-    min_bridge_relative: false
-
-  scan_consistency:
-    sigma_mm: 2.0
-    apply_denoise_threshold: true
-    min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
-    denoise_min_bridge_width: 0
-    denoise_min_bridge_relative: true
 
   # ---------------------------------------------------------------------
   # The one set of SSM-fitting hyperparameters
@@ -1212,14 +1155,6 @@ hyperparameters:
           refresh_every: 0         # no effect: this loss re-pairs every evaluation
     verbose: true
 
-  scan_fusion_ssm:
-    sigma_mm: 2  # spatial tolerance in mm; subject points within sigma_mm pull a reference vertex toward them
-    min_support: 0.0001  # reference vertices with total kernel weight below this are dropped (too little cross-subject agreement)
-    normal_power: 1
-    surface_fit_n_rings: 5
-    surface_fit_method: quadric  # "plane" | "quadric"
-    compute_roughness: false
-
   # ---------------------------------------------------------------------
   # The per-model chamfer prior, the one thing that cannot be shared.
   #
@@ -1258,26 +1193,6 @@ hyperparameters:
   # ---------------------------------------------------------------------
 
   # L=183 modes, chi2_99=230.4, sigma_n^2=10.13, lambda_max=1.86, P=2058 pairs
-  fetus_ssm_fit_init_pca:
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            #{<<: *fit_map, name: map_0.25x,
-             # prior: {name: mahalanobis, kwargs: {weight: 0.0006614, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.001323, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.002646, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.005291, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.01058, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.034147, normalize: true}}}
-              
-              ]
-
   # L=113 modes, chi2_99=150.9, sigma_n^2=398.1, lambda_max=0.6005, P=1643 pairs
   fetus_ssm_fit_init_pca_times_gaussian:
     <<: *ssm_fit_common

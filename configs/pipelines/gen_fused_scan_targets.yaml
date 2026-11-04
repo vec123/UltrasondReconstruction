@@ -22,22 +22,30 @@
 
 stages:
   - name: nrrd_to_vtp
+    config: ultrasound/stages/01_nrrd_to_vtp.yaml
     enabled: true
   - name: align_to_reference
+    config: ultrasound/stages/02_align_to_reference.yaml
     enabled: true
   - name: align_to_template
+    config: ultrasound/stages/03_align_to_template.yaml
     enabled: true
   - name: roughness_filter
+    config: ultrasound/stages/01b_roughness_filter.yaml
     enabled: true
   - name: landmark_bbox_cut
+    config: ultrasound/stages/03a_landmark_bbox_cut.yaml
     enabled: true
   - name: scan_consistency
+    config: ultrasound/stages/04_scan_consistency.yaml
     enabled: true
   - name: ssm_fit                     # its NICP mesh is the fusion's reference
     id: fetus_ssm_fit_init_pca
+    config: gpmm/fit/nicp/fetus_init_pca.yaml
     enabled: true
   - name: scan_fusion
     id: scan_fusion_ssm
+    config: ultrasound/stages/04b_scan_fusion.yaml
     enabled: true
   - name: recon_target_distance
     id: recon_target_distance_scan_fusion_ssm
@@ -103,118 +111,15 @@ paths:
     output_dir: scan_fusion_ssm.output_dir + /eval
 
 hyperparameters:
-  nrrd_to_vtp:
-    contour_value: 70
-    auto_contour: false
-    reduction_factor: 0.1
-    min_bridge_width: 0
-    min_bridge_relative: false
-    compute_curvedness: false
-    curvedness_n_rings: 5
-    curvedness_scale_invariant: false
-    operators: false
-    k_eig: 200
-    flat:
-      enabled: false
-      n_rings: 5
-      thresh: 0.1
-      max_area: 0.05
-    volume:
-      denoise: null
-      denoise_radius: 5
-      normalize: false
-      clip_percentiles: [1.0, 99.0]
-      norm_out_max: 255.0
-      crop: false
-      crop_threshold: 0
-      crop_margin: 0
-      four_d: skip  # 4D (x, y, z, t) volumes: skip (with a warning) | mean | median | <frame index>
-
-  align_to_reference:
-    reference_subject_id: ${REFERENCE_SCAN}  # scan every other scan is aligned onto
-    with_scale: true
-    landmarks_frame: ${LANDMARKS_FRAME}  # frame the landmark CSVs are written in
-
-  align_to_template:
-    heatmap_prefix: heatmap_
-    with_scale: true
-    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
-
   recon_target_distance:
     units: mm (original scan frame)
     # Share of points within each of these distances, per direction, in mm.
     coverage_thresholds: [1.0, 2.0, 3.0]
     landmark_metric: []
 
-  roughness_filter:
-    n_rings: 5
-    scale_invariant: false
-    method: quadric
-    threshold: 0.9
-    neighbors: knn
-    max_neighbors: 32
-    min_bridge_width: 0
-    min_bridge_relative: false
-
-  landmark_bbox_cut:
-    x_min_offset_mm: 10.0
-    x_max_offset_mm: 10.0
-    y_min_offset_mm: 3.0
-    y_max_offset_mm: 35.0
-    z_min_offset_mm: 20.0
-    z_max_offset_mm: 5.0
-    keep_largest_component: false
-    min_bridge_width: 0
-    min_bridge_relative: false
-
-  scan_consistency:
-    sigma_mm: 2.0
-    apply_denoise_threshold: true
-    min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
-    denoise_min_bridge_width: 0
-    denoise_min_bridge_relative: true
-
   # The fetus PCA fit whose NICP mesh (map_1x) is the fusion's reference topology.
   # Weight calibrated in end_to_end_casos_mar.yaml:
   # L=183 modes, chi2_99=230.4, sigma_n^2=10.13, lambda_max=1.86, P=2058 pairs
   fetus_ssm_fit_init_pca:
-    steps:
-      gmm_2_template: false
-      align: true
-      landmark_fit: true
-      nicp: true
-      laplacian: false
-    model:
-      normalize: false
-      atlas:
-        # FetusModel_x4 only has 13 of the 19 baby landmarks annotated
-        landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
-    rigid:
-      iterations: 10
-      landmark_fit_learning_rate: 1.0
-      allow_scale: true
     nicp:
-      save_every: 1
-      device: cpu                   # no stage here needs the GPU; keeps it free for training
-      defaults: {}
-      fits:
-        - name: map_1x
-          correspondence:
-            name: constrained
-            kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
-                     use_target_normals: true, one_to_one: true}
-          loss:       {name: matched_l2, kwargs: {reduction: mean}}
-          prior:      {name: mahalanobis, kwargs: {weight: 0.002646, normalize: true}}
-          projection: {name: none}
-          solver: {name: normal_equations,
-                   kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}
-          refresh_every: 1          # re-match every round: this is the ICP loop
-    verbose: true
-
-  scan_fusion_ssm:
-    sigma_mm: 2  # spatial tolerance in mm; subject points within sigma_mm pull a reference vertex toward them
-    min_support: 0.0001  # reference vertices with total kernel weight below this are dropped
-    normal_power: 1
-    surface_fit_n_rings: 5
-    surface_fit_method: quadric  # "plane" | "quadric"
-    compute_roughness: false
+      device: cpu

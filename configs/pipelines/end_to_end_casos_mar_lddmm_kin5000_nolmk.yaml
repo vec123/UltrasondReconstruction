@@ -7,19 +7,26 @@
 
 stages:
 - name: nrrd_to_vtp
+  config: ultrasound/stages/01_nrrd_to_vtp.yaml
   enabled: false
 - name: align_to_reference
+  config: ultrasound/stages/02_align_to_reference.yaml
   enabled: false
 - name: align_to_template
+  config: ultrasound/stages/03_align_to_template.yaml
   enabled: false
 - name: roughness_filter
+  config: ultrasound/stages/01b_roughness_filter.yaml
   enabled: false
 - name: landmark_bbox_cut
+  config: ultrasound/stages/03a_landmark_bbox_cut.yaml
   enabled: false
 - name: scan_consistency
+  config: ultrasound/stages/04_scan_consistency.yaml
   enabled: false
 - name: ssm_fit
   id: fetus_ssm_fit_init_pca
+  config: gpmm/fit/nicp/fetus_init_pca.yaml
   enabled: false
 - name: recon_target_distance
   id: recon_target_distance_fetus_init_mean_shape
@@ -92,6 +99,7 @@ stages:
   enabled: false
 - name: scan_fusion
   id: scan_fusion_ssm
+  config: ultrasound/stages/04b_scan_fusion.yaml
   enabled: false
 - name: recon_target_distance
   id: recon_target_distance_scan_fusion_ssm
@@ -792,42 +800,6 @@ paths:
       - 0
       - 0
 hyperparameters:
-  nrrd_to_vtp:
-    contour_value: 70
-    auto_contour: false
-    reduction_factor: 0.1
-    min_bridge_width: 0
-    min_bridge_relative: false
-    compute_curvedness: false
-    curvedness_n_rings: 5
-    curvedness_scale_invariant: false
-    operators: false
-    k_eig: 200
-    flat:
-      enabled: false
-      n_rings: 5
-      thresh: 0.1
-      max_area: 0.05
-    volume:
-      denoise: null
-      denoise_radius: 5
-      normalize: false
-      clip_percentiles:
-      - 1.0
-      - 99.0
-      norm_out_max: 255.0
-      crop: false
-      crop_threshold: 0
-      crop_margin: 0
-      four_d: skip
-  align_to_reference:
-    reference_subject_id: ${REFERENCE_SCAN}
-    with_scale: true
-    landmarks_frame: ${LANDMARKS_FRAME}
-  align_to_template:
-    heatmap_prefix: heatmap_
-    with_scale: true
-    landmarks_frame: LPS
   distance_distribution_overlay:
     units: mm (original scan frame)
     coverage_thresholds:
@@ -841,39 +813,6 @@ hyperparameters:
     - 2.0
     - 3.0
     landmark_metric: []
-  roughness_filter:
-    n_rings: 5
-    scale_invariant: false
-    method: quadric
-    threshold: 0.9
-    neighbors: knn
-    max_neighbors: 32
-    min_bridge_width: 0
-    min_bridge_relative: false
-  landmark_bbox_cut:
-    x_min_offset_mm: 10.0
-    x_max_offset_mm: 10.0
-    y_min_offset_mm: 3.0
-    y_max_offset_mm: 35.0
-    z_min_offset_mm: 20.0
-    z_max_offset_mm: 5.0
-    keep_largest_component: false
-    min_bridge_width: 0
-    min_bridge_relative: false
-  scan_consistency:
-    sigma_mm: 2.0
-    apply_denoise_threshold: true
-    min_consistency_threshold:
-    - 0.99
-    - 0.9
-    - 0.7
-    - 0.8
-    - 0.6
-    - 0.5
-    - 0.3
-    - 0.2
-    denoise_min_bridge_width: 0
-    denoise_min_bridge_relative: true
   ssm_fit:
     steps: &id002
       gmm_2_template: false
@@ -946,33 +885,6 @@ hyperparameters:
             patience: 5
             log_every: 25
         refresh_every: 0
-    verbose: true
-  scan_fusion_ssm:
-    sigma_mm: 2
-    min_support: 0.0001
-    normal_power: 1
-    surface_fit_n_rings: 5
-    surface_fit_method: quadric
-    compute_roughness: false
-  fetus_ssm_fit_init_pca:
-    steps: *id002
-    model: *id003
-    rigid: *id004
-    nicp:
-      save_every: 1
-      defaults: *id005
-      fits:
-      - name: map_1x
-        correspondence: *id006
-        loss: *id007
-        prior:
-          name: mahalanobis
-          kwargs:
-            weight: 0.002646
-            normalize: true
-        projection: *id008
-        solver: *id009
-        refresh_every: 1
     verbose: true
   fetus_ssm_fit_init_pca_times_gaussian:
     steps: *id002

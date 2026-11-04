@@ -1,20 +1,32 @@
+# Ultrasound preprocessing of one session, US only: NRRD -> aligned, cleaned scans ->
+# fusion -> final filters -> geodesics. The stages with `config:` take their
+# settings from configs/ultrasound/stages/.
+# It needs the variables LANDMARKS_FRAME, REFERENCE_SCAN, SUBJECT_ID: set them under `variables:`
+# here, or pass them with --set (the batch runner does).
+#    python scripts/run.py configs/ultrasound/end_to_end.yaml
 
 stages:
   - name: nrrd_to_vtp
+    config: ultrasound/stages/01_nrrd_to_vtp.yaml
     enabled: true
   - name: echotexture
     enabled: false
   - name: align_to_reference
+    config: ultrasound/stages/02_align_to_reference.yaml
     enabled: true
   - name: align_to_template
+    config: ultrasound/stages/03_align_to_template.yaml
     enabled: true
   - name: roughness_filter
+    config: ultrasound/stages/01b_roughness_filter.yaml
     enabled: true
   - name: landmark_bbox_cut
+    config: ultrasound/stages/03a_landmark_bbox_cut.yaml
     enabled: true
   - name: landmark_distance_cut
     enabled: false
   - name: scan_consistency
+    config: ultrasound/stages/04_scan_consistency.yaml
     enabled: true
   - name: scan_fusion
     enabled: true
@@ -107,32 +119,6 @@ paths:
 
 hyperparameters:
 
-  nrrd_to_vtp:
-    contour_value: 70  # fallback only - ignored while auto_contour is true
-    auto_contour: false  # pick contour_value per volume via Otsu's method, so it adapts to each NRRD source's own intensity scale instead of a hand-tuned absolute number
-    reduction_factor: 0.1  # quadric decimation factor (0 = none, 0.5 = 50% reduction)
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
-    min_bridge_relative: false
-    compute_curvedness: false
-    curvedness_n_rings: 5
-    curvedness_scale_invariant: false
-    operators: false  # compute Laplace-Beltrami operators (k_eig eigenpairs); slow
-    k_eig: 200
-    flat:
-      enabled: false  # remove large flat/planar patches
-      n_rings: 5
-      thresh: 0.1
-      max_area: 0.05  # drop flat patches covering more than this fraction of total area
-    volume:
-      denoise: null  # "median" | "curvature" | null
-      denoise_radius: 5
-      normalize: false
-      clip_percentiles: [1.0, 99.0]
-      norm_out_max: 255.0
-      crop: false
-      crop_threshold: 0
-      crop_margin: 0
-
   echotexture:
     # crop / crop_threshold / crop_margin MUST equal nrrd_to_vtp.volume's own
     # values above - cropping shifts the volume's origin, and nrrd_to_vtp's
@@ -178,52 +164,11 @@ hyperparameters:
     variability_max_neighbors: 16
     field_prefix: echo_
 
-  roughness_filter:
-    n_rings: 5
-    scale_invariant: false
-    method: quadric  # "plane" | "quadric"
-    threshold: 0.9  # keep vertices with roughness below this fraction of the field's range - scale-invariant, unaffected by align_to_reference/align_to_template's scale
-    neighbors: knn  # "knn" | "rings"
-    max_neighbors: 32
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
-    min_bridge_relative: false
-
-  align_to_reference:
-    reference_subject_id: null  # defaults to the first common subject id
-    with_scale: true
-    landmarks_frame: RAS  # frame the landmark CSVs are written in (RAS or LPS)
-
-  align_to_template:
-    heatmap_prefix: heatmap_
-    with_scale: true
-    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
-
-  landmark_bbox_cut:
-    # Padding added to each face of the landmarks' bounding box (mm, original
-    # nrrd/ply space). x = Right(+)/Left(-), y = Anterior(+)/Posterior(-),
-    # z = Superior(+, above eyes)/Inferior(-, toward chin).
-    x_min_offset_mm: 10.0
-    x_max_offset_mm: 10.0
-    y_min_offset_mm: 3.0
-    y_max_offset_mm: 35.0
-    z_min_offset_mm: 20.0 
-    z_max_offset_mm: 5.0   
-    keep_largest_component: false  # re-extract the largest component after the distance cut instead (below)
-    min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
-    min_bridge_relative: false
-
   landmark_distance_cut:
     max_distance_mm: 15.0  # keep only points within this distance (mm, original nrrd/ply space) of a landmark
     keep_largest_component: false  # re-extract the largest component after the distance cut
     min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
     min_bridge_relative: false
-
-  scan_consistency:
-    sigma_mm: 2.0  # spatial tolerance in mm; points within sigma_mm score highly
-    apply_denoise_threshold: true
-    min_consistency_threshold: [0.99, 0.9, 0.7, 0.8, 0.6, 0.5, 0.3, 0.2]
-    denoise_min_bridge_width: 0  # NotImplementedError if nonzero - erosion algorithm not yet ported into src/shared/vtk
-    denoise_min_bridge_relative: true
 
   scan_fusion:
     sigma_mm: 1.0  # spatial tolerance in mm; subject points within sigma_mm pull a reference vertex toward them
