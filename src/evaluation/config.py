@@ -50,6 +50,70 @@ class ReconTargetDistanceConfig:
 
 
 @dataclasses.dataclass
+class CorrespondenceViewsConfig:
+    # The folder scripts/SSM/correspondence_field.py wrote: the two
+    # *_w_correspondence.vtp files and correspondence_summary.json.
+    correspondence_dir: str = ""
+
+    # The fused scan the target points were taken from: a mesh in mm, with
+    # heatmap landmark fields (they set the cameras). Left unset, it is read
+    # from original_scans_path by the case id of the summary.
+    surface_path: str = ""
+
+    # The cohort's original_scans.json: {case id: fused scan path}.
+    original_scans_path: str = ""
+
+    # Recon frame -> scan frame (mm): the cohort's similarity.json.
+    similarity_path: str = ""
+
+    # Left unset: <correspondence_dir>/correspondence_field.png.
+    output_path: str = ""
+
+    panel_px: int = 420
+
+    # Largest gap, in mm, between a target point and the surface vertex it is.
+    surface_tolerance: float = 1e-3
+
+
+@dataclasses.dataclass
+class CorrespondenceOverviewConfig:
+    # A folder with one subfolder per case, each with the files of
+    # correspondence_views' correspondence_dir (target_w_correspondence.vtp and
+    # correspondence_summary.json).
+    cases_dir: str = ""
+
+    # As in CorrespondenceViewsConfig.
+    original_scans_path: str = ""
+    similarity_path: str = ""
+
+    # The reference mesh the flow deforms (the template, in the recon frame),
+    # drawn as the first tile, "template", with the same field: the
+    # correspondence_id is the index of its own vertex. Left unset, no tile.
+    reference_path: str = ""
+
+    # The template deformed with the mean of all codes (the apply option
+    # mean_code), drawn as the next tile, "mean_recon". Left unset, no tile.
+    mean_recon_path: str = ""
+
+    # The mesh with the landmark field, in the vertex order of the recon, and
+    # the name of that field. Left unset, the field "heatmap_landmarks" of each
+    # case's recon file.
+    landmark_path: str = ""
+    landmark_field: str = "heatmap_landmarks"
+
+    # The field the tiles show: "correspondence_id", or "landmark_from_recon"
+    # (the recon's heatmap_landmarks carried to the scan through the correspondence).
+    field: str = "correspondence_id"
+
+    # Left unset: <cases_dir>/correspondence_overview.png.
+    output_path: str = ""
+
+    columns: int = 17
+    tile_px: int = 200
+    surface_tolerance: float = 1e-3
+
+
+@dataclasses.dataclass
 class DistanceDistributionSourceConfig:
     """One reconstruction whose distance distribution is drawn as a line."""
 

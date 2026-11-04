@@ -1,0 +1,26 @@
+# Draws the correspondence field of a case (written by
+# scripts/SSM/correspondence_field.py) on the fused scan and on the recon,
+# for every case of the two runs below that has the field folder.
+# Both are in mm, so one camera set serves both panels. The fused scan of a
+# case is read from the cohort's original_scans.json by its case id.
+stage: correspondence_views
+
+variables:
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+  RUNS_DIR: ${PROJECT_ROOT}/outputs/direct_flow
+  CORRESPONDENCE: correspondence_constrained_k-5_max_dist-2surface_normal_thresh_deg-60_one_to_one-true_trim_ratio-0_use_target_normals-true
+
+# One case per recon and target pair of a run: RUN and CASE_KEY are found on the disk.
+targets:
+  match: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/${CORRESPONDENCE}/correspondence_summary.json
+  only:
+  - {RUN: timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+  - {RUN: timevarying-mlp2x128-kin5000_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+
+paths:
+  correspondence_dir: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/${CORRESPONDENCE}
+  original_scans_path: ${COHORT}/original_scans.json
+  similarity_path: ${COHORT}/similarity.json
+
+hyperparameters:
+  panel_px: 420

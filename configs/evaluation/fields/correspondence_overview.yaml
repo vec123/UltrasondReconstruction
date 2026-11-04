@@ -1,0 +1,64 @@
+# Per run, two PNGs with a tile per case: the fused scan coloured by the
+# correspondence field, and by the landmark field carried from the recon. Read
+# from the copied case folders of that run (see correspondence_views.yaml for
+# the single-case pictures). The first tiles are the template the flow deforms
+# and the template deformed with the mean code (mean_recon, from
+# cohort_mean_code_apply.yaml). The landmark field is the 72-landmark heatmap
+# of baby_mean.vtp, which has the vertex order of the recon. The PNGs go to the
+# top of the run folder.
+stage: correspondence_overview
+
+variables:
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+  CORRESPONDENCE_DATA: ${DATA_ROOT}/CorrespondenceData/fused_scans
+  # template.vtp has the 22 clinical landmarks, baby_mean.vtp also the 72.
+  CLINICAL: ${COHORT}/template.vtp
+  LANDMARKS_72: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
+
+targets:
+  cases:
+  - RUN: lddmm_kinetic_200_det_10
+    FIELD: correspondence_id
+    PNG: correspondence_overview
+    LANDMARK_PATH: ${LANDMARKS_72}
+    LANDMARK_FIELD: lm72_heatmap_landmarks
+  - RUN: lddmm_kinetic_200_det_10
+    FIELD: landmark_from_recon
+    PNG: landmark_overview_clinical_only
+    LANDMARK_PATH: ${CLINICAL}
+    LANDMARK_FIELD: heatmap_landmarks
+  - RUN: lddmm_kinetic_200_det_10
+    FIELD: landmark_from_recon
+    PNG: landmark_overview_72
+    LANDMARK_PATH: ${LANDMARKS_72}
+    LANDMARK_FIELD: lm72_heatmap_landmarks
+  - RUN: lddmm_kinetic_5000
+    FIELD: correspondence_id
+    PNG: correspondence_overview
+    LANDMARK_PATH: ${LANDMARKS_72}
+    LANDMARK_FIELD: lm72_heatmap_landmarks
+  - RUN: lddmm_kinetic_5000
+    FIELD: landmark_from_recon
+    PNG: landmark_overview_clinical_only
+    LANDMARK_PATH: ${CLINICAL}
+    LANDMARK_FIELD: heatmap_landmarks
+  - RUN: lddmm_kinetic_5000
+    FIELD: landmark_from_recon
+    PNG: landmark_overview_72
+    LANDMARK_PATH: ${LANDMARKS_72}
+    LANDMARK_FIELD: lm72_heatmap_landmarks
+
+paths:
+  cases_dir: ${CORRESPONDENCE_DATA}/${RUN}
+  original_scans_path: ${COHORT}/original_scans.json
+  similarity_path: ${COHORT}/similarity.json
+  reference_path: ${COHORT}/template.vtp
+  mean_recon_path: ${CORRESPONDENCE_DATA}/${RUN}/mean_recon.vtp
+  landmark_path: ${LANDMARK_PATH}
+  landmark_field: ${LANDMARK_FIELD}
+  field: ${FIELD}
+  output_path: ${CORRESPONDENCE_DATA}/${RUN}/${PNG}.png
+
+hyperparameters:
+  columns: 17
+  tile_px: 200
