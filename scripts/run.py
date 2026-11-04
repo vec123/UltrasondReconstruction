@@ -5,8 +5,8 @@ ${NAME} variables it uses (a top-level ``variables:`` block). So the only
 argument is its path.
 
 Usage:
-    python scripts/run.py configs/preprocess/01_nrrd_to_vtp.yaml
-    python scripts/run.py configs/master/end_to_end_casos_mar.yaml
+    python scripts/run.py configs/ultrasound/stages/01_nrrd_to_vtp.yaml
+    python scripts/run.py configs/pipelines/end_to_end_casos_mar.yaml
 """
 
 import argparse

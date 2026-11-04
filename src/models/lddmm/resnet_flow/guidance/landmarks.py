@@ -152,7 +152,7 @@ def build_landmark_term_kwargs(cfg, template_shape, transform,
         # A hard_precision label this subject didn't annotate at all is simply
         # skipped, not an error -- same reasoning as label_weights above:
         # hard_precision is typically one shared master list (see
-        # configs/master/end_to_end.yaml), and which labels a given subject's
+        # configs/pipelines/end_to_end.yaml), and which labels a given subject's
         # own CSVs actually carry legitimately varies subject to subject.
         for label, value in hard_precision.items():
             if label in labels:

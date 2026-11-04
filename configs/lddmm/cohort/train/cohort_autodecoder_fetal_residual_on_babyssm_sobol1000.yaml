@@ -1,0 +1,95 @@
+# Stage 2 of the baby-prior / fetal-residual model: the 110 fused fetal targets, each fitted
+# by the FROZEN BabySSM cohort flow plus a small residual field trained here (fields/prior.py):
+#
+#     v(x, [z | w]) = v_baby(x, z) + v_res(x, w)
+#
+#  * v_baby: the field of cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_kin200.yaml
+#    (final.pt), never trained again. z = code entries 0..127, its global code.
+#  * v_res: 2 hidden layers of 128, 2 Fourier bands (finest period ~half the face): only
+#    smooth, face-scale changes (wider nose, smaller head). w = code entries 128..159.
+#    At w = 0 it gives the mean fetal difference from the baby flow.
+#  * kinetic: v_res at kinetic_weight 200, v_baby at discount 0.1 x 200 = 20 (prior_kinetic).
+#  * code_reg_weight 0.47 on the whole code [z | w]: the penalty is summed over the 106 codes
+#    and the data term averaged over the batch, so 0.47 x 106 = ~50, the per-member prior of
+#    the fit_16_26 code fits.
+#
+# The prior works in the BabySSM frame, so frame_source is its 1000 members and the
+# targets are the fused targets carried into that frame, written by:
+#    python scripts/SSM/target_to_ssm_frame.py \
+#        --model-template /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp \
+#        --aligned-template outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp \
+#        --scan outputs/Casos_Mar/cohort/fused_targets_4096_fields/*.vtp \
+#        --output-dir /home/victor/Escritorio/Data/fused_targets
+#
+# The data term is the Casos_Mar runs' field-weighted point-to-plane chamfer, as in the
+# fit_16_26 code fits, with the scans' edges handled in the TEMPLATE -> SCAN direction only:
+# each template point is weighted by landmark_weight x edge_weight of its nearest scan point
+# (inherit_target_field: edge_weight; edge_weight = 0 -> 1 over ~3 mm from the rim and hole
+# borders), so a template point the scan never saw, matched to the rim, stops pulling. The
+# scan side keeps plain support: every scan point has a counterpart on the full template.
+# The edge fields were written by:
+#    python scripts/write_edge_fields.py /home/victor/Escritorio/Data/fused_targets/targets/*.vtp
+#
+# Training set: /home/victor/Escritorio/Data/fused_targets/train_106, links to the 110 fused
+# targets minus 32_20 (a 12 mm cloud of scattered points, not a face) and the hold-outs
+# 11_36, 13_26 and 16_26 (links in fused_targets/holdout_3, for code fits to the frozen flow).
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_fetal_residual_on_babyssm_sobol1000.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/fused_targets/train_106    # 110 minus 32_20 (no face) and the hold-outs
+target: /home/victor/Escritorio/Data/fused_targets/template.vtp
+frame_source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+output_dir: ${PROJECT_ROOT}/outputs/stage2_flow/prior-babyssm-sobol1000-mlp6x256-kin200_discount0.1_residual-mlp2x128-fourier2_code128+32_kin200_codereg0.47_edgeweight3sp-template2scan_train106
+
+field:
+  kind: stationary_fourier          # the residual v_res
+  num_steps: 20                     # = the prior's
+  mlp: [128, 128]
+  activation: relu
+  fourier_n_e: 2
+  fourier_anneal: {start: 500, end: 1500}
+  grad_checkpointing: true
+  prior:
+    run: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_kin200
+    discount: 0.1
+
+code:
+  kind: auto_decoder
+  n_z: 160                          # [z: 128 for v_baby | w: 32 for v_res]
+  position_aware: false
+
+loss:
+  data_name: field_weighted_point2plane_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: landmark_weight
+      inherit_target_field: edge_weight   # x edge_weight of the nearest scan point: rim matches stop pulling
+      loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
+    target_to_source:
+      weight: 1
+      base_sigma: 0.01
+      field_name: support           # fusion support only: every scan point has a counterpart on the template
+      inherit_source_field: false
+      loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
+  kinetic_weight: 200.0
+  code_reg_weight: 0.47
+  landmark_weight: 0.0
+  subsample_M: 1000
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 3000
+  batch: 106                        # = cohort size: every step uses every target with its own code
+  lr: 0.0001
+  seed: 42
+  log_every: 10
+  save_every: 500
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

@@ -1,0 +1,58 @@
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_layernorm_kin200.yaml with a
+# TIME-VARYING Fourier field (field.kind: time_varying_fourier: one block per Euler step,
+# not one block reused at every step) and a SMALLER mlp [128, 128] per block, matching
+# outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos's network size (the
+# known-good from-scratch, global-code, time-varying recipe) instead of the stationary
+# field's deep 6x256. Position-independent (global) auto-decoder code, as the stationary
+# LayerNorm pretrain. Same 1000 Sobol BabySSM samples, corresponded L2, kinetic 200,
+# code_reg 0.05, 20000 steps.
+#
+# Counterpart: cohort_autodecoder_babyssm_sobol1000_timevarying_grid8c2_mlp2x128_layernorm_kin200.yaml
+# (position-aware grid code instead of this global one).
+#
+# Purpose: a stage-2-style free-LayerNorm fit (frozen flow + free norm + per-target code)
+# on THIS pretrained flow is not queued yet - only the pretrain.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_timevarying_mlp2x128_layernorm_kin200
+
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  norm: layer                       # LayerNorm (gamma, beta), one set PER BLOCK (per step)
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: l2
+  sigma: 0.01              # data weight 1/(2 sigma^2), the scale of the chamfer runs' base_sigma
+  kinetic_weight: 200.0
+  code_reg_weight: 0.05
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 20000
+  batch: 64
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 2000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

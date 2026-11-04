@@ -1,0 +1,57 @@
+# Test200 code fit of cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200.yaml
+# (final, time-varying field, global code): same recipe as
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_layernorm_kin200_test200_code_fit.yaml,
+# with the time-varying field (mlp [128, 128] per block) instead of the stationary one.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/fit/cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200_test200_code_fit.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_test200/members
+frame_source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_timevarying_mlp2x128_layernorm_kin200_test200_code_fit
+
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  norm: layer
+  grad_checkpointing: true
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: l2
+  sigma: 0.01
+  kinetic_weight: 200.0
+  code_reg_weight: 0.25    # 0.05 x 1000 / 200, the training's prior per member
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 2000
+  batch: 200
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 1000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda
+  freeze_flow: true
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_timevarying_mlp2x128_layernorm_kin200/checkpoints/final.pt
+  parts: [flow]
+  continue_step_count: false
+  code_init: mean

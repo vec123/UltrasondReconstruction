@@ -1,0 +1,53 @@
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_kin200.yaml with a LayerNorm in the field
+# (field.norm: layer, fields/blocks.py): after the lift and inside each of the 5 residual layers,
+# after the linear map and before the ReLU, each with its affine gamma, beta (6 x 2 x 256 =
+# 3072 parameters). Everything else as there: the same 1000 Sobol BabySSM samples, corresponded
+# L2, kinetic 200, code_reg 0.05, 20000 steps.
+#
+# Purpose: when the trained flow is fitted to targets, free the codes AND the LayerNorm
+# affines and freeze the rest, so the fit can adapt the decoder (the nonlinear counterpart of
+# updating W in a PCA) where the code alone cannot follow.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_layernorm_kin200.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_layernorm_kin200
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [256, 256, 256, 256, 256, 256]
+  activation: relu
+  norm: layer                       # LayerNorm (gamma, beta) after each hidden linear map
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: l2
+  sigma: 0.01              # data weight 1/(2 sigma^2), the scale of the chamfer runs' base_sigma
+  kinetic_weight: 200.0
+  code_reg_weight: 0.05
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 20000
+  batch: 64
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 2000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

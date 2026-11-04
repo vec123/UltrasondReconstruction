@@ -1,0 +1,70 @@
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_layernorm_kin200_test200_code_fit.yaml
+# for the grid-code flow of cohort_autodecoder_babyssm_sobol1000_grid8c2_mlp6x256_layernorm_kin200.yaml
+# (final): the same 200 new samples and settings; only the code (position-aware grid, as that
+# training) and code_reg_weight (grid/distance regularisation, not scaled by cohort size) differ.
+#
+# Code fit of 200 NEW BabySSM samples (seed 1, scripts/SSM/sample_cohort.py) into the trained
+# flow: the flow is frozen, only the 200 codes are optimised, each starting at the mean of the
+# 1000 training codes.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/fit/cohort_autodecoder_babyssm_sobol1000_grid8c2_mlp6x256_layernorm_kin200_test200_code_fit.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_test200/members
+frame_source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_grid8c2_mlp6x256_layernorm_kin200_test200_code_fit
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [256, 256, 256, 256, 256, 256]
+  activation: relu
+  norm: layer
+  grad_checkpointing: true   # LayerNorm keeps more activations: 200 members do not fit in 16 GB without it
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 1024
+  position_aware: true
+  grid: 8
+  grid_channels: 2
+  grid_direct: true
+  grid_reg:
+    kind: distance
+    low: 0.0
+    high: 1.0
+    near: 0.5
+    far: 1.0
+
+loss:
+  data_name: l2
+  sigma: 0.01
+  kinetic_weight: 200.0
+  code_reg_weight: 0.01    # as training: a per-node (grid_reg), not per-member, penalty
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 2000
+  batch: 200               # = cohort size: every step uses every member with its own code
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 1000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda
+  freeze_flow: true
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_grid8c2_mlp6x256_layernorm_kin200/checkpoints/final.pt
+  parts: [flow]
+  continue_step_count: false
+  code_init: mean

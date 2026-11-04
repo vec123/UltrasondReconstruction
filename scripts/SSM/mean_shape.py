@@ -15,7 +15,7 @@ from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import MeanShapeConfig
 from src.models.gpmm.runners import MeanShapeRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "mean_shape.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "gpmm" / "sample" / "mean_shape.yaml"
 
 
 def main(argv=None) -> int:

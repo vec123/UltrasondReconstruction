@@ -1,0 +1,20 @@
+# Apply of cohort_autodecoder_fetal_residual_split_on_babyssm_sobol1000.yaml (stage 2: frozen
+# BabySSM prior + split symmetric/asymmetric residual, 106 fused targets): every training
+# member's code decoded on the full template, into <run>/apply/<case>/world/deformed.vtp.
+# "world" is the run's frame, the BabySSM frame (not mm); scripts/inspection/eval_cohort_apply.py
+# carries the results into the scans' mm frame for recon_target_distance.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/apply/cohort_autodecoder_fetal_residual_split_on_babyssm_sobol1000_apply.yaml
+
+stage: resnet_lddmm_apply
+
+train_config: ${PROJECT_ROOT}/outputs/stage2_flow/prior-babyssm-sobol1000-mlp6x256-kin200_discount0.1_residual-mlp2x128-fourier2-split-sym0.3_code128+32_kin200_codereg0.47_edgeweight3sp-template2scan_train106/config.json
+checkpoint: ${PROJECT_ROOT}/outputs/stage2_flow/prior-babyssm-sobol1000-mlp6x256-kin200_discount0.1_residual-mlp2x128-fourier2-split-sym0.3_code128+32_kin200_codereg0.47_edgeweight3sp-template2scan_train106/checkpoints
+device: cuda
+shapes: null   # every member
+export:
+  deformed: true
+  trajectory: false
+  references: true
+  spaces: [world]

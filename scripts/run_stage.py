@@ -1,7 +1,7 @@
 """Runs a single pipeline stage from a YAML config.
 
 Usage:
-    python scripts/run_stage.py --config configs/preprocess/01_nrrd_to_vtp.yaml
+    python scripts/run_stage.py --config configs/ultrasound/stages/01_nrrd_to_vtp.yaml
 """
 
 import argparse

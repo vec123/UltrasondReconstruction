@@ -25,7 +25,7 @@ Which model opens is a config key, but it is not the end of it: the window
 carries a dropdown listing every model the config declares under ``models``
 *and* every archive found under ``library.root``, and picking one reloads the
 window in place. That is what makes a folder of built GPMMs explorable - the
-twenty-six kernels under ``configs/ssm/build_configs`` are a click apart
+twenty-six kernels under ``configs/gpmm/build`` are a click apart
 instead of an edit and a restart - and it is why nothing below is specific to
 any one model: they all arrive through
 :func:`src.models.gpmm.model.model_memory_io.load_model_file` as the same

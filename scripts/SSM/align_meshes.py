@@ -15,7 +15,7 @@ from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import AlignMeshesConfig
 from src.models.gpmm.runners import AlignMeshesRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "align_fetus_to_baby.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "geometry_transforms" / "align_fetus_to_baby.yaml"
 
 
 def main(argv=None) -> int:

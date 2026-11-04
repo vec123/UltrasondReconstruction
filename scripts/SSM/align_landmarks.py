@@ -15,7 +15,7 @@ from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import AlignLandmarksConfig
 from src.models.gpmm.runners import AlignLandmarksRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "align_landmarks.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "geometry_transforms" / "align_landmarks.yaml"
 
 
 def main(argv=None) -> int:

@@ -1,0 +1,62 @@
+# cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200.yaml with a
+# POSITION-AWARE 8x8x8x2 grid code (code.position_aware, grid_direct, as
+# cohort_autodecoder_babyssm_sobol1000_grid8c2_mlp6x256_layernorm_kin200.yaml) instead of
+# the global n_z=128 code. Same time-varying field (one block per Euler step, mlp [128, 128]
+# per block, LayerNorm), same 1000 Sobol BabySSM samples, corresponded L2, kinetic 200,
+# 20000 steps.
+#
+# Purpose: a stage-2-style free-LayerNorm fit on THIS pretrained flow is not queued yet -
+# only the pretrain.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_timevarying_grid8c2_mlp2x128_layernorm_kin200.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_timevarying_grid8c2_mlp2x128_layernorm_kin200
+
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  norm: layer                       # LayerNorm (gamma, beta), one set PER BLOCK (per step)
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 1024
+  position_aware: true
+  grid: 8
+  grid_channels: 2
+  grid_direct: true
+  grid_reg:
+    kind: distance
+    low: 0.0               # nodes near the face: free, as without regularisation
+    high: 1.0              # nodes towards the boundary
+    near: 0.5              # cells from the template up to which a node gets low
+    far: 1.0               # cells from the template from which a node gets high
+
+loss:
+  data_name: l2
+  sigma: 0.01              # data weight 1/(2 sigma^2), the scale of the chamfer runs' base_sigma
+  kinetic_weight: 200.0
+  code_reg_weight: 0.01    # times the weighted sum(code^2); only the far nodes count (grid_reg)
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 20000
+  batch: 64
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 2000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

@@ -15,7 +15,7 @@ from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import PipelineConfig
 from src.models.gpmm.runners import PipelineRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "pipeline.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "old_tmp" / "ssm" / "pipeline.yaml"
 
 
 def main(argv=None) -> int:

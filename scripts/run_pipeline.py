@@ -5,8 +5,8 @@ Not preprocess-only: `stages[].name` may be any stage registered in
 or `resnet_lddmm_train` - so one config can wire all three together.
 
 Usage:
-    python scripts/run_pipeline.py --config configs/preprocess/pipeline.yaml
-    python scripts/run_pipeline.py --config configs/preprocess/pipeline.yaml --set SUBJECT_ID=4
+    python scripts/run_pipeline.py --config configs/ultrasound/end_to_end.yaml
+    python scripts/run_pipeline.py --config configs/ultrasound/end_to_end.yaml --set SUBJECT_ID=4
 """
 
 import argparse

@@ -12,7 +12,7 @@
 # scale on which modes (and different models) are comparable. RESET TO MEAN, or
 # the 'r' key, puts every slider back to 0, which is the mean shape.
 #
-# The window is the interactive counterpart of configs/ssm/mean_shape.yaml: that
+# The window is the interactive counterpart of configs/gpmm/sample/mean_shape.yaml: that
 # one writes what the model can do as static heatmaps, this one lets you move
 # through it and watch the surface follow.
 #
@@ -24,7 +24,7 @@
 # dropdown, named by its path without the redundant folder prefix:
 # assets/shape_models/fetus/fetus_pca_times_matern52.npz -> 'fetus/pca_times_matern52'.
 # This is exactly what scripts/SSM/build_model.py writes from
-# configs/ssm/build_configs/, so building a new kernel puts it in the window
+# configs/gpmm/build/, so building a new kernel puts it in the window
 # with no edit here.
 library:
   root: ${PROJECT_ROOT}/assets/shape_models

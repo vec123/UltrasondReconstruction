@@ -1,0 +1,105 @@
+# cohort_autodecoder_babyssm_sobol1000_g8c2_l2_mlp6x256_kin200.yaml with the SAME code penalty on
+# every grid node (grid_reg distance with low = high = 1, i.e. uniform), instead of nodes near
+# the face free and the others held at the mean: that run held 91 % of the nodes and fitted
+# its training shapes 2.6 times worse (data 1.1e-4) than the global-code run (4.1e-5).
+#
+# Against the cold start: a first run of this config sat at the z = 0, v = 0 saddle for 15000 of
+# its 20000 steps (the flow starts as the identity, so the codes get no data gradient and the
+# penalty pulls them to zero). Hence codes initialised with std 0.1 (code.init_std), the
+# velocity blocks' output layers with std 1e-3 (field.proj_init_std), and no code penalty
+# before step 2000, linear to full at 3000 (loss.code_reg_warmup).
+#
+# cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_kin200.yaml with a position-aware code:
+# a direct 8x8x8 grid of 2 channels (n_z = 1024), as the Casos_Mar g8c2 runs, instead of one
+# global vector of 128. Same data, field, kinetic and code_reg_weight (0.05, summed over all
+# entries of all 1000 codes), so the two runs differ in the code only. The per-node penalty is
+# the Casos_Mar g8c2_dist runs' grid_reg: nodes within half a cell of the template free, nodes
+# from one cell on held at the mean, linear in between.
+#
+# cohort_autodecoder_babyssm_n5000_global_l2.yaml on 1000 WELL-SAMPLED BabySSM shapes (a
+# scrambled Sobol sequence through the normal inverse CDF: per-mode mean ~0.001 and std
+# 0.99-1.01, against 0.95-1.06 for 1000 independent draws), with:
+#  * field: 6 hidden layers of 256 (residual) instead of 2 of 128 - the capacity tests on 50
+#    shapes gave 0.24 % mean vertex error (PCA-79) for 6x256 against 0.38 % (PCA-44) for 2x128;
+#  * kinetic_weight 200 (was 2000): a weak kinetic term;
+#  * code_reg_weight 0.05 (was 0.01): the penalty is summed over all codes and the data term
+#    averaged over the batch, so 0.05 x 1000 gives every shape the prior of 0.01 x 5000;
+#  * batch 64 of 1000: each code is updated in about 1 of 16 steps (100 x 500 points ran out
+#    of GPU memory with the 6x256 field).
+#
+# Inputs, written by:
+#    python scripts/SSM/sample_cohort.py --model assets/shape_models/baby/baby_pca.npz \
+#        --output-dir /home/victor/Escritorio/Data/BabySSMData_sobol1000 --n 1000 --seed 0 --sampling sobol
+#
+# Cohort ResNet-LDDMM on a SYNTHETIC cohort: 5000 shapes drawn from the BabySSM prior
+# (assets/shape_models/baby/baby_pca.npz, all 163 modes), one flow from the model mean
+# to every member, conditioned on a learned GLOBAL code per member (auto-decoder,
+# position_aware: false - one vector for the whole face).
+#
+# The members are in vertex correspondence with the template, so the data term is the
+# plain corresponded L2 (data_name: l2): the mapping error draws one subsample for the
+# template and the member, and row i is compared to row i. No kinetic weight field,
+# no landmark / fshape terms.
+#
+# batch < cohort size: every step uses a random 128 of the 5000 members, so each code
+# is updated in about 1 of 40 steps; hence the higher step count. GPU memory scales with
+# batch x subsample_M: 256 x 1000 needs more than 16 GB, 128 x 500 about a quarter of that.
+#
+# Inputs, written by:
+#    python scripts/SSM/sample_cohort.py --model assets/shape_models/baby/baby_pca.npz \
+#        --output-dir /home/victor/Escritorio/Data/BabySSMData --n 5000 --seed 0
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_g8c2uniform_l2_mlp6x256_kin200.yaml
+
+stage: resnet_lddmm_train
+
+source: /home/victor/Escritorio/Data/BabySSMData_sobol1000/members
+target: /home/victor/Escritorio/Data/BabySSMData_sobol1000/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_g8c2uniform_l2_mlp6x256_kin200
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [256, 256, 256, 256, 256, 256]
+  activation: relu
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+  proj_init_std: 0.001
+
+code:
+  kind: auto_decoder
+  n_z: 1024
+  position_aware: true
+  grid: 8
+  grid_channels: 2
+  grid_direct: true
+  init_std: 0.1
+  grid_reg:
+    kind: distance
+    low: 1.0               # low = high: every node gets the same weight, a uniform penalty
+    high: 1.0
+    near: 0.5              # cells from the template up to which a node gets low
+    far: 1.0               # cells from the template from which a node gets high
+
+loss:
+  data_name: l2
+  sigma: 0.01              # data weight 1/(2 sigma^2), the scale of the chamfer runs' base_sigma
+  kinetic_weight: 200.0
+  code_reg_weight: 0.05
+  code_reg_warmup: {start: 2000, end: 3000}
+  landmark_weight: 0.0
+  subsample_M: 500
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 20000
+  batch: 64
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 2000
+  export_shapes: 4
+  export_strategy: sequential
+  device: cuda

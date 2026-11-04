@@ -11,7 +11,7 @@ to the mean code's face.
 
 Run with:
     python scripts/inspection/code_distance_ranking.py \
-        --apply-config configs/resnet_lddmm/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
+        --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
 """
 
 import argparse

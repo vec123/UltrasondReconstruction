@@ -112,7 +112,7 @@ class NicpConfig:
 
     Two spellings, and ``fits`` wins when both are present:
 
-    ``fits`` (preferred) is the same language ``configs/ssm/nicp.yaml`` speaks -
+    ``fits`` (preferred) is the same language ``configs/gpmm/fit/nicp/nicp.yaml`` speaks -
     each entry is a partial override of ``defaults``, validated into a
     :class:`NicpFitSpec`. It is the only spelling that can reach a
     correspondence-free objective, because it can say ``correspondence: none``

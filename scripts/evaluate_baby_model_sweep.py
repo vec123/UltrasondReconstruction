@@ -32,7 +32,7 @@ CANDIDATES = {
 
 
 def main():
-    master = yaml.safe_load((ROOT / "configs/master/end_to_end.yaml").read_text())
+    master = yaml.safe_load((ROOT / "configs/pipelines/end_to_end.yaml").read_text())
     base_hyper = deepcopy(master["hyperparameters"]["baby_ssm_fit_pca"])
     results = []
 

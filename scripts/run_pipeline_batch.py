@@ -1,12 +1,12 @@
 """Runs a pipeline once per subject id, or once per session found under a cases root.
 
 Subject ids, in this process, filling in ${SUBJECT_ID} each time:
-    python scripts/run_pipeline_batch.py --config configs/preprocess/pipeline.yaml \
+    python scripts/run_pipeline_batch.py --config configs/ultrasound/end_to_end.yaml \
         --subject-ids 1 2 3 4 5 6 11 13 14
 
 Sessions (one case at one gestational age) of a landmark-predictor dataset,
 each in its own run_pipeline.py process, --workers at a time:
-    python scripts/run_pipeline_batch.py --config configs/master/gen_fused_scan_targets.yaml \
+    python scripts/run_pipeline_batch.py --config configs/pipelines/gen_fused_scan_targets.yaml \
         --cases-root /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/Estudio_Dexeus \
         --dataset Estudio_Dexeus --set LANDMARKS_FRAME=LPS --workers 4 \
         --skip-if-exists '${DATA_ROOT}/fused_scan_processing/${DATASET}/${SUBJECT_ID}/${WEEK}/fused_scan_ssm/fused_scan.vtp' \

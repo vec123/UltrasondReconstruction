@@ -13,9 +13,9 @@ other entries stay at their mean, so the modes are that region's own.
 
 Run with:
     python scripts/inspection/code_pca_modes.py \
-        --apply-config configs/resnet_lddmm/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
+        --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
     python scripts/inspection/code_pca_modes.py --region n,prn,sn,aL,aR,acL,acR \
-        --apply-config configs/resnet_lddmm/cohort_autodecoder_casos_mar_fieldweighted_direct_g4c8_apply.yaml
+        --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_direct_g4c8_apply.yaml
 """
 
 import argparse

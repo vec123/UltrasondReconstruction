@@ -15,7 +15,7 @@ from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import NicpFitConfig
 from src.models.gpmm.runners import NicpRunner
 
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "nicp.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "gpmm" / "fit" / "nicp" / "nicp.yaml"
 
 
 def main(argv=None) -> int:

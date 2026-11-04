@@ -1,0 +1,82 @@
+# Code fit of the REAL fused target 16_26_semanas into the BabySSM-trained flow of
+# cohort_autodecoder_babyssm_n5000_global_l2_cont20k.yaml (step 38000): the flow is frozen,
+# only the code is optimised, starting at the mean of the 5000 training codes.
+#
+# The target has no vertex correspondence and is a partial face, so the data term is the
+# Casos_Mar runs' field-weighted point-to-plane chamfer (template side weighted by its
+# landmark_weight field, the scan by its fusion support), not the training's L2.
+#
+# Inputs, written by:
+#    python scripts/SSM/target_to_ssm_frame.py \
+#        --model-template /home/victor/Escritorio/Data/BabySSMData/template.vtp \
+#        --aligned-template outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp \
+#        --scan outputs/Casos_Mar/cohort/fused_targets_4096_fields/16_26_semanas.vtp \
+#        --output-dir outputs/baby_ssm_cohort/fit_16_26
+#   (the scan in the SSM frame, and the SSM template with landmark_weight), and
+#   frame_source: links to the 6 training members that hold the bounding-box extremes of
+#   all 5000, so the frame is the training frame without loading all 5000 files.
+#
+# code_reg_weight 50 = 0.01 * 5000 / 1: the prior strength per member of training.
+# The regularisation ablation varies kinetic_weight and code_reg_weight from here.
+#
+# Run with:
+#    python scripts/run_stage.py --config configs/lddmm/cohort/fit/cohort_autodecoder_babyssm_n5000_global_l2_fit_16_26.yaml
+
+stage: resnet_lddmm_train
+
+source: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/fit_16_26/targets
+frame_source: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/frame_n5000
+target: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/fit_16_26/template.vtp
+output_dir: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/fit_16_26/kin2000_reg50
+
+field:
+  kind: stationary_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  fourier_n_e: 3
+  fourier_anneal: {start: 1500, end: 2700}
+
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+
+loss:
+  data_name: field_weighted_point2plane_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: landmark_weight
+      loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
+    target_to_source:
+      weight: 1
+      base_sigma: 0.01
+      field_name: support
+      inherit_source_field: false
+      loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
+  kinetic_weight: 2000.0
+  code_reg_weight: 50.0
+  landmark_weight: 0.0
+  subsample_M: 2000
+  direction: forward
+
+train:
+  mode: cohort
+  steps: 1500
+  batch: 1
+  lr: 0.0001
+  seed: 42
+  log_every: 50
+  save_every: 1500
+  export_shapes: 1
+  export_strategy: sequential
+  device: cuda
+  freeze_flow: true
+
+init:
+  checkpoint: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_cont20k/checkpoints/step_38000.pt
+  parts: [flow]
+  continue_step_count: false
+  code_init: mean
