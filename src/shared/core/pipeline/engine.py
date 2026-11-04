@@ -9,8 +9,10 @@ top-level ``variables:`` block, so the YAML alone says what a run does.
 
 A stage file may split its fields into ``paths:`` and ``hyperparameters:``,
 as a pipeline does. A pipeline entry can then name it (``config:``, relative
-to configs/) and takes over its hyperparameters - never its paths - so each
-stage's settings are written once, in its domain folder.
+to configs/, or a pipeline-wide ``stage_configs: {<stage name>: <file>}``) and
+takes over its hyperparameters - never its paths - so each stage's settings
+are written once, in its domain folder. A stage file can ``extends:`` another
+one of the same stage and hold only what differs from it.
 """
 
 import os
@@ -86,17 +88,29 @@ def _join_sections(raw, source):
     return {**paths, **hyperparameters}
 
 
-def _included_hyperparameters(config, stage_name, source):
-    """The ``hyperparameters:`` of the stage file that a pipeline entry names with ``config:``."""
+def _extended(raw, stage_name, source, seen):
+    """``raw``'s own ``hyperparameters:`` on top of those of the file it ``extends:``, if any."""
+    own = _section(raw, "hyperparameters", source)
+    base = raw.get("extends")
+    if base is None:
+        return own
+    return _deep_merge(_included_hyperparameters(base, stage_name, f"{source} (extends)", seen), own)
+
+
+def _included_hyperparameters(config, stage_name, source, seen=()):
+    """The ``hyperparameters:`` of the stage file that a pipeline entry names with ``config:``
+    (or that another stage file ``extends:``), with the files it extends below them."""
+    if config in seen:
+        raise ValueError(f"{source}: 'extends:' loops: {' -> '.join(seen + (config,))}.")
     path = os.path.join(get_project_root(), CONFIGS_DIR, config)
     raw = load_yaml(path)
     if raw.get("stage") != stage_name:
-        raise ValueError(f"{source}: 'config: {config}' is a '{raw.get('stage')}' stage file, "
+        raise ValueError(f"{source}: '{config}' is a '{raw.get('stage')}' stage file, "
                          f"but the entry runs '{stage_name}'.")
     if not isinstance(raw.get("hyperparameters"), dict):
-        raise ValueError(f"{source}: 'config: {config}' has no 'hyperparameters:' section. A pipeline takes "
+        raise ValueError(f"{source}: '{config}' has no 'hyperparameters:' section. A pipeline takes "
                          f"over only that section, never a stage file's paths.")
-    return raw["hyperparameters"]
+    return _extended(raw, stage_name, config, seen + (config,))
 
 
 def run_main(config_path, registry, extra_vars=None):
@@ -128,7 +142,9 @@ def stage_main(config_path, registry, extra_vars=None):
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
     variables = _variables(raw.pop("variables", None), extra_vars, config_path)
     if "hyperparameters" in raw:
-        raw = _join_sections(raw, config_path)
+        hyperparameters = _extended(raw, stage_name, config_path, ())
+        raw.pop("extends", None)
+        raw = _join_sections({**raw, "hyperparameters": hyperparameters}, config_path)
 
     raw = interpolate_paths(raw, variables, resolve_ref=no_pipeline_context)
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
@@ -155,11 +171,14 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     and `id: roughness_filter_final`, each with their own paths/hyperparameters.
 
     An entry may also name its stage's own file with `config:` (relative to
-    configs/, e.g. `config: ultrasound/stages/01_nrrd_to_vtp.yaml`): its
-    `hyperparameters:` section is the base, and this file's
-    `hyperparameters:` block for the entry's own `id` overrides single keys of
-    it; a `name`-keyed block does not apply to such an entry. The stage
-    file's paths are never used: they are only for a run of it alone.
+    configs/, e.g. `config: ultrasound/stages/01_nrrd_to_vtp.yaml`), or the
+    top-level `stage_configs: {<stage name>: <file>}` names one for every
+    entry of that stage that has no `config:` of its own. The file's
+    `hyperparameters:` section (with the files it `extends:` below it) is the
+    base, and this file's `hyperparameters:` block for the entry's own `id`
+    overrides single keys of it; a `name`-keyed block does not apply to such
+    an entry. The stage file's paths are never used: they are only for a run
+    of it alone.
 
     `paths:` is looked up by `id` only - paths are inherently per-instance
     (each run needs its own output_dir). `hyperparameters:`, however, falls
@@ -188,8 +207,15 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     if not stages:
         raise ValueError(f"'{pipeline_config_path}' has no stages.")
 
-    all_paths = pipeline_cfg.get("paths", {})
-    all_hyperparameters = pipeline_cfg.get("hyperparameters", {})
+    all_paths = _section(pipeline_cfg, "paths", pipeline_config_path)
+    all_hyperparameters = _section(pipeline_cfg, "hyperparameters", pipeline_config_path)
+    stage_configs = _section(pipeline_cfg, "stage_configs", pipeline_config_path)
+    shadowed = sorted(set(stage_configs) & set(all_hyperparameters))
+    if shadowed:
+        raise ValueError(
+            f"'{pipeline_config_path}' maps {shadowed} to a stage file under 'stage_configs:' and also has a "
+            f"name-keyed 'hyperparameters:' block for them, which would not apply; move it into the file."
+        )
 
     resolved_stages = {}  # stage id -> its bound Config, for cross-stage field references
     resolved_stage_fields = {}  # stage id -> set of field names its own 'paths:'/'hyperparameters:' explicitly set
@@ -237,12 +263,13 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
         stage_hyperparameters = all_hyperparameters.get(
             stage_id, all_hyperparameters.get(stage_name, {})
         )
-        # `config:` names the stage's own file; then only this entry's own id
-        # block overrides single keys of it (nested ones too). The shared
-        # name block does not apply: the stage file has that role.
-        if "config" in stage_entry:
+        # `config:` (or stage_configs:) names the stage's own file; then only
+        # this entry's own id block overrides single keys of it (nested ones
+        # too). The shared name block does not apply: the stage file has that role.
+        config = stage_entry.get("config", stage_configs.get(stage_name))
+        if config is not None:
             stage_hyperparameters = _deep_merge(
-                _included_hyperparameters(stage_entry["config"], stage_name, f"{pipeline_config_path} ({stage_id})"),
+                _included_hyperparameters(config, stage_name, f"{pipeline_config_path} ({stage_id})"),
                 all_hyperparameters.get(stage_id, {}),
             )
         overlap = set(stage_paths) & set(stage_hyperparameters)
