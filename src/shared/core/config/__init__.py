@@ -34,7 +34,7 @@ from src.shared.core.config.variables import (
     path_variables,
     substitute_variables,
 )
-from src.shared.core.config.patterns import find_paths
+from src.shared.core.config.patterns import find_paths, unknown_variables
 
 __all__ = [
     "ConfigClient",
@@ -49,4 +49,5 @@ __all__ = [
     "path_variables",
     "reject_unknown_keys",
     "substitute_variables",
+    "unknown_variables",
 ]

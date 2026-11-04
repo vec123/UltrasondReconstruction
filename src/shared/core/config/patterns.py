@@ -44,12 +44,18 @@ def _pattern_parts(pattern: str, variables: Dict[str, str]):
     return "".join(glob_parts), re.compile("".join(regex_parts))
 
 
+def unknown_variables(pattern: str, variables: Dict[str, str]) -> List[str]:
+    """The variables of ``pattern`` without a value: the parts that find_paths finds."""
+    return list(dict.fromkeys(VARIABLE_PATTERN.findall(expand_known(pattern, variables))))
+
+
 def find_paths(
     pattern: str,
     variables: Dict[str, str],
     parse: Optional[Dict[str, Callable[[str], Dict[str, str]]]] = None,
 ) -> List[Tuple[Dict[str, str], str]]:
-    """[(values, path)] of every existing path that fits ``pattern``, in sort order of the paths.
+    """[(values, path)] of every existing path that fits ``pattern``, in sort order of the
+    path parts (as sorted() sorts Paths: folder ``1`` before ``1-a``).
 
     Args:
         pattern: a path with ``${NAME}`` variables and ``*`` wildcards
@@ -63,7 +69,7 @@ def find_paths(
     glob_pattern, regex = _pattern_parts(pattern, variables)
     known = {name: expand_known(str(value), variables) for name, value in variables.items()}
     found = []
-    for path in sorted(glob.glob(glob_pattern)):
+    for path in sorted(glob.glob(glob_pattern), key=lambda p: p.split(os.sep)):
         match = regex.fullmatch(path)
         if match is None:
             continue

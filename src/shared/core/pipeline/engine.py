@@ -5,7 +5,8 @@ may run (scripts/pipeline/registry.py joins those of every layer).
 
 A YAML is one stage (``stage: <name>``) or a pipeline (``stages: [...]``);
 run_main runs either. Both may define the ``${NAME}`` variables they use in a
-top-level ``variables:`` block, so the YAML alone says what a run does.
+top-level ``variables:`` block, so the YAML alone says what a run does, and
+a ``targets:`` block runs it once per case (targets.py, batch.py).
 
 A stage file may split its fields into ``paths:`` and ``hyperparameters:``,
 as a pipeline does. A pipeline entry can then name it (``config:``, relative
@@ -19,10 +20,13 @@ import os
 
 from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
 from src.shared.core.paths import get_project_root
+from src.shared.core.pipeline import batch
 from src.shared.core.pipeline.cases import with_case_key
+from src.shared.core.pipeline.targets import find_cases
 
 CONFIGS_DIR = "configs"
 SECTIONS = ("paths", "hyperparameters")
+RUN_KEYS = ("targets", "batch")  # which cases run, and how (run_main); not fields of a stage
 
 
 def _bind_stage_config(registry, stage_name, raw, source):
@@ -115,17 +119,56 @@ def _included_hyperparameters(config, stage_name, source, seen=()):
     return _extended(raw, stage_name, config, seen + (config,))
 
 
-def run_main(config_path, registry, extra_vars=None):
-    """Runs ``config_path`` as one stage (``stage:``) or as a pipeline (``stages:``)."""
-    raw = load_yaml(config_path)
+def _runner(raw, config_path):
+    """pipeline_main or stage_main, as the YAML says."""
     if "stages" in raw:
-        return pipeline_main(config_path, registry, extra_vars)
+        return pipeline_main
     if "stage" in raw:
-        return stage_main(config_path, registry, extra_vars)
+        return stage_main
     raise ValueError(
         f"'{config_path}' has neither 'stage: <name>' (one stage) nor 'stages:' (a pipeline), "
         f"so no registered code can run it."
     )
+
+
+def run_main(config_path, registry, extra_vars=None, case_command=None):
+    """Runs ``config_path`` as one stage (``stage:``) or as a pipeline (``stages:``).
+
+    With a ``targets:`` block (targets.py), it runs once per case: in this
+    process, or with ``batch:`` (batch.py) each case in its own process,
+    ``case_command(config_path, case variables)`` its command line. A case's
+    variables override the YAML's own; ``extra_vars`` override both.
+    """
+    raw = load_yaml(config_path)
+    run = _runner(raw, config_path)
+    if "targets" not in raw:
+        return run(config_path, registry, extra_vars)
+
+    def case_extra(case):
+        return {**case.values, **(extra_vars or {})}
+
+    def case_variables(case):
+        return _variables(raw.get("variables"), case_extra(case), config_path)
+
+    run_variables = _variables(raw.get("variables"), extra_vars, config_path)
+    cases = find_cases(raw["targets"], run_variables, config_path)
+    if raw.get("batch") is None:
+        failed = batch.run_in_process(cases, lambda case: run(config_path, registry, case_extra(case)))
+    else:
+        if case_command is None:
+            raise ValueError(f"'batch:' in '{config_path}' runs each case in its own process, "
+                             f"but this caller gives no command for it.")
+        failed = batch.run_in_processes(
+            cases, raw["batch"], run_variables, case_variables,
+            lambda case: case_command(os.path.abspath(config_path), case_extra(case)), config_path)
+    if failed:
+        raise batch.CasesFailed(f"{len(failed)} of {len(cases)} cases failed: {failed}")
+    print(f"\nAll {len(cases)} cases finished.")
+
+
+def run_case(config_path, registry, case):
+    """Runs ``config_path`` once, for one case of its ``targets:`` block (the variables ``case``)."""
+    return _runner(load_yaml(config_path), config_path)(config_path, registry, case)
 
 
 def no_pipeline_context(reference):
@@ -143,6 +186,8 @@ def stage_main(config_path, registry, extra_vars=None):
     if stage_name is None:
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
     variables = _variables(raw.pop("variables", None), extra_vars, config_path)
+    for key in RUN_KEYS:
+        raw.pop(key, None)
     if "hyperparameters" in raw:
         hyperparameters = _extended(raw, stage_name, config_path, ())
         raw.pop("extends", None)

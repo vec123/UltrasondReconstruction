@@ -24,18 +24,15 @@ doesn't abort the rest of the batch; the script exits non-zero if any failed.
 
 import argparse
 import os
-import re
-import subprocess
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from scripts.pipeline.cli import pipeline_main  # noqa: E402
 from src.shared.core.config import interpolate_paths, path_variables  # noqa: E402
+from src.shared.core.pipeline.batch import STATUS_COLUMNS, run_logged  # noqa: E402
 
 RUN_PIPELINE = Path(__file__).resolve().parent / "run_pipeline.py"
-STATUS_COLUMNS = ("case", "week", "n_scans", "exit", "minutes", "status")
 
 
 def find_sessions(cases_root):
@@ -53,24 +50,13 @@ def find_sessions(cases_root):
     return sessions
 
 
-def failed_stage(log_path):
-    """The label of the last stage the log shows starting, or None."""
-    stages = re.findall(r"^Running stage: (.+)$", Path(log_path).read_text(errors="replace"), re.M)
-    return stages[-1] if stages else None
-
-
 def run_session(config, variables, log_path):
     """(exit code, minutes, status) of one run_pipeline.py process."""
     # -u: unbuffered, so a killed run still leaves its full log.
     command = [sys.executable, "-u", str(RUN_PIPELINE), "--config", config]
     for name, value in variables.items():
         command += ["--set", f"{name}={value}"]
-    start = time.time()
-    with open(log_path, "w") as log:
-        code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
-    minutes = (time.time() - start) / 60
-    status = "ok" if code == 0 else f"failed at: {failed_stage(log_path) or 'start-up'}"
-    return code, minutes, status
+    return run_logged(command, log_path)
 
 
 def run_sessions(args, extra_vars):
