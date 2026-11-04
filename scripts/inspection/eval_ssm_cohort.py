@@ -42,7 +42,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
-from scripts.SSM.sample_cohort import draw_cohort  # noqa: E402
+from src.models.gpmm.model.sampling import draw_cohort  # noqa: E402
 from src.shared.core.config import load_yaml  # noqa: E402
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402

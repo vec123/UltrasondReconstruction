@@ -7,7 +7,7 @@ not by vertex correspondence:
 
   * baby members: the shapes of an existing sample_cohort.py folder (--baby-data), rebuilt
     from its coefficients;
-  * fetus members: --n-fetus new samples of --fetus-model (sample_cohort.draw_cohort, same
+  * fetus members: --n-fetus new samples of --fetus-model (src/models/gpmm/model/sampling.py, same
     --sampling), carried into the baby frame by ONE similarity (with scale), fitted between
     the fetus mean's and the baby mean's shared landmarks - so the fetus model's own
     variation, size included, is kept;
@@ -33,8 +33,8 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.SSM.sample_cohort import draw_cohort
 from src.models.gpmm.model.model_memory_io import load_model_file
+from src.models.gpmm.model.sampling import draw_cohort
 from src.shared.transforms.similarity import umeyama_similarity_transform
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.io import save_vtp
