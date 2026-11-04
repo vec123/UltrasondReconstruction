@@ -2,11 +2,15 @@
 
 The engine knows no stage. Each caller passes the registry of the stages it
 may run (scripts/pipeline/registry.py joins those of every layer).
+
+A YAML is one stage (``stage: <name>``) or a pipeline (``stages: [...]``);
+run_main runs either. Both may define the ``${NAME}`` variables they use in a
+top-level ``variables:`` block, so the YAML alone says what a run does.
 """
 
 import os
 
-from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
+from src.shared.core.config import from_dict, interpolate, interpolate_paths, load_yaml, path_variables
 
 
 def _bind_stage_config(registry, stage_name, raw, source):
@@ -22,6 +26,37 @@ def _bind_stage_config(registry, stage_name, raw, source):
     return spec, binder(raw)
 
 
+def _variables(yaml_variables, extra_vars, source):
+    """The ``${NAME}`` variables of a run: PROJECT_ROOT/DATA_ROOT (.env), then the YAML's
+    own ``variables:`` block, then ``extra_vars`` (--set, the batch runner), each
+    overriding the ones before. A YAML variable may use PROJECT_ROOT/DATA_ROOT."""
+    base = path_variables()
+    if yaml_variables is None:
+        yaml_variables = {}
+    if not isinstance(yaml_variables, dict):
+        raise ValueError(f"'variables:' in '{source}' must be a mapping of NAME: value, "
+                         f"got {type(yaml_variables).__name__}.")
+    own = {str(name): interpolate(str(value), base) for name, value in yaml_variables.items()}
+    clash = sorted(set(own) & set(base))
+    if clash:
+        raise ValueError(f"'variables:' in '{source}' redefines {clash}, which the repo's .env sets; "
+                         f"remove them there (every path of the run would silently move).")
+    return {**base, **own, **(extra_vars or {})}
+
+
+def run_main(config_path, registry, extra_vars=None):
+    """Runs ``config_path`` as one stage (``stage:``) or as a pipeline (``stages:``)."""
+    raw = load_yaml(config_path)
+    if "stages" in raw:
+        return pipeline_main(config_path, registry, extra_vars)
+    if "stage" in raw:
+        return stage_main(config_path, registry, extra_vars)
+    raise ValueError(
+        f"'{config_path}' has neither 'stage: <name>' (one stage) nor 'stages:' (a pipeline), "
+        f"so no registered code can run it."
+    )
+
+
 def no_pipeline_context(reference):
     raise ValueError(
         f"'{reference}' looks like a cross-stage reference, but a standalone stage run "
@@ -32,12 +67,11 @@ def no_pipeline_context(reference):
 
 def stage_main(config_path, registry, extra_vars=None):
     """Loads and runs a single stage of ``registry`` from its own YAML config file."""
-    variables = {**path_variables(), **(extra_vars or {})}
-
     raw = load_yaml(config_path)
     stage_name = raw.pop("stage", None)
     if stage_name is None:
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
+    variables = _variables(raw.pop("variables", None), extra_vars, config_path)
 
     raw = interpolate_paths(raw, variables, resolve_ref=no_pipeline_context)
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
@@ -84,7 +118,7 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     """
     pipeline_config_path = os.path.abspath(pipeline_config_path)
     pipeline_cfg = load_yaml(pipeline_config_path)
-    variables = {**path_variables(), **(extra_vars or {})}
+    variables = _variables(pipeline_cfg.get("variables"), extra_vars, pipeline_config_path)
 
     stages = pipeline_cfg.get("stages", [])
     if not stages:

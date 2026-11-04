@@ -73,7 +73,7 @@ def path_variables() -> dict:
 
 
 def _substitute_vars(text: str, variables: dict) -> str:
-    return substitute_variables(text, variables, hint="Pass missing ones via --set NAME=VALUE.")
+    return substitute_variables(text, variables, hint="Define missing ones under 'variables:' in the YAML, or pass --set NAME=VALUE.")
 
 
 def interpolate_paths(value, variables: dict, resolve_ref=None):
