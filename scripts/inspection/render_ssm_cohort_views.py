@@ -50,13 +50,6 @@ VIEWS = ("frontal", "left", "right")
 ERROR_RAMP = ("#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b")
 
 
-def error_colors(err, max_err):
-    """[N] errors -> [N, 3] uint8 RGB on ERROR_RAMP, clipped at max_err."""
-    stops = np.array([[int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in ERROR_RAMP], dtype=float)
-    t = np.clip(err / max_err, 0, 1) * (len(ERROR_RAMP) - 1)
-    return np.stack([np.interp(t, np.arange(len(ERROR_RAMP)), stops[:, c]) for c in range(3)], 1).astype(np.uint8)
-
-
 def mesh(points, faces, colors=None):
     """vtkPolyData of [N, 3] model-unit points, scaled for rendering; RGB scalars if given."""
     poly = create_polydata(np.asarray(points, dtype=np.float64) * RENDER_SCALE, faces)
@@ -172,9 +165,9 @@ def main():
             panels = [
                 ("target", mesh(target, faces), views.MESH_COLOR),
                 ("flow reconstruction", mesh(recon, faces), views.MESH_COLOR),
-                (f"flow error (mean {err_flow.mean() * pct:.2f} %)", mesh(recon, faces, error_colors(err_flow, max_err)), None),
+                (f"flow error (mean {err_flow.mean() * pct:.2f} %)", mesh(recon, faces, views.ramp_colors(err_flow, max_err, ERROR_RAMP)), None),
                 (f"PCA-{k_eq}", mesh(pca_k, faces), views.MESH_COLOR),
-                (f"PCA-{k_eq} error (mean {err_pca.mean() * pct:.2f} %)", mesh(pca_k, faces, error_colors(err_pca, max_err)), None),
+                (f"PCA-{k_eq} error (mean {err_pca.mean() * pct:.2f} %)", mesh(pca_k, faces, views.ramp_colors(err_pca, max_err, ERROR_RAMP)), None),
                 ("mean shape", mean_poly, views.MESH_COLOR),
             ]
             header = (f"{label} {idx} ({rank} of {len(errors)} by flow error); "
