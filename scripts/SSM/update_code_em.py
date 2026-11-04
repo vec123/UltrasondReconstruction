@@ -52,7 +52,7 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np
 import torch
 
-from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import load_run  # noqa: E402
 from scripts.SSM.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
                                        load_cases, mm_stats, whitener)
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402

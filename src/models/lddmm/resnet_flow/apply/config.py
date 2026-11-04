@@ -206,7 +206,19 @@ def load_training_config(apply_cfg: ApplyCfg) -> ExperimentCfg:
     Returns:
         ExperimentCfg
     """
-    data = load_yaml(apply_cfg.train_config)
+    return load_experiment_config(apply_cfg.train_config)
+
+
+def load_experiment_config(path) -> ExperimentCfg:
+    """Load an ExperimentCfg from a training config file, e.g. a run's config.json.
+
+    Args:
+        path: path to the .yaml / .json file
+
+    Returns:
+        ExperimentCfg
+    """
+    data = load_yaml(path)
     # runner._dump_config stamps a top-level "mode" ("pair"/"cohort") onto every
     # config.json for human provenance; it duplicates train.mode and was never an
     # ExperimentCfg field, so ExperimentCfg.from_dict's unknown-key check rejects

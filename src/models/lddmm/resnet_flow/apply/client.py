@@ -142,13 +142,7 @@ class DeformationClient:
         Returns:
             DeformationClient
         """
-        # Before build_flow: parameters take the default dtype at __init__, and a
-        # float32 model cannot hold a float64 checkpoint's tensors.
-        set_default_dtype(train_cfg)
-
-        flow = build_flow(train_cfg)
-        flow.load_state_dict(checkpoint["flow"])
-
+        flow = load_flow(train_cfg, checkpoint)
         kwargs.setdefault("pose_application", getattr(train_cfg, "pose_application", "post"))
         return cls(flow, transform, **kwargs)
 
@@ -249,6 +243,25 @@ class DeformationClient:
         raise ValueError(
             f"expected one cloud of shape [N, 3] or [1, N, 3], got {tuple(points.shape)}"
         )
+
+
+def load_flow(train_cfg: ExperimentCfg, checkpoint: dict):
+    """The training run's flow with a checkpoint's weights, on the CPU in train mode.
+
+    Args:
+        train_cfg: the ExperimentCfg the run was trained from
+        checkpoint: dict from checkpoint.load_checkpoint
+
+    Returns:
+        the flow module (load_state_dict is strict)
+    """
+    # Before build_flow: parameters take the default dtype at __init__, and a
+    # float32 model cannot hold a float64 checkpoint's tensors.
+    set_default_dtype(train_cfg)
+
+    flow = build_flow(train_cfg)
+    flow.load_state_dict(checkpoint["flow"])
+    return flow
 
 
 def _map_points(trajectory: Trajectory, fn) -> Trajectory:

@@ -43,11 +43,9 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from src.models.gpmm.model.sampling import draw_cohort  # noqa: E402
-from src.shared.core.config import load_yaml  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import decode, load_run  # noqa: E402
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
-from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.models.lddmm.resnet_flow.io import load_shape  # noqa: E402
-from src.models.lddmm.resnet_flow.runner import build_flow, load_cohort, set_default_dtype  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 
 PCA_K = (0, 1, 2, 4, 8, 16, 32, 64, 96, 128, 163)
@@ -57,32 +55,6 @@ N_SPEC_VERTICES = 4000    # vertices the specificity distances are computed on
 # Light-surface chart tokens (dataviz reference palette).
 SURFACE, INK, INK2, MUTED, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
 SERIES = ("#2a78d6", "#eb6834", "#1baf7a")
-
-
-def load_run(run, step, device):
-    """(train_cfg, flow on device in eval mode, codes [M, n_z], cohort_norm, template_norm, transform)."""
-    data = load_yaml(os.path.join(run, "config.json"))
-    data.pop("mode", None)
-    cfg = ExperimentCfg.from_dict(data)
-    set_default_dtype(cfg)
-    name = "final.pt" if step is None else f"step_{step}.pt"
-    checkpoint = torch.load(os.path.join(run, "checkpoints", name), map_location="cpu", weights_only=False)
-    flow = build_flow(cfg)
-    flow.load_state_dict(checkpoint["flow"])
-    flow = flow.to(device).eval()
-    _, cohort_norm, template_norm, transform = load_cohort(cfg)
-    return cfg, flow, checkpoint["codes"]["codes.weight"].float(), cohort_norm, template_norm, transform
-
-
-@torch.no_grad()
-def decode(flow, template_norm, transform, codes, device, batch):
-    """Yield (start index, world points [b, N, 3] on device) of phi_z(template) for each code."""
-    template = template_norm.points.to(device)
-    center, scale = transform.center.to(device), transform.scale.to(device)
-    for i in range(0, len(codes), batch):
-        z = codes[i:i + batch].to(device)
-        q = flow(template.expand(len(z), -1, -1), z).points[-1]
-        yield i, q * scale + center
 
 
 def r2_per_column(true, pred):

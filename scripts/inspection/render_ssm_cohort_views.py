@@ -38,7 +38,7 @@ import torch
 from vtk.util.numpy_support import numpy_to_vtk
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import decode, load_run  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import cohort_paths  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.models.gpmm.model.sampling import draw_cohort  # noqa: E402

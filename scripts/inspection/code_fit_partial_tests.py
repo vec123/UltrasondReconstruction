@@ -47,9 +47,7 @@ import torch
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
-from src.shared.core.config import load_yaml  # noqa: E402
-from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import load_run, load_run_config  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from src.shared.vtk.process import sub_surface  # noqa: E402
@@ -239,13 +237,6 @@ def keops_varifold_step(vf, decoder, z, args, scale):
         (dist * scale[t]).backward()
         out.append(dist.detach())
     return torch.stack(out)
-
-
-def load_run_config(run):
-    """The ExperimentCfg a run was trained with (its config.json)."""
-    data = load_yaml(os.path.join(run, "config.json"))
-    data.pop("mode", None)
-    return ExperimentCfg.from_dict(data)
 
 
 def code_parametrization(kind, train_cfg, train_codes, template_norm, domain, args, device):

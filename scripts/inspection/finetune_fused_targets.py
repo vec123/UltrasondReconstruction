@@ -68,8 +68,8 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa: E402
-from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
-from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
+from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import load_run, load_run_config  # noqa: E402
 from src.shared.vtk.extract import get_vtp_faces  # noqa: E402
 from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from src.shared.transforms.similarity import umeyama_similarity_transform  # noqa: E402

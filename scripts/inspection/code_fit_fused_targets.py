@@ -35,11 +35,11 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
-                                                       load_run_config, ssm_decoder)
+                                                       ssm_decoder)
 from src.models.lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
-from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import load_run, load_run_config  # noqa: E402
 from src.shared.transforms.similarity import umeyama_similarity_transform  # noqa: E402
 from src.shared.vtk.transform import decompose_similarity_transform  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
