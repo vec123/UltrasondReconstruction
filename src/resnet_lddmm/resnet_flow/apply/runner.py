@@ -53,9 +53,9 @@ from src.resnet_lddmm.resnet_flow.runner import (
     load_pair,
     set_default_dtype,
 )
+from src.resnet_lddmm.outputs import ApplyOutputFiles
 
-DEFORMED_NAME = "deformed.vtp"
-MANIFEST_NAME = "apply.json"
+_FILES = ApplyOutputFiles()
 
 
 def run(apply_cfg: ApplyCfg):
@@ -165,7 +165,7 @@ def run_cohort(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef):
                          sample_norm=cohort_norm[i])
         manifest = write_manifest(member_cfg, train_cfg, ref, checkpoint, deformation, written)
         manifest["cohort_member"] = {"name": name, "index": i, "path": paths[i]}
-        with open(os.path.join(member_cfg.output_dir, MANIFEST_NAME), "w") as f:
+        with open(os.path.join(member_cfg.output_dir, _FILES.manifest), "w") as f:
             json.dump(manifest, f, indent=2)
         results[name] = (deformation, manifest)
         print(f"[apply] {name} (code {i}) -> {member_cfg.output_dir}")
@@ -260,14 +260,14 @@ def export(deformation: Deformation, cfg: ApplyCfg, template_norm: Shape,
             # scores -- still describes the point it is stored against.
             written.append(export_shape(
                 deformation.points, deformation.faces, transform,
-                os.path.join(out_dir, DEFORMED_NAME), label="Deformed",
+                os.path.join(out_dir, _FILES.deformed), label="Deformed",
                 point_fields=template_norm.point_fields,
             ))
 
         if cfg.export.references:
             export_reference_shapes(template_norm, sample_norm, transform, out_dir)
             written += [os.path.join(out_dir, name)
-                        for name in ("template_points.vtp", "sample_points.vtp")]
+                        for name in (_FILES.template_points, _FILES.sample_points)]
 
         if cfg.export.trajectory:
             written += export_trajectory(deformation.trajectory, deformation.faces,
@@ -324,7 +324,7 @@ def write_manifest(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef,
     }
 
     os.makedirs(cfg.output_dir, exist_ok=True)
-    with open(os.path.join(cfg.output_dir, MANIFEST_NAME), "w") as f:
+    with open(os.path.join(cfg.output_dir, _FILES.manifest), "w") as f:
         json.dump(manifest, f, indent=2)
     return manifest
 

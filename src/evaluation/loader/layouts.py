@@ -20,9 +20,11 @@ from src.evaluation.loader.pair_loader import (
     register_layout,
 )
 from src.SSM.outputs import PipelineOutputFiles
+from src.resnet_lddmm.outputs import ApplyOutputFiles
 from src.shared.transforms.similarity import SimilarityTransform
 
 _SSM_FILES = PipelineOutputFiles()
+_FLOW_FILES = ApplyOutputFiles()
 
 
 def _similarity_from_json(path: Path) -> SimilarityTransform:
@@ -106,8 +108,8 @@ class DirectFlowApplyLayout(PairLayout):
     landmarks  the ``landmarks`` entry of the training config, when it has one.
     """
 
-    marker: ClassVar[str] = "apply.json"
-    recon_file: ClassVar[str] = "world/deformed.vtp"
+    marker: ClassVar[str] = _FLOW_FILES.manifest
+    recon_file: ClassVar[str] = f"world/{_FLOW_FILES.deformed}"
     similarity_file: ClassVar[str] = "similarity.json"
     target_normals_field: ClassVar[str] = "normal"
 

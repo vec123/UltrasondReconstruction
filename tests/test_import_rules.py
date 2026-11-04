@@ -3,12 +3,13 @@
 Each package of src/ belongs to one layer (LAYERS), and a layer may import
 only itself and the layers in ALLOWED:
 
-    shared       src/shared: core, geometry, vtk, transforms, correspondence, ...
-    ultrasound   the ultrasound processing        -> shared
-    gpmm, lddmm  the two models                   -> shared
-    evaluation   the metrics on model outputs     -> shared, gpmm.outputs
-    gpmm.outputs the file names a GPMM fit writes -> shared
-    apps         the GUIs                         -> all of src/
+    shared         src/shared: core, geometry, vtk, transforms, correspondence, ...
+    ultrasound     the ultrasound processing          -> shared
+    gpmm, lddmm    the two models                     -> shared, their own outputs
+    gpmm.outputs   the file names a GPMM fit writes   -> shared
+    lddmm.outputs  the file names a flow apply writes -> shared
+    evaluation     the metrics on model outputs       -> shared, gpmm.outputs, lddmm.outputs
+    apps           the GUIs                           -> all of src/
 
 No file of src/ imports scripts/. Imports inside functions count too.
 
@@ -34,6 +35,7 @@ LAYERS = {
     "src/SSM": "gpmm",
     "src/SSM/outputs": "gpmm.outputs",
     "src/resnet_lddmm": "lddmm",
+    "src/resnet_lddmm/outputs": "lddmm.outputs",
     "src/evaluation": "evaluation",
     "src/GUIs": "apps",
     "scripts": "scripts",
@@ -44,9 +46,11 @@ ALLOWED = {
     "ultrasound": {"shared", "ultrasound"},
     "gpmm": {"shared", "gpmm", "gpmm.outputs"},
     "gpmm.outputs": {"shared"},
-    "lddmm": {"shared", "lddmm"},
-    "evaluation": {"shared", "evaluation", "gpmm.outputs"},
-    "apps": {"shared", "ultrasound", "gpmm", "gpmm.outputs", "lddmm", "evaluation", "apps"},
+    "lddmm": {"shared", "lddmm", "lddmm.outputs"},
+    "lddmm.outputs": {"shared"},
+    "evaluation": {"shared", "evaluation", "gpmm.outputs", "lddmm.outputs"},
+    "apps": {"shared", "ultrasound", "gpmm", "gpmm.outputs", "lddmm", "lddmm.outputs",
+             "evaluation", "apps"},
 }
 
 # Third-party code that is not checked.

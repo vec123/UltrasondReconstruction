@@ -16,6 +16,9 @@ from src.shared.vtk.extract import (
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.fields import add_point_field, add_point_fields
 from src.shared.geometry.shape import Shape, load_shape  # noqa: F401  (part of this module's API)
+from src.resnet_lddmm.outputs import ApplyOutputFiles
+
+_FILES = ApplyOutputFiles()
 
 
 @dataclass(frozen=True)
@@ -313,12 +316,12 @@ def export_reference_shapes(template, sample, transform, out_dir):
     # coloured by the same array and compared -- the pair is the whole point of
     # writing this file.
     export_shape(template.points[0, :, :], _faces_of(template), transform,
-                 os.path.join(out_dir, "template_points.vtp"), label="Template",
+                 os.path.join(out_dir, _FILES.template_points), label="Template",
                  point_fields=getattr(template, "point_fields", None))
 
     sample_points = to_frame(sample.points[0, :, :], transform, "Sample")
     save_vtp(create_polydata(sample_points, faces=None),
-             os.path.join(out_dir, "sample_points.vtp"), binary=True)
+             os.path.join(out_dir, _FILES.sample_points), binary=True)
 
     print(f"[io.export_reference_shapes] Exported template "
           f"({template.points.shape[1]} points) and sample "
