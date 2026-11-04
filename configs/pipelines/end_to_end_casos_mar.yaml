@@ -11,6 +11,15 @@
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
 # Keep stages and hyperparameters in sync with end_to_end.yaml.
 
+# Default stage files: an entry of these stages without its own `config:` takes
+# its hyperparameters from them (see src/shared/core/pipeline/engine.py).
+stage_configs:
+  recon_target_distance: evaluation/fields/recon_target_distance.yaml
+  distance_distribution_overlay: evaluation/compare/distance_distribution_overlay.yaml
+  similarity_transform: geometry_transforms/similarity_transform.yaml
+  resnet_lddmm_apply: lddmm/pair/apply/resnet_lddmm_apply.yaml
+  resnet_lddmm_train: lddmm/pair/train/resnet_lddmm_train.yaml
+
 stages:
 
 #-----------Preprocessing
@@ -49,14 +58,17 @@ stages:
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_times_gaussian
+    config: gpmm/fit/nicp/fetus_init_pca_times_gaussian.yaml
     enabled: false
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_times_wendland
+    config: gpmm/fit/nicp/fetus_init_pca_times_wendland.yaml
     enabled: false
 
   - name: ssm_fit
     id: fetus_ssm_fit_init_pca_sum_matern32
+    config: gpmm/fit/nicp/fetus_init_pca.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -90,6 +102,7 @@ stages:
 #-----------baby ssm (pre-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_init_pca
+    config: gpmm/fit/nicp/baby_pca.yaml
     enabled: true
   # One mean-shape eval for the whole baby pre-fusion sweep.
   - name: recon_target_distance
@@ -98,14 +111,17 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_times_gaussian
+    config: gpmm/fit/nicp/baby_pca_times_gaussian.yaml
     enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_times_wendland
+    config: gpmm/fit/nicp/baby_pca_times_wendland.yaml
     enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_init_pca_sum_matern32
+    config: gpmm/fit/nicp/baby_pca_sum_matern32.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -149,6 +165,7 @@ stages:
 #-----------baby ssm (post-fusion)
   - name: ssm_fit
     id: baby_ssm_fit_pca
+    config: gpmm/fit/nicp/baby_pca.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -157,14 +174,17 @@ stages:
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_times_gaussian
+    config: gpmm/fit/nicp/baby_pca_times_gaussian.yaml
     enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_times_wendland
+    config: gpmm/fit/nicp/baby_pca_times_wendland.yaml
     enabled: false
 
   - name: ssm_fit
     id: baby_ssm_fit_pca_sum_matern32
+    config: gpmm/fit/nicp/baby_pca_sum_matern32.yaml
     enabled: true
 
   - name: recon_target_distance
@@ -254,6 +274,7 @@ stages:
     enabled: false
   - name: resnet_lddmm_train
     id: resnet_lddmm_train_fetus_ssm
+    config: lddmm/pair/train/fetus_ssm.yaml
     enabled: false
   - name: resnet_lddmm_apply
     id: resnet_lddmm_apply_fetus_ssm
@@ -271,6 +292,7 @@ stages:
     enabled: false 
   - name: resnet_lddmm_train
     id: resnet_lddmm_train_fetus_mean
+    config: lddmm/pair/train/fetus_mean.yaml
     enabled: false
   - name: resnet_lddmm_apply
     id: resnet_lddmm_apply_fetus_mean
@@ -300,6 +322,7 @@ stages:
 
 #------------eval lines in ultrasound
   - name: vtp_to_nrrd_overlay
+    config: ultrasound/stages/vtp_to_nrrd_overlay.yaml
     enabled: false
 
 
@@ -1069,92 +1092,6 @@ paths:
 
 #---------Hyperparameters:
 hyperparameters:
-  # Applies to every recon_target_distance_* id (cli.py falls back from the id
-  # to the stage name). `units` is only a label - it does not rescale anything;
-  # it has to match whatever frame that id's landmarks_path is in, which for
-  # all of them is align_to_reference's aligned_landmarks (original scan mm).
-  # `landmark_metric` is the 3x3 M of the landmark Mahalanobis distance in
-  # landmark_distances.json; unset it is the identity, i.e. Euclidean.
-  # The overlay stage reads back meshes recon_target_distance wrote, so it
-  # inherits that stage's frame - but not its config, hence the same label
-  # again here (its own default still says "landmark frame units").
-  distance_distribution_overlay:
-    units: mm (original scan frame)
-    coverage_thresholds: [1.0, 2.0, 3.0]
-
-  recon_target_distance:
-    units: mm (original scan frame)
-    # Share of points within each of these distances, per direction. In the
-    # units above, so these are millimetres.
-    coverage_thresholds: [1.0, 2.0, 3.0]
-    landmark_metric: []
-
-  # ---------------------------------------------------------------------
-  # The one set of SSM-fitting hyperparameters
-  ssm_fit: &ssm_fit_common
-    steps:
-      gmm_2_template: false
-      align: true
-      landmark_fit: true
-      nicp: true
-      laplacian: false
-    model:
-      normalize: false
-      atlas:
-        # FetusModel_x4 only has 13 of the 19 baby landmarks annotated;
-        # Read for the fetus models only
-        landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
-    rigid:
-      iterations: 10
-      landmark_fit_learning_rate: 1.0
-      allow_scale: true
-    nicp: &nicp_common
-      save_every: 1
-      defaults: {}
-      fits:
-        - &fit_map
-          name: map
-          correspondence:
-            name: constrained
-            kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
-                     use_target_normals: true, one_to_one: true}
-          loss:       {name: matched_l2, kwargs: {reduction: mean}}
-          prior:      {name: none}        # replaced per model
-          projection: {name: none}
-          solver: {name: normal_equations,
-                   kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}
-          refresh_every: 1          # re-match every round: this is the ICP loop
-
-        # -- weighted point-to-plane chamfer: no correspondence ---------------
-        - &fit_p2plane_chamfer
-          name: p2plane_chamfer
-          correspondence: {name: none}
-          loss:
-            name: p2plane_chamfer
-            kwargs:
-              source_to_target: {weight: 1.0, base_sigma: 1.0}
-              target_to_source: {weight: 5.0, base_sigma: 1.0}
-              plane_weight: 0.8
-              p: 2
-              source_ratio: 0.0
-              target_ratio: 0.25   # thin the scan; the search is linear in it
-              # E_stiff of the classical NICP energy: the mean squared strain of
-              # the displacement field over the mesh edges,
-              #   mean_(i,j) ||d_i - d_j||^2 / ||xbar_i - xbar_j||^2,  d = x(a) - xbar.
-              # A translation costs nothing; stretching and bending the template
-              # does. Divided by the rest edge length it is dimensionless, so one
-              # value means the same on the fetus and the baby model despite the
-              # ~5000x scale gap between them. 0 disables the term.
-              stiffness: 0.0
-          projection: {name: none}
-          # prior is supplied per model below - it is the one hyperparameter
-          # that cannot be shared, see the calibration note.
-          solver: {name: gradient,
-                   kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 10,
-                            tolerance: 1.0e-8, patience: 5, log_every: 25}}
-          refresh_every: 0         # no effect: this loss re-pairs every evaluation
-    verbose: true
-
   # ---------------------------------------------------------------------
   # The per-model chamfer prior, the one thing that cannot be shared.
   #
@@ -1192,171 +1129,6 @@ hyperparameters:
   # the preprocessing or the scan set changes.
   # ---------------------------------------------------------------------
 
-  # L=183 modes, chi2_99=230.4, sigma_n^2=10.13, lambda_max=1.86, P=2058 pairs
-  # L=113 modes, chi2_99=150.9, sigma_n^2=398.1, lambda_max=0.6005, P=1643 pairs
-  fetus_ssm_fit_init_pca_times_gaussian:
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            #{<<: *fit_map, name: map_0.25x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.1009, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.2018, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.4035, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.8071, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 1.614, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.17322, normalize: true}}}
-              ]
-
-  # L=106 modes, chi2_99=142.8, lambda_max=2.03, sigma_n^2 and P not solved.
-  # Borrows fetus PCA's weight for the same reason its baby counterpart borrows
-  # baby PCA's - see that block. lambda_max 2.03 vs 1.86 is close, but L 106 vs
-  # 183 is not, so this one is the weaker of the two borrowings.
-  fetus_ssm_fit_init_pca_sum_matern32:
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.002646, normalize: true}}}
-              ]
-
-  # L=165 modes, chi2_99=210.2, sigma_n^2=51.78, lambda_max=0.3989, P=2070 pairs
-  fetus_ssm_fit_init_pca_times_wendland:
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            #{<<: *fit_map, name: map_0.25x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.01568, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.03136, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.06271, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.1254, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.2508, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.19677, normalize: true}}},
-             # -- constrained instead of penalised --------------------------------
-             #{<<: *fit_map, name: tr_map,
-             # solver: {name: trust_region,
-             #          kwargs: {p: 0.99, constrain: expected, iterations: 10}}},
-             # Same constraint on the chamfer. tr(Sigma_z) comes from autograd
-             # here rather than from an assembled normal matrix (see _curvature),
-             # computed once per ICP round at the warm start; hessian_refresh:
-             # true recomputes it at every bracket step, at ~10x the cost.
-             #{<<: *fit_p2plane_chamfer, name: tr_chamfer,
-             # solver: {name: trust_region,
-             #          kwargs: {p: 0.99, constrain: expected, iterations: 5,
-             #                   inner_iterations: 25, outer_iterations: 10,
-              #                  lr: 1.0e-1}}}
-              ]
-
-  # L=163 modes, chi2_99=207.9, sigma_n^2=1.6e-06, lambda_max=2.178e-08, P=4783 pairs
-  baby_ssm_fit_init_pca: &ssm_fit_baby_pca
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            #{<<: *fit_map, name: map_0.25x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.00384, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.007679, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.01536, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.03072, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.06143, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.16467, normalize: true}}}
-            ]
-
-  # L=196 modes, chi2_99=245.0, sigma_n^2=7.398e-06, lambda_max=9.282e-09, P=4051 pairs
-  baby_ssm_fit_init_pca_times_gaussian: &ssm_fit_baby_pca_times_gaussian
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            #{<<: *fit_map, name: map_0.25x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.04919, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.09837, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.1967, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.3935, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.787, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.41725, normalize: true}}}
-              ]
-
-  # L=226 modes, chi2_99=278.4, sigma_n^2=1.031e-05, lambda_max=6.726e-09, P=4012 pairs
-  baby_ssm_fit_init_pca_times_wendland: &ssm_fit_baby_pca_times_wendland
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-            # {<<: *fit_map, name: map_0.25x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.09549, normalize: true}}},
-            # {<<: *fit_map, name: map_0.5x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.191, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.382, normalize: true}}},
-            # {<<: *fit_map, name: map_2x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.7639, normalize: true}}},
-            # {<<: *fit_map, name: map_4x,
-            #  prior: {name: mahalanobis, kwargs: {weight: 1.528, normalize: true}}},
-            # {<<: *fit_p2plane_chamfer,
-            #  prior: {name: mahalanobis, kwargs: {weight: 0.4557, normalize: true}}}
-            ]
-
-  # L=158 modes, chi2_99=202.3, lambda_max=2.478e-08, sigma_n^2 and P not solved.
-  # Every other weight here is sigma_n^2 / (P * lambda_max) from its own
-  # calibration run; this model's was never solved, so it borrows baby PCA's
-  # verbatim - the two spectra are close enough for that to be the least-bad
-  # fallback (lambda_max 2.478e-08 vs 2.178e-08, L 158 vs 163), but it is a
-  # borrowed number, not a calibrated one. Re-run the calibration before
-  # reading much into how this model ranks against the others.
-  baby_ssm_fit_init_pca_sum_matern32: &ssm_fit_baby_pca_sum_matern32
-    <<: *ssm_fit_common
-    nicp:
-      <<: *nicp_common
-      fits: [
-           # {<<: *fit_map, name: map_0.25x,
-           #   prior: {name: mahalanobis, kwargs: {weight: 0.00384, normalize: true}}},
-           #  {<<: *fit_map, name: map_0.5x,
-           #   prior: {name: mahalanobis, kwargs: {weight: 0.007679, normalize: true}}},
-             {<<: *fit_map, name: map_1x,
-              prior: {name: mahalanobis, kwargs: {weight: 0.01536, normalize: true}}},
-           #  {<<: *fit_map, name: map_2x,
-           #   prior: {name: mahalanobis, kwargs: {weight: 0.03072, normalize: true}}},
-           #  {<<: *fit_map, name: map_4x,
-           #   prior: {name: mahalanobis, kwargs: {weight: 0.06143, normalize: true}}}
-              ]
-
-  # The post-fusion baby fits reuse their model's weight verbatim. It was
-  # calibrated against the merged scan rather than the fused one, which does
-  # not exist until scan_fusion_ssm has run.
-  baby_ssm_fit_pca:                   *ssm_fit_baby_pca
-  baby_ssm_fit_pca_times_gaussian:    *ssm_fit_baby_pca_times_gaussian
-  baby_ssm_fit_pca_times_wendland:    *ssm_fit_baby_pca_times_wendland
-  baby_ssm_fit_pca_sum_matern32:      *ssm_fit_baby_pca_sum_matern32
-
-
-  similarity_transform:
-    heatmap_prefix: heatmap_
-    landmarks_frame: LPS  # frame the landmark CSVs are written in (RAS or LPS)
-    with_scale: true
-
   # Shared by every ssm_posterior id without a block of its own. The noise
   # kwargs are in recon_dist_2_target's units (mm). logistic observes every
   # vertex, with a weight 1/sigma^2 that falls to 1/sigma_max^2 around
@@ -1375,123 +1147,6 @@ hyperparameters:
     noise:
       name: cutoff
       kwargs: {sigma: 0.5, threshold: 2.0}
-
-  resnet_lddmm_train: &resnet_lddmm_train
-    field: &resnet_lddmm_field
-      kind: time_varying_fourier
-      num_steps: 20
-      mlp: [128,128]
-      activation: relu
-      fourier_n_e: 3
-      fourier_anneal: {start: 500, end: 900}
-
-    #field:
-    #  kind: time_varying_local
-    #  num_steps: 20
-    #  mlp: [128,128]
-    #  activation: relu
-    #  fourier_n_e: 0                 # coarse = plain baseline (or 3 + fourier_anneal)
-    #  local:
-    #    landmarks: [aL, aR, acL, acR, prn]
-    #    radius_mm: 5                 # full strength: nose plus room to widen
-    #    falloff_mm: 3                 # zero beyond 18 mm
-    #    mlp: [128, 128]
-    #    fourier_n_e: 5               # detail down to ~8 mm; keep <= 5
-    #    fourier_anneal: {start: 300, end: 800}   # for steps: 1000
-    code:
-      kind: none
-      position_aware: true
-      conditioning_method: concat
-      grid: 16
-    loss:
-      #data_name: field_weighted_chamfer
-      data_name: field_weighted_point2plane_chamfer
-      data_kwargs:
-        #seems to measure how well the template fits the target
-        source_to_target:
-          weight: 1
-          base_sigma: 0.01
-          field_name: landmark_weight
-          #field_name: null
-          loss_distance_handle:
-            kind: truncated
-            breakpoint: 0.1
-            power: 1
-        #seems to measure how well the target fits the template
-        target_to_source: 
-          weight: 1
-          base_sigma: 0.01
-          field_name: support
-          inherit_source_field: false
-          loss_distance_handle:
-            power: 2
-            kind: quadratic
-            breakpoint: 0.1
-      kinetic_weight: 2000.0
-      kinetic_field_weight: 0.0
-      kinetic_field_kwargs:
-        field_name: kinetic_weight
-        normalize: true
-      # Windowed functional-varifold ("fshape") term around the nose, ON TOP of the
-      # chamfer data term: compares the template's transported curvature with the
-      # target's, so crease tissue landing on flat target is penalised. Set
-      # signal: none for the plain-varifold control run. 0 = off. losses/fshape.py
-      fshape_weight: 0.0             # ~0.93 at identity -> ~19, vs data ~100 at start
-      fshape_kwargs:
-        landmarks: [aL, aR, acL, acR, prn, sn]   # window centre = their mean
-        radius_mm: 10                            # full strength
-        falloff_mm: 8                            # zero beyond 18 mm
-        margin_mm: 4                             # template crop beyond the window
-        sigma_mm: [4.0, 2.0]                     # position kernel scales
-        signal: curvedness                       # curvedness | mean_curvature | none
-        signal_normalize: rank                   # compare percentiles: the scan is noisier than the template
-        sigma_signal: 0.3                        # in percentile units
-        curvature_radius_mm: 3.0                 # curvature smoothing scale
-        n_faces: 1500                            # triangles per mesh; ~0.2 s per step on CPU
-      code_reg_weight: 0.0
-      isometry_weight: 0.0
-      isometry_type: det
-      landmark_weight: 1.0
-      landmark_kwargs:
-        label_weights:
-          chL: 0.0
-          chR: 0.0
-          cphL: 0.0
-          cphR: 0.0
-          
-          li: 0.0
-          pg: 0.0
-          sl: 0.0
-          
-        hard_precision:
-        #n: 1000000
-          exL: 1000000.0
-          exR: 1000000.0
-          n:  1000000.0
-          ls:  1000000.0
-          prn:  1000000.0
-          sn: 1000000.0
-          acR:  1000000.0
-          acL:  1000000.0
-          aL:  1000000.0
-          aR:  1000000.0
-          enL: 1000000.0
-          enR:  1000000.0
-
-      subsample_M: 1000
-      save_full: false
-      direction: forward
-    train:
-      mode: pair
-      steps: 1000
-      batch: 4
-      lr: 0.0001
-      seed: 42
-      log_every: 10
-      save_every: 100
-      val_every: 0
-      export_shapes: 2
-      export_strategy: sequential
 
   # baby_mean = the run above + designed deformation modes (resnet_flow/fields/modes.py),
   # drawn in scripts/GUIs/edit_deformation_modes.py. The network's motion pays
@@ -1514,153 +1169,3 @@ hyperparameters:
   #      # trajectories = end shapes + every Euler step (~150 MB), ends = end shapes only, none = skip
   #      decompose: trajectories
 
-
-  resnet_lddmm_train_fetus_ssm:
-    field:
-      kind: time_varying
-      num_steps: 10
-      mlp: [246]
-      activation: relu
-    code:
-      kind: none
-      position_aware: true
-      conditioning_method: concat
-      grid: 16
-    loss:
-      #data_name: field_weighted_chamfer
-      data_name: field_weighted_point2plane_chamfer
-      data_kwargs:
-        source_to_target:
-          weight: 1
-          base_sigma: 0.1
-          field_name: landmark_weight
-         # field_name: null
-          loss_distance_handle:
-            kind: quadratic
-        target_to_source:
-          weight: 1.0
-          base_sigma: 0.01
-          field_name: support
-          #field_name: null
-          loss_distance_handle:
-            kind: truncated
-            breakpoint: 0.04
-      kinetic_weight: 500.0
-      code_reg_weight: 0.0
-      isometry_weight: 0.0
-      isometry_type: strain
-      landmark_weight: 1
-      landmark_kwargs:
-        label_weights:
-          exL: 1.0
-          exR: 1.0
-          n: 1.0
-          ls: 1.0
-          prn: 1.0
-          sn: 1.0
-          acR: 1.0
-          acL: 1.0
-          aL: 1.0
-          aR: 1.0
-          enL: 1.0
-          enR: 1.0
-          pg: 1.0
-        #hard_precision:
-        #n: 1000000
-
-      subsample_M: 1000
-      save_full: false
-      direction: forward
-    train:
-      mode: pair
-      steps: 2000
-      batch: 4
-      lr: 0.0001
-      seed: 42
-      log_every: 10
-      save_every: 100
-      val_every: 0
-      export_shapes: 2
-      export_strategy: sequential
-
-  # See resnet_lddmm_train_fetus_ssm above for why this block's
-  # label_weights differs from the shared resnet_lddmm_train block.
-  resnet_lddmm_train_fetus_mean:
-    field:
-      kind: time_varying
-      num_steps: 10
-      mlp: [246]
-      activation: relu
-    code:
-      kind: none
-      position_aware: true
-      conditioning_method: concat
-      grid: 16
-    loss:
-      #data_name: field_weighted_chamfer
-      data_name: field_weighted_point2plane_chamfer
-      data_kwargs:
-        source_to_target:
-          weight: 1
-          base_sigma: 0.1
-          field_name: landmark_weight
-         # field_name: null
-          loss_distance_handle:
-            kind: truncated
-            breakpoint: 0.04
-        target_to_source:
-          weight: 1.0
-          base_sigma: 0.01
-          field_name: support
-          #field_name: null
-          loss_distance_handle:
-            kind: quadratic
-      kinetic_weight: 10.0
-      code_reg_weight: 0.0
-      isometry_weight: 0.0
-      isometry_type: strain
-      landmark_weight: 1
-      landmark_kwargs:
-        label_weights:
-          exL: 1.0
-          exR: 1.0
-          n: 1.0
-          ls: 1.0
-          prn: 1.0
-          sn: 1.0
-          acR: 1.0
-          acL: 1.0
-          aL: 1.0
-          aR: 1.0
-          enL: 1.0
-          enR: 1.0
-          pg: 1.0
-        #hard_precision:
-        #n: 1000000
-
-      subsample_M: 1000
-      save_full: false
-      direction: forward
-    train:
-      mode: pair
-      steps: 2000
-      batch: 4
-      lr: 0.0001
-      seed: 42
-      log_every: 10
-      save_every: 100
-      val_every: 0
-      export_shapes: 2
-      export_strategy: sequential
-
-  resnet_lddmm_apply:
-    device: cpu
-    chunk_size: 0  # 0 = integrate every point in one batch; raise if this OOMs on a denser template
-    export:
-      deformed: true
-      trajectory: false
-      references: true
-      spaces: [world, normalized]
-      
-  vtp_to_nrrd_overlay:
-    thickness: 0.2  

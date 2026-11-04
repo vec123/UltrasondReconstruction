@@ -1,0 +1,79 @@
+# ---------------------------------------------------------------------
+# The one set of SSM-fitting hyperparameters
+stage: ssm_fit
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  inputs: {shape_model_mat: '${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca.npz', mesh_vtp: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp',
+    landmarks_json: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', template_vtp: '${PROJECT_ROOT}/assets/templates/fetus_mean.vtp'}
+  outputs: {dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca'}
+
+# What a pipeline takes over.
+hyperparameters:
+  steps:
+    gmm_2_template: false
+    align: true
+    landmark_fit: true
+    nicp: true
+    laplacian: false
+  model:
+    normalize: false
+    atlas:
+      # FetusModel_x4 only has 13 of the 19 baby landmarks annotated;
+      # Read for the fetus models only
+      landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
+  rigid:
+    iterations: 10
+    landmark_fit_learning_rate: 1.0
+    allow_scale: true
+  nicp: &nicp_common
+    save_every: 1
+    defaults: {}
+    fits:
+      - &fit_map
+        name: map
+        correspondence:
+          name: constrained
+          kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50,
+                   use_target_normals: true, one_to_one: true}
+        loss:       {name: matched_l2, kwargs: {reduction: mean}}
+        prior:      {name: none}        # replaced per model
+        projection: {name: none}
+        solver: {name: normal_equations,
+                 kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}}
+        refresh_every: 1          # re-match every round: this is the ICP loop
+
+      # -- weighted point-to-plane chamfer: no correspondence ---------------
+      - &fit_p2plane_chamfer
+        name: p2plane_chamfer
+        correspondence: {name: none}
+        loss:
+          name: p2plane_chamfer
+          kwargs:
+            source_to_target: {weight: 1.0, base_sigma: 1.0}
+            target_to_source: {weight: 5.0, base_sigma: 1.0}
+            plane_weight: 0.8
+            p: 2
+            source_ratio: 0.0
+            target_ratio: 0.25   # thin the scan; the search is linear in it
+            # E_stiff of the classical NICP energy: the mean squared strain of
+            # the displacement field over the mesh edges,
+            #   mean_(i,j) ||d_i - d_j||^2 / ||xbar_i - xbar_j||^2,  d = x(a) - xbar.
+            # A translation costs nothing; stretching and bending the template
+            # does. Divided by the rest edge length it is dimensionless, so one
+            # value means the same on the fetus and the baby model despite the
+            # ~5000x scale gap between them. 0 disables the term.
+            stiffness: 0.0
+        projection: {name: none}
+        # prior is supplied per model below - it is the one hyperparameter
+        # that cannot be shared, see the calibration note.
+        solver: {name: gradient,
+                 kwargs: {optimizer: adam, lr: 1.0e-1, iterations: 10,
+                          tolerance: 1.0e-8, patience: 5, log_every: 25}}
+        refresh_every: 0         # no effect: this loss re-pairs every evaluation
+  verbose: true

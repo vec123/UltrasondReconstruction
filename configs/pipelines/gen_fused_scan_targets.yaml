@@ -20,6 +20,11 @@
 # The predictor writes 1mm isotropic volumes with origin 0 and identity
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
 
+# Default stage files: an entry of these stages without its own `config:` takes
+# its hyperparameters from them (see src/shared/core/pipeline/engine.py).
+stage_configs:
+  recon_target_distance: evaluation/fields/recon_target_distance.yaml
+
 stages:
   - name: nrrd_to_vtp
     config: ultrasound/stages/01_nrrd_to_vtp.yaml
@@ -111,12 +116,6 @@ paths:
     output_dir: scan_fusion_ssm.output_dir + /eval
 
 hyperparameters:
-  recon_target_distance:
-    units: mm (original scan frame)
-    # Share of points within each of these distances, per direction, in mm.
-    coverage_thresholds: [1.0, 2.0, 3.0]
-    landmark_metric: []
-
   # The fetus PCA fit whose NICP mesh (map_1x) is the fusion's reference topology.
   # Weight calibrated in end_to_end_casos_mar.yaml:
   # L=183 modes, chi2_99=230.4, sigma_n^2=10.13, lambda_max=1.86, P=2058 pairs

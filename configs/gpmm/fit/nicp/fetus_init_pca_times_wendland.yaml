@@ -1,0 +1,34 @@
+# fetus_ssm_fit_init_pca_times_wendland: only what differs from gpmm/fit/nicp/ssm_fit_common.yaml.
+stage: ssm_fit
+extends: gpmm/fit/nicp/ssm_fit_common.yaml
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  inputs: {shape_model_mat: '${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_times_wendland.npz', mesh_vtp: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp',
+    landmarks_json: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', template_vtp: '${PROJECT_ROOT}/assets/templates/fetus_mean.vtp'}
+  outputs: {dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland'}
+
+# What a pipeline takes over (on top of gpmm/fit/nicp/ssm_fit_common.yaml).
+hyperparameters:
+  nicp:
+    fits:
+    - name: map_1x
+      correspondence:
+        name: constrained
+        kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50, use_target_normals: true, one_to_one: true}
+      loss:
+        name: matched_l2
+        kwargs: {reduction: mean}
+      prior:
+        name: mahalanobis
+        kwargs: {weight: 0.06271, normalize: true}
+      projection: {name: none}
+      solver:
+        name: normal_equations
+        kwargs: {iterations: 10, learning_rate: 1.0, damping: 0}
+      refresh_every: 1

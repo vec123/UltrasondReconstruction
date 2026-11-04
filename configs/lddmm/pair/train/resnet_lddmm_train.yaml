@@ -1,0 +1,129 @@
+stage: resnet_lddmm_train
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  {source: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/baby_mean_aligned.vtp', target: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/fused_scan_ssm/fused_scan.vtp',
+    landmarks: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}'}
+
+# What a pipeline takes over.
+hyperparameters:
+  field: &resnet_lddmm_field
+    kind: time_varying_fourier
+    num_steps: 20
+    mlp: [128,128]
+    activation: relu
+    fourier_n_e: 3
+    fourier_anneal: {start: 500, end: 900}
+
+  #field:
+  #  kind: time_varying_local
+  #  num_steps: 20
+  #  mlp: [128,128]
+  #  activation: relu
+  #  fourier_n_e: 0                 # coarse = plain baseline (or 3 + fourier_anneal)
+  #  local:
+  #    landmarks: [aL, aR, acL, acR, prn]
+  #    radius_mm: 5                 # full strength: nose plus room to widen
+  #    falloff_mm: 3                 # zero beyond 18 mm
+  #    mlp: [128, 128]
+  #    fourier_n_e: 5               # detail down to ~8 mm; keep <= 5
+  #    fourier_anneal: {start: 300, end: 800}   # for steps: 1000
+  code:
+    kind: none
+    position_aware: true
+    conditioning_method: concat
+    grid: 16
+  loss:
+    #data_name: field_weighted_chamfer
+    data_name: field_weighted_point2plane_chamfer
+    data_kwargs:
+      #seems to measure how well the template fits the target
+      source_to_target:
+        weight: 1
+        base_sigma: 0.01
+        field_name: landmark_weight
+        #field_name: null
+        loss_distance_handle:
+          kind: truncated
+          breakpoint: 0.1
+          power: 1
+      #seems to measure how well the target fits the template
+      target_to_source: 
+        weight: 1
+        base_sigma: 0.01
+        field_name: support
+        inherit_source_field: false
+        loss_distance_handle:
+          power: 2
+          kind: quadratic
+          breakpoint: 0.1
+    kinetic_weight: 2000.0
+    kinetic_field_weight: 0.0
+    kinetic_field_kwargs:
+      field_name: kinetic_weight
+      normalize: true
+    # Windowed functional-varifold ("fshape") term around the nose, ON TOP of the
+    # chamfer data term: compares the template's transported curvature with the
+    # target's, so crease tissue landing on flat target is penalised. Set
+    # signal: none for the plain-varifold control run. 0 = off. losses/fshape.py
+    fshape_weight: 0.0             # ~0.93 at identity -> ~19, vs data ~100 at start
+    fshape_kwargs:
+      landmarks: [aL, aR, acL, acR, prn, sn]   # window centre = their mean
+      radius_mm: 10                            # full strength
+      falloff_mm: 8                            # zero beyond 18 mm
+      margin_mm: 4                             # template crop beyond the window
+      sigma_mm: [4.0, 2.0]                     # position kernel scales
+      signal: curvedness                       # curvedness | mean_curvature | none
+      signal_normalize: rank                   # compare percentiles: the scan is noisier than the template
+      sigma_signal: 0.3                        # in percentile units
+      curvature_radius_mm: 3.0                 # curvature smoothing scale
+      n_faces: 1500                            # triangles per mesh; ~0.2 s per step on CPU
+    code_reg_weight: 0.0
+    isometry_weight: 0.0
+    isometry_type: det
+    landmark_weight: 1.0
+    landmark_kwargs:
+      label_weights:
+        chL: 0.0
+        chR: 0.0
+        cphL: 0.0
+        cphR: 0.0
+          
+        li: 0.0
+        pg: 0.0
+        sl: 0.0
+          
+      hard_precision:
+      #n: 1000000
+        exL: 1000000.0
+        exR: 1000000.0
+        n:  1000000.0
+        ls:  1000000.0
+        prn:  1000000.0
+        sn: 1000000.0
+        acR:  1000000.0
+        acL:  1000000.0
+        aL:  1000000.0
+        aR:  1000000.0
+        enL: 1000000.0
+        enR:  1000000.0
+
+    subsample_M: 1000
+    save_full: false
+    direction: forward
+  train:
+    mode: pair
+    steps: 1000
+    batch: 4
+    lr: 0.0001
+    seed: 42
+    log_every: 10
+    save_every: 100
+    val_every: 0
+    export_shapes: 2
+    export_strategy: sequential

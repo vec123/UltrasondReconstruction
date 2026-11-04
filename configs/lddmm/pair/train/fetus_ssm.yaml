@@ -1,0 +1,47 @@
+# resnet_lddmm_train_fetus_ssm (it lacks keys of its base, so written out in full).
+stage: resnet_lddmm_train
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  {source: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/fetus_mean_aligned.vtp', target: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/fused_scan_ssm/fused_scan.vtp',
+    landmarks: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_fetus_ssm/${SUBJECT_ID}/${WEEK}'}
+
+# What a pipeline takes over.
+hyperparameters:
+  field:
+    kind: time_varying
+    num_steps: 10
+    mlp: [246]
+    activation: relu
+  code: {kind: none, position_aware: true, conditioning_method: concat, grid: 16}
+  loss:
+    data_name: field_weighted_point2plane_chamfer
+    data_kwargs:
+      source_to_target:
+        weight: 1
+        base_sigma: 0.1
+        field_name: landmark_weight
+        loss_distance_handle: {kind: quadratic}
+      target_to_source:
+        weight: 1.0
+        base_sigma: 0.01
+        field_name: support
+        loss_distance_handle: {kind: truncated, breakpoint: 0.04}
+    kinetic_weight: 500.0
+    code_reg_weight: 0.0
+    isometry_weight: 0.0
+    isometry_type: strain
+    landmark_weight: 1
+    landmark_kwargs:
+      label_weights: {exL: 1.0, exR: 1.0, n: 1.0, ls: 1.0, prn: 1.0, sn: 1.0, acR: 1.0, acL: 1.0, aL: 1.0, aR: 1.0, enL: 1.0,
+        enR: 1.0, pg: 1.0}
+    subsample_M: 1000
+    save_full: false
+    direction: forward
+  train: {mode: pair, steps: 2000, batch: 4, lr: 0.0001, seed: 42, log_every: 10, save_every: 100, val_every: 0, export_shapes: 2,
+    export_strategy: sequential}

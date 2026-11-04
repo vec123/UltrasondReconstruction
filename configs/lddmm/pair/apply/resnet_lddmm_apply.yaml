@@ -1,0 +1,21 @@
+stage: resnet_lddmm_apply
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  {train_config: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/config.json', checkpoint: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/checkpoints',
+    output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/apply'}
+
+# What a pipeline takes over.
+hyperparameters:
+  device: cpu
+  chunk_size: 0  # 0 = integrate every point in one batch; raise if this OOMs on a denser template
+  export:
+    deformed: true
+    trajectory: false
+    references: true
+    spaces: [world, normalized]

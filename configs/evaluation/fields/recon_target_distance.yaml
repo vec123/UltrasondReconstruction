@@ -1,0 +1,30 @@
+# Applies to every recon_target_distance_* id (cli.py falls back from the id
+# to the stage name). `units` is only a label - it does not rescale anything;
+# it has to match whatever frame that id's landmarks_path is in, which for
+# all of them is align_to_reference's aligned_landmarks (original scan mm).
+# `landmark_metric` is the 3x3 M of the landmark Mahalanobis distance in
+# landmark_distances.json; unset it is the identity, i.e. Euclidean.
+# The overlay stage reads back meshes recon_target_distance wrote, so it
+# inherits that stage's frame - but not its config, hence the same label
+# again here (its own default still says "landmark frame units").
+stage: recon_target_distance
+
+# The case for a run of this file alone (python scripts/run.py <this file>).
+variables:
+  SUBJECT_ID: 1
+  WEEK: 20 semanas
+  REFERENCE_SCAN: 1-20s-01
+
+# Only for a run of this file alone: a pipeline that names it gives its own paths.
+paths:
+  {target_path: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/rigid_alignment.vtp',
+    recon_path: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/init_shape.vtp', landmarks_path: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_landmarks/${REFERENCE_SCAN}_landmarks.csv',
+    output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape'}
+
+# What a pipeline takes over.
+hyperparameters:
+  units: mm (original scan frame)
+  # Share of points within each of these distances, per direction. In the
+  # units above, so these are millimetres.
+  coverage_thresholds: [1.0, 2.0, 3.0]
+  landmark_metric: []
