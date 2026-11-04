@@ -21,10 +21,32 @@ from src.shared.core.paths import get_project_root
 # `align_to_reference.aligned_shapes_vtp_dir` - a dotted chain of identifiers,
 # nothing else (so it never collides with a `${...}` or `/`-containing path).
 REFERENCE_PATTERN = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+$")
+# One ``${NAME}`` placeholder.
+VARIABLE_PATTERN = re.compile(r"\$\{([A-Za-z_]\w*)\}")
+
+
+def expand_known(text: str, variables: Dict[str, str]) -> str:
+    """Substitutes the ``${NAME}`` of ``text`` that ``variables`` has, and keeps the others.
+
+    A value may hold ``${NAME}`` placeholders itself; they are substituted too,
+    so a variable can be built from other variables, in any order.
+
+    Raises:
+        ValueError: if variables refer to each other in a loop
+    """
+    def expand(match, chain):
+        name = match.group(1)
+        if name in chain:
+            raise ValueError(f"The variables refer to each other in a loop: {' -> '.join(chain + (name,))}.")
+        if name not in variables:
+            return match.group(0)
+        return VARIABLE_PATTERN.sub(lambda m: expand(m, chain + (name,)), str(variables[name]))
+
+    return VARIABLE_PATTERN.sub(lambda m: expand(m, ()), text)
 
 
 def substitute_variables(text: str, variables: Dict[str, str], hint: str = "") -> str:
-    """Substitutes ``${NAME}`` in one string.
+    """Substitutes ``${NAME}`` in one string, also inside the values (see expand_known).
 
     Args:
         text: the string to substitute into
@@ -34,8 +56,7 @@ def substitute_variables(text: str, variables: Dict[str, str], hint: str = "") -
     Raises:
         ValueError: if a ``${...}`` placeholder has no matching variable
     """
-    for name, replacement in variables.items():
-        text = text.replace(f"${{{name}}}", replacement)
+    text = expand_known(text, variables)
     if "${" in text:
         raise ValueError(
             f"Unresolved '${{...}}' placeholder in '{text}'. "

@@ -19,6 +19,7 @@ typo'd YAML key should never just run with whatever default nobody chose.
 
     loading.py    load_yaml, reject_unknown_keys
     variables.py  ${NAME} substitution, cross-stage references, path_variables
+    patterns.py   find_paths: the existing paths that fit a pattern, and their variables
     binder.py     from_dict, load_config
     client.py     ConfigClient, ConfigError
 """
@@ -27,15 +28,19 @@ from src.shared.core.config.binder import from_dict, load_config
 from src.shared.core.config.client import ConfigClient, ConfigError
 from src.shared.core.config.loading import load_yaml, reject_unknown_keys
 from src.shared.core.config.variables import (
+    expand_known,
     interpolate,
     interpolate_paths,
     path_variables,
     substitute_variables,
 )
+from src.shared.core.config.patterns import find_paths
 
 __all__ = [
     "ConfigClient",
     "ConfigError",
+    "expand_known",
+    "find_paths",
     "from_dict",
     "interpolate",
     "interpolate_paths",

@@ -17,8 +17,9 @@ one of the same stage and hold only what differs from it.
 
 import os
 
-from src.shared.core.config import from_dict, interpolate, interpolate_paths, load_yaml, path_variables
+from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
 from src.shared.core.paths import get_project_root
+from src.shared.core.pipeline.cases import with_case_key
 
 CONFIGS_DIR = "configs"
 SECTIONS = ("paths", "hyperparameters")
@@ -40,19 +41,20 @@ def _bind_stage_config(registry, stage_name, raw, source):
 def _variables(yaml_variables, extra_vars, source):
     """The ``${NAME}`` variables of a run: PROJECT_ROOT/DATA_ROOT (.env), then the YAML's
     own ``variables:`` block, then ``extra_vars`` (--set, the batch runner), each
-    overriding the ones before. A YAML variable may use PROJECT_ROOT/DATA_ROOT."""
+    overriding the ones before, and CASE_KEY (cases.py) when there is a SUBJECT_ID.
+    A variable may use any other variable; it is filled in where a path uses it."""
     base = path_variables()
     if yaml_variables is None:
         yaml_variables = {}
     if not isinstance(yaml_variables, dict):
         raise ValueError(f"'variables:' in '{source}' must be a mapping of NAME: value, "
                          f"got {type(yaml_variables).__name__}.")
-    own = {str(name): interpolate(str(value), base) for name, value in yaml_variables.items()}
+    own = {str(name): str(value) for name, value in yaml_variables.items()}
     clash = sorted(set(own) & set(base))
     if clash:
         raise ValueError(f"'variables:' in '{source}' redefines {clash}, which the repo's .env sets; "
                          f"remove them there (every path of the run would silently move).")
-    return {**base, **own, **(extra_vars or {})}
+    return with_case_key({**base, **own, **(extra_vars or {})})
 
 
 def _deep_merge(base, override):
