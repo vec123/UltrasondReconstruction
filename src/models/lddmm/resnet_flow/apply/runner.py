@@ -56,6 +56,7 @@ from src.models.lddmm.resnet_flow.runner import (
 from src.models.lddmm.outputs import ApplyOutputFiles
 
 _FILES = ApplyOutputFiles()
+MEAN_RECON = "mean_recon"
 
 
 def run(apply_cfg: ApplyCfg):
@@ -125,8 +126,11 @@ def run_cohort(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef):
         train_cfg: the run's ExperimentCfg (train.mode == "cohort")
         ref: the resolved CheckpointRef
 
+    With ``cfg.mean_code`` the template is also deformed with the mean of all member
+    codes, and written to <output_dir>/mean_recon (no reference files: it has no sample).
+
     Returns:
-        {member name: (deformation, manifest)}
+        {member name: (deformation, manifest)}; the mean recon under MEAN_RECON
     """
     kind = train_cfg.code.kind
     if kind not in ("none", "auto_decoder"):
@@ -169,6 +173,26 @@ def run_cohort(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef):
             json.dump(manifest, f, indent=2)
         results[name] = (deformation, manifest)
         print(f"[apply] {name} (code {i}) -> {member_cfg.output_dir}")
+
+    if cfg.mean_code:
+        if codes is None:
+            raise ValueError("mean_code needs learned codes: code.kind 'auto_decoder'")
+        mean_cfg = dataclass_replace(
+            cfg, output_dir=os.path.join(cfg.output_dir, MEAN_RECON),
+            export=dataclass_replace(cfg.export, references=False),
+        )
+        client = DeformationClient.from_checkpoint(
+            train_cfg, checkpoint, transform, code=codes.mean(dim=0, keepdim=True),
+            pose=(None, None), device=cfg.device, chunk_size=cfg.chunk_size,
+        )
+        deformation = client.deform(template)
+        written = export(deformation, mean_cfg, template_norm=template_norm, sample_norm=None)
+        manifest = write_manifest(mean_cfg, train_cfg, ref, checkpoint, deformation, written)
+        manifest["mean_of_codes"] = len(codes)
+        with open(os.path.join(mean_cfg.output_dir, _FILES.manifest), "w") as f:
+            json.dump(manifest, f, indent=2)
+        results[MEAN_RECON] = (deformation, manifest)
+        print(f"[apply] {MEAN_RECON} (mean of {len(codes)} codes) -> {mean_cfg.output_dir}")
     return results
 
 
@@ -216,7 +240,7 @@ def resolve_conditioning(train_cfg: ExperimentCfg, checkpoint: dict, sample: Sha
 
 
 def export(deformation: Deformation, cfg: ApplyCfg, template_norm: Shape,
-           sample_norm: Shape):
+           sample_norm: Optional[Shape]):
     """Write the requested artefacts, once per requested coordinate space.
 
     Layout, under cfg.output_dir::
@@ -236,7 +260,7 @@ def export(deformation: Deformation, cfg: ApplyCfg, template_norm: Shape,
         deformation: from DeformationClient.deform
         cfg: RESOLVED ApplyCfg (output_dir is not None)
         template_norm: the deformed shape's input, normalised, for reference export
-        sample_norm: the run's target, normalised, for reference export
+        sample_norm: the run's target, normalised, for reference export (None without export.references)
 
     Returns:
         List of written paths

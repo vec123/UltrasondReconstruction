@@ -91,7 +91,10 @@ class ApplyCfg:
             mode -- now at full resolution because nothing subsamples at inference.
         shapes: cohort runs only: the members (file names without extension, as in
             the training source folder) whose learned code the template is deformed
-            with, each written to <output_dir>/<name>. None means every member.
+            with, each written to <output_dir>/<name>. None means every member;
+            an empty list means none.
+        mean_code: cohort runs with learned codes only: also deform the template with
+            the mean of all member codes, written to <output_dir>/mean_recon.
         device: torch device string for the flow and the points.
         chunk_size: split the cloud into chunks of this many points and integrate
             them separately, to bound peak memory on a large template. 0 disables.
@@ -108,13 +111,14 @@ class ApplyCfg:
     chunk_size: int = 0
     export: ExportCfg = dataclass_field(default_factory=ExportCfg)
     shapes: Optional[Tuple[str, ...]] = None
+    mean_code: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> "ApplyCfg":
         """Create an ApplyCfg from a parsed YAML mapping, erroring on unknown keys."""
         reject_unknown_keys(d, {
             "train_config", "checkpoint", "step", "output_dir", "template", "device",
-            "chunk_size", "export", "shapes",
+            "chunk_size", "export", "shapes", "mean_code",
         }, what="apply config")
 
         for required in ("train_config", "checkpoint"):
@@ -144,6 +148,7 @@ class ApplyCfg:
             chunk_size=chunk_size,
             export=ExportCfg.from_dict(d.get("export", {})),
             shapes=None if d.get("shapes") is None else tuple(d["shapes"]),
+            mean_code=bool(d.get("mean_code", False)),
         )
 
     def resolved(self, train_cfg: ExperimentCfg, checkpoint: CheckpointRef) -> "ApplyCfg":

@@ -1,0 +1,23 @@
+stage: resnet_lddmm_apply
+
+# The template deformed with the mean of all member codes, for two runs. Only the
+# mean: shapes is empty, so no member is applied again. The result is
+# <run>/apply/mean_recon/world/deformed.vtp.
+variables:
+  RUNS_DIR: ${PROJECT_ROOT}/outputs/direct_flow
+
+targets:
+  cases:
+  - {RUN: timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+  - {RUN: timevarying-mlp2x128-kin5000_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+
+train_config: ${RUNS_DIR}/${RUN}/config.json
+checkpoint: ${RUNS_DIR}/${RUN}/checkpoints
+device: cuda
+shapes: []
+mean_code: true
+export:
+  deformed: true
+  trajectory: false
+  references: false
+  spaces: [world]
