@@ -36,7 +36,7 @@ import torch
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
+from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402

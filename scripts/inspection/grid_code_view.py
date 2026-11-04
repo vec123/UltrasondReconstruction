@@ -23,7 +23,7 @@ import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
 from scripts.inspection.code_pca_views import target_path  # noqa: E402
-from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, mesh_actor, text_actor, view_camera  # noqa: E402
+from src.shared.vtk.render import MESH_COLOR, SCAN_COLOR, mesh_actor, text_actor, view_camera  # noqa: E402
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.models.lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights  # noqa: E402
 from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402

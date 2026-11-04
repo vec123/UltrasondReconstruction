@@ -26,7 +26,7 @@ import torch
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
+from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.code_pca_views import similarity_map, template_landmarks  # noqa: E402
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.models.lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
@@ -184,12 +184,6 @@ def main():
     meshes = {key: with_points(template, p) for key, p in points.items()}
     frontal, left, right = (views.view_camera(lmk, list(meshes.values()), view) for view in ("frontal", "left", "right"))
 
-    # The displacement rows reuse add_panel's mesh slot with an already coloured actor.
-    plain_actor = views.mesh_actor
-    def mesh_or_heat(poly, color):
-        return heat_actor(poly) if poly.GetPointData().GetScalars() is not None else plain_actor(poly, color)
-    views.mesh_actor = mesh_or_heat
-
     rows = []
     for k in COMPONENTS:
         mean_points = points[(k, 0.0)]
@@ -200,7 +194,7 @@ def main():
             rows.append((side, [(t, meshes[(k, s)], views.MESH_COLOR, []) for t, s in zip(titles, STEPS)]))
         heat = [with_points(template, points[(k, s)], np.sum((points[(k, s)] - mean_points) * normals, axis=1))
                 for s in STEPS]
-        rows.append((frontal, [(f"{t}: normal shift", h, views.MESH_COLOR, []) for t, h in zip(titles, heat)]))
+        rows.append((frontal, [(f"{t}: normal shift", h, heat_actor, []) for t, h in zip(titles, heat)]))
 
     region_name = args.region_name or "_".join(region or [])
     suffix = f"_region_{region_name}" if region else ""

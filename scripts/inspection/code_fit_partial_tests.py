@@ -46,8 +46,7 @@ import numpy as np
 import torch
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
-import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels: colour None draws the point scalars)
+from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from src.shared.core.config import load_yaml  # noqa: E402
 from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402

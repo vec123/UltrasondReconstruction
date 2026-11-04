@@ -27,7 +27,7 @@ import vtk
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
+from src.shared.vtk import render as views  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
@@ -35,24 +35,6 @@ from src.shared.vtk.io import load_vtp  # noqa: E402
 # Sequential ramp, light (std 0) -> dark (std-max and above).
 STD_RAMP = ("#fff5d6", "#fdd98b", "#f9a94b", "#e8712c", "#c44620", "#8f2618", "#561410")
 OBSERVED_COLOR = (0.45, 0.65, 0.88)
-
-
-def _mesh_actor(poly, color):
-    """render_frontal_views.mesh_actor, plus color=None: colour by the poly's RGB scalars."""
-    if color is not None:
-        return _plain_mesh_actor(poly, color)
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(poly)
-    mapper.ScalarVisibilityOn()
-    mapper.SetColorModeToDirectScalars()
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetSpecular(0.2)
-    return actor
-
-
-_plain_mesh_actor = views.mesh_actor
-views.mesh_actor = _mesh_actor   # add_panel looks it up at call time
 
 
 def ramp_colors(values, max_value):

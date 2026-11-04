@@ -16,7 +16,7 @@ shared by the row, so the panels compare at the same scale):
     (bottom three rows).
 
 The SSM lives in units of about 0.02 (bbox diagonal); the points are scaled by
-RENDER_SCALE for rendering, because render_frontal_views' camera works in millimetres.
+RENDER_SCALE for rendering, because the camera of src/shared/vtk/render.py works in millimetres.
 
 Run with:
     python scripts/inspection/render_ssm_cohort_views.py \\
@@ -35,10 +35,9 @@ import os
 
 import numpy as np
 import torch
-import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
+from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import decode, load_run  # noqa: E402
 from scripts.SSM.sample_cohort import draw_cohort  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import cohort_paths  # noqa: E402
@@ -49,24 +48,6 @@ RENDER_SCALE = 1e4         # model units -> about millimetres (bbox diagonal 0.0
 VIEWS = ("frontal", "left", "right")
 # Sequential blue ramp, light (no error) -> dark (max error).
 ERROR_RAMP = ("#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b")
-
-
-def _mesh_actor(poly, color):
-    """render_frontal_views.mesh_actor, plus color=None: colour by the poly's RGB scalars."""
-    if color is not None:
-        return _plain_mesh_actor(poly, color)
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(poly)
-    mapper.ScalarVisibilityOn()
-    mapper.SetColorModeToDirectScalars()
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetSpecular(0.2)
-    return actor
-
-
-_plain_mesh_actor = views.mesh_actor
-views.mesh_actor = _mesh_actor   # add_panel looks it up at call time
 
 
 def error_colors(err, max_err):

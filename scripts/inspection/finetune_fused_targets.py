@@ -66,8 +66,7 @@ import torch.nn as nn
 from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection import render_frontal_views as views  # noqa: E402
-import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
+from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa: E402
 from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402

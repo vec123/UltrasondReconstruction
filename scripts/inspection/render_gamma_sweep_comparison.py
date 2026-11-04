@@ -17,7 +17,7 @@ import re
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
+from src.shared.vtk.render import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
 LANDMARK_NAMES = [

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
-from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
+from src.shared.vtk.render import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
 from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
