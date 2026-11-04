@@ -72,7 +72,8 @@ from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa:
 from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import faces_of, ramp_colors, with_colors  # noqa: E402
-from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
+from src.shared.transforms.similarity import umeyama_similarity_transform  # noqa: E402
+from src.shared.vtk.transform import decompose_similarity_transform  # noqa: E402
 from src.models.lddmm.resnet_flow.fields.fourier import FourierStationaryField  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
@@ -320,7 +321,8 @@ def main():
     aligned = load_vtp(args.aligned_template)
     aligned_pts = vtk_to_numpy(aligned.GetPoints().GetData()).astype(np.float64)
     face_w = vtk_to_numpy(aligned.GetPointData().GetArray("landmark_weight")).astype(np.float64)
-    s, rot, trans = similarity(model.mean.reshape(-1, 3), aligned_pts)   # aligned = s R mean + t
+    # aligned = s R mean + t
+    s, rot, trans = decompose_similarity_transform(umeyama_similarity_transform(model.mean.reshape(-1, 3), aligned_pts))
 
     _, flow, train_codes, _, template_norm, transform = load_run(args.run, args.step, device)
     for p in flow.parameters():

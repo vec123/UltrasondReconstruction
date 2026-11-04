@@ -33,20 +33,11 @@ from pathlib import Path
 import numpy as np
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
+from src.shared.transforms.similarity import umeyama_similarity_transform
 from src.shared.vtk.io import load_vtp, save_vtp
+from src.shared.vtk.transform import decompose_similarity_transform
 
 VECTOR_ARRAYS = ("normal",)   # point arrays that rotate with the frame
-
-
-def similarity(a, b):
-    """(s, R, t) with b ~ s R a + t, least squares (Umeyama)."""
-    mu_a, mu_b = a.mean(0), b.mean(0)
-    a0, b0 = a - mu_a, b - mu_b
-    u, d, vt = np.linalg.svd(b0.T @ a0 / len(a))
-    sign = np.diag([1.0, 1.0, np.sign(np.linalg.det(u @ vt))])
-    rot = u @ sign @ vt
-    scale = np.trace(np.diag(d) @ sign) / (a0 ** 2).sum(1).mean()
-    return scale, rot, mu_b - scale * rot @ mu_a
 
 
 def points_of(poly):
@@ -69,7 +60,7 @@ def main():
     a, b = points_of(model_t), points_of(aligned_t)
     if a.shape != b.shape:
         raise ValueError(f"templates differ in vertex count: {a.shape} vs {b.shape}")
-    scale, rot, trans = similarity(a, b)
+    scale, rot, trans = decompose_similarity_transform(umeyama_similarity_transform(a, b))
     residual = np.linalg.norm(scale * a @ rot.T + trans - b, axis=1)
     print(f"similarity: scale {scale:.2f}, residual mean {residual.mean():.2e} max {residual.max():.2e} (aligned units)")
 

@@ -34,10 +34,11 @@ from pathlib import Path
 import numpy as np
 
 from scripts.SSM.sample_cohort import draw_cohort
-from scripts.SSM.target_to_ssm_frame import similarity
 from src.models.gpmm.model.model_memory_io import load_model_file
+from src.shared.transforms.similarity import umeyama_similarity_transform
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.io import save_vtp
+from src.shared.vtk.transform import decompose_similarity_transform
 
 
 def main():
@@ -68,7 +69,8 @@ def main():
     shared = [n for n in baby_names if n in lmk_fetus]
     a = fetus.mean.reshape(-1, 3)[[lmk_fetus[n] for n in shared]]
     b = baby.mean.reshape(-1, 3)[[baby_idx[baby_names.index(n)] for n in shared]]
-    scale, rot, trans = similarity(a, b)                                 # baby ~ scale R fetus + t
+    # baby ~ scale R fetus + t
+    scale, rot, trans = decompose_similarity_transform(umeyama_similarity_transform(a, b))
     residual = np.linalg.norm(scale * a @ rot.T + trans - b, axis=1)
     print(f"fetus -> baby similarity on {len(shared)} landmarks ({', '.join(shared)}): scale {scale:.3g}, "
           f"landmark residual mean {residual.mean():.2e} max {residual.max():.2e} (baby units)")
