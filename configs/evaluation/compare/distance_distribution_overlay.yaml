@@ -11,19 +11,20 @@ stage: distance_distribution_overlay
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
   sources:
-  - {label: Fetus mean shape, eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape'}
-  - {label: Fetus PCA (MAP), eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/eval_map'}
-  - {label: Fetus PCA sum Matern32 (MAP), eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32/eval_map'}
-  - {label: Baby mean shape, eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape'}
-  - {label: Baby PCA (MAP), eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/eval_map'}
-  - {label: Baby PCA sum Matern32 (MAP), eval_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32/eval_map'}
-  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fit_summaries/${SUBJECT_ID}/${WEEK}/prefusion_ssm
+  - {label: Fetus mean shape, eval_dir: '${OUT}/fetus_ssm/${SESSION}/end_to_end/eval_init_mean_shape'}
+  - {label: Fetus PCA (MAP), eval_dir: '${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/eval_map'}
+  - {label: Fetus PCA sum Matern32 (MAP), eval_dir: '${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_sum_matern32/eval_map'}
+  - {label: Baby mean shape, eval_dir: '${OUT}/baby_ssm/${SESSION}/end_to_end/eval_init_mean_shape'}
+  - {label: Baby PCA (MAP), eval_dir: '${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca/eval_map'}
+  - {label: Baby PCA sum Matern32 (MAP), eval_dir: '${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_sum_matern32/eval_map'}
+  output_dir: ${OUT}/fit_summaries/${SESSION}/prefusion_ssm
   log_y: true
 
 # What a pipeline takes over.

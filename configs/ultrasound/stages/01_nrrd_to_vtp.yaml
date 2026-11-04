@@ -5,15 +5,16 @@ stage: nrrd_to_vtp
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
 paths:
-  input_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}
-  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}
-  cache_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/Cache
+  input_dir: ${SCANS_DIR}
+  output_dir: ${OUT}/${SESSION}
+  cache_dir: ${OUT}/${SESSION}/Cache
 
 # What a pipeline takes over with `config: ultrasound/stages/01_nrrd_to_vtp.yaml`.
 hyperparameters:

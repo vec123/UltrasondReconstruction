@@ -11,15 +11,16 @@ stage: recon_target_distance
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
   REFERENCE_SCAN: 1-20s-01
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  {target_path: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/rigid_alignment.vtp',
-    recon_path: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/init_shape.vtp', landmarks_path: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_landmarks/${REFERENCE_SCAN}_landmarks.csv',
-    output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape'}
+  {target_path: '${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/rigid_alignment.vtp',
+    recon_path: '${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/init_shape.vtp', landmarks_path: '${OUT}/${SESSION}/aligned/aligned_landmarks/${REFERENCE_SCAN}_landmarks.csv',
+    output_dir: '${OUT}/fetus_ssm/${SESSION}/end_to_end/eval_init_mean_shape'}
 
 # What a pipeline takes over.
 hyperparameters:

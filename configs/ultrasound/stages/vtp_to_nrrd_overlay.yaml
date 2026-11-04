@@ -3,6 +3,7 @@ stage: vtp_to_nrrd_overlay
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
@@ -10,131 +11,131 @@ variables:
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  nrrd_path: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}/${REFERENCE_SCAN}.nrrd
-  output_path: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_ssm/${SUBJECT_ID}/${WEEK}/overlay/recon_overlay.nrrd
-  label_maps_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_ssm/${SUBJECT_ID}/${WEEK}/overlay/recon_overlay_labels
+  nrrd_path: ${SCANS_DIR}/${REFERENCE_SCAN}.nrrd
+  output_path: ${OUT}/resnet_lddmm_baby_ssm/${SESSION}/overlay/recon_overlay.nrrd
+  label_maps_dir: ${OUT}/resnet_lddmm_baby_ssm/${SESSION}/overlay/recon_overlay_labels
   layers:
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_ssm/${SUBJECT_ID}/${WEEK}/apply/world/deformed.vtp
+  - vtp_path: ${OUT}/resnet_lddmm_baby_ssm/${SESSION}/apply/world/deformed.vtp
     name: Reconstruction (Baby SSM)
     line_color: [255, 255, 0]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/apply/world/deformed.vtp
+  - vtp_path: ${OUT}/resnet_lddmm_baby_mean/${SESSION}/apply/world/deformed.vtp
     name: Reconstruction (Baby Mean)
     line_color: [255, 165, 0]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_fetus_ssm/${SUBJECT_ID}/${WEEK}/apply/world/deformed.vtp
+  - vtp_path: ${OUT}/resnet_lddmm_fetus_ssm/${SESSION}/apply/world/deformed.vtp
     name: Reconstruction (Fetus SSM)
     line_color: [0, 255, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_fetus_mean/${SUBJECT_ID}/${WEEK}/apply/world/deformed.vtp
+  - vtp_path: ${OUT}/resnet_lddmm_fetus_mean/${SESSION}/apply/world/deformed.vtp
     name: Reconstruction (Fetus Mean)
     line_color: [255, 0, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Fetus init, PCA, MAP)
     line_color: [100, 180, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Fetus init, PCA, P2Plane Chamfer)
     line_color: [0, 90, 200]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Fetus init, PCA x Gaussian, MAP)
     line_color: [120, 230, 230]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Fetus init, PCA x Gaussian, P2Plane Chamfer)
     line_color: [0, 150, 150]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Fetus init, PCA x Wendland, MAP)
     line_color: [150, 150, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Fetus init, PCA x Wendland, P2Plane Chamfer)
     line_color: [60, 60, 210]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby init, PCA, MAP)
     line_color: [255, 210, 120]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby init, PCA, P2Plane Chamfer)
     line_color: [210, 150, 0]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby init, PCA x Gaussian, MAP)
     line_color: [255, 150, 110]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby init, PCA x Gaussian, P2Plane Chamfer)
     line_color: [200, 80, 20]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby init, PCA x Wendland, MAP)
     line_color: [220, 180, 140]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby init, PCA x Wendland, P2Plane Chamfer)
     line_color: [150, 100, 40]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby fused, PCA, MAP)
     line_color: [255, 100, 180]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby fused, PCA, P2Plane Chamfer)
     line_color: [200, 0, 90]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_gaussian/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby fused, PCA x Gaussian, MAP)
     line_color: [230, 130, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_gaussian/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby fused, PCA x Gaussian, P2Plane Chamfer)
     line_color: [150, 0, 210]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_wendland/nicp_refined_vertices_map_1x.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_wendland/nicp_refined_vertices_map_1x.vtp
     name: SSM Fit (Baby fused, PCA x Wendland, MAP)
     line_color: [180, 120, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
+  - vtp_path: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_wendland/nicp_refined_vertices_p2plane_chamfer.vtp
     name: SSM Fit (Baby fused, PCA x Wendland, P2Plane Chamfer)
     line_color: [110, 0, 230]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/fused_scan_ssm/fused_scan.vtp
+  - vtp_path: ${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm/fused_scan.vtp
     name: Target (Fused Scan)
     line_color: [0, 255, 0]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
+  - vtp_path: ${OUT}/${SESSION}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
     name: Merged Scan (Raw)
     line_color: [255, 255, 255]
-    transform: {manifest_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
+    transform: {manifest_dir: '${OUT}/${SESSION}/aligned_to_template/transforms', subject_id: '${REFERENCE_SCAN}',
       apply_inverse: true}
-  - vtp_path: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/${REFERENCE_SCAN}.vtp
+  - vtp_path: ${OUT}/${SESSION}/${REFERENCE_SCAN}.vtp
     name: Isosurface (Raw NRRD)
     line_color: [255, 0, 0]
 

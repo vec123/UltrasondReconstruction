@@ -5,16 +5,17 @@ stage: scan_consistency
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
 paths:
-  input_aligned_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmark_bbox_cut
-  output_consistency_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/consistency_shapes_vtp
-  output_denoised_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/consistency_thresholds
-  output_merged_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/merged_high_confidence_scan
-  transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms
+  input_aligned_dir: ${OUT}/${SESSION}/aligned_to_template/landmark_bbox_cut
+  output_consistency_dir: ${OUT}/${SESSION}/consistency_shapes_vtp
+  output_denoised_dir: ${OUT}/${SESSION}/consistency_thresholds
+  output_merged_dir: ${OUT}/${SESSION}/merged_high_confidence_scan
+  transforms_dir: ${OUT}/${SESSION}/aligned_to_template/transforms
 
 # What a pipeline takes over with `config: ultrasound/stages/04_scan_consistency.yaml`.
 hyperparameters:

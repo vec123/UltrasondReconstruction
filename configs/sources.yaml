@@ -1,0 +1,30 @@
+# The layout of the data: where the files of a case are, written once.
+#
+# Every run (python scripts/run.py) reads these variables, after .env and
+# before the YAML's own variables:, so a YAML can change one of them, e.g.
+# SESSION: ${SUBJECT_ID} for a dataset without week folders. If the data moves,
+# change it here. A variable may use other variables (src/shared/core/config/variables.py),
+# and a targets: block can read a pattern backwards to find the cases
+# (src/shared/core/pipeline/targets.py):
+#
+#   targets:
+#     match: ${SCANS}
+#     first: [REFERENCE_SCAN]
+#
+# The case variables SUBJECT_ID and WEEK come from the YAML, the case or
+# --set; CASE_KEY (1_20_semanas) is made from them in code
+# (src/shared/core/pipeline/cases.py).
+variables:
+  # One case: subject and gestational age.
+  SESSION: ${SUBJECT_ID}/${WEEK}
+
+  # The landmark-predictor inference of a dataset: <CASES_ROOT>/<case>/<week>/*.nrrd.
+  SCANS_DIR: ${CASES_ROOT}/${SESSION}
+  SCANS: ${SCANS_DIR}/${REFERENCE_SCAN}.nrrd
+
+  # The fused-scan targets of a dataset (configs/pipelines/gen_fused_scan_targets.yaml).
+  FUSED_DIR: ${DATA_ROOT}/fused_scan_processing/${DATASET}/${SESSION}
+  FUSED_SCAN: ${FUSED_DIR}/fused_scan_ssm/fused_scan.vtp
+
+  # The outputs of this repo for a dataset.
+  OUT: ${PROJECT_ROOT}/outputs/${DATASET}

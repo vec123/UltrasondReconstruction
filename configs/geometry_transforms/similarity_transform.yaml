@@ -2,14 +2,15 @@ stage: similarity_transform
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
   REFERENCE_SCAN: 1-20s-01
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  {source_vtp: '${PROJECT_ROOT}/assets/templates/baby_mean.vtp', landmark_path: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv/${REFERENCE_SCAN}.csv',
-    output_path: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/baby_mean_aligned.vtp'}
+  {source_vtp: '${PROJECT_ROOT}/assets/templates/baby_mean.vtp', landmark_path: '${OUT}/${SESSION}/aligned_to_template/landmarks_csv/${REFERENCE_SCAN}.csv',
+    output_path: '${OUT}/${SESSION}/aligned_to_template/baby_mean_aligned.vtp'}
 
 # What a pipeline takes over.
 hyperparameters:

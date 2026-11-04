@@ -4,14 +4,15 @@ extends: gpmm/fit/nicp/ssm_fit_common.yaml
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  inputs: {shape_model_mat: '${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz', mesh_vtp: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp',
-    landmarks_json: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', template_vtp: '${PROJECT_ROOT}/assets/templates/baby_mean.vtp'}
-  outputs: {dir: '${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca'}
+  inputs: {shape_model_mat: '${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz', mesh_vtp: '${OUT}/${SESSION}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp',
+    landmarks_json: '${OUT}/${SESSION}/aligned_to_template/landmarks_csv', template_vtp: '${PROJECT_ROOT}/assets/templates/baby_mean.vtp'}
+  outputs: {dir: '${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca'}
 
 # What a pipeline takes over (on top of gpmm/fit/nicp/ssm_fit_common.yaml).
 hyperparameters:

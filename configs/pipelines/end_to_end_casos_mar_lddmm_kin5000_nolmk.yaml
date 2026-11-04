@@ -5,6 +5,10 @@
 # outputs of the same case/week - run that first. Same --set variables as the base.
 # Generated from end_to_end_casos_mar.yaml (comments and anchors are not kept).
 
+# The dataset of this pipeline: its outputs go to ${OUT} (configs/sources.yaml).
+variables:
+  DATASET: Casos_Mar
+
 # Default stage files: an entry of these stages without its own `config:` takes
 # its hyperparameters from them (see src/shared/core/pipeline/engine.py).
 stage_configs:
@@ -237,11 +241,11 @@ stages:
   enabled: false
 paths:
   nrrd_to_vtp:
-    input_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}
-    cache_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/Cache
+    input_dir: ${SCANS_DIR}
+    output_dir: ${OUT}/${SESSION}
+    cache_dir: ${OUT}/${SESSION}/Cache
   align_to_reference:
-    landmarks_csv_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}/LMKS
+    landmarks_csv_dir: ${SCANS_DIR}/LMKS
     vtp_shapes_dir: nrrd_to_vtp.output_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned
     raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
@@ -282,7 +286,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca
+      dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca
   fetus_ssm_fit_init_pca_times_gaussian:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_times_gaussian.npz
@@ -290,7 +294,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian
+      dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_gaussian
   fetus_ssm_fit_init_pca_times_wendland:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_times_wendland.npz
@@ -298,7 +302,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland
+      dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_times_wendland
   fetus_ssm_fit_init_pca_sum_matern32:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca_sum_matern32.npz
@@ -306,7 +310,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32
+      dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_sum_matern32
   baby_ssm_fit_init_pca:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
@@ -314,7 +318,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca
   baby_ssm_fit_init_pca_times_gaussian:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_gaussian.npz
@@ -322,7 +326,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_gaussian
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_gaussian
   baby_ssm_fit_init_pca_times_wendland:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_wendland.npz
@@ -330,7 +334,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_times_wendland
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_times_wendland
   baby_ssm_fit_init_pca_sum_matern32:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
@@ -338,12 +342,12 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/init_pca_sum_matern32
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca_sum_matern32
   fusion_target: scan_consistency.output_denoised_dir + /threshold_0.6
   scan_fusion_ssm:
     input_aligned_dir: scan_consistency.output_denoised_dir + /threshold_0.6
     reference_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/fused_scan_ssm
+    output_dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm
     transforms_dir: align_to_template.transforms_dir
   recon_target_distance_scan_fusion_ssm:
     target_path: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
@@ -357,7 +361,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca
   baby_ssm_fit_pca_times_gaussian:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_gaussian.npz
@@ -365,7 +369,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_gaussian
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_gaussian
   baby_ssm_fit_pca_times_wendland:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_times_wendland.npz
@@ -373,7 +377,7 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_times_wendland
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_times_wendland
   baby_ssm_fit_pca_sum_matern32:
     inputs:
       shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
@@ -381,22 +385,22 @@ paths:
       landmarks_json: align_to_template.out_landmarks_csv_dir
       template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
     outputs:
-      dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/pca_sum_matern32
+      dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/pca_sum_matern32
   recon_target_distance_fetus_init_mean_shape:
     target_path: fetus_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca.outputs.dir + /init_shape.vtp
     landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape
+    output_dir: ${OUT}/fetus_ssm/${SESSION}/end_to_end/eval_init_mean_shape
   recon_target_distance_baby_init_mean_shape:
     target_path: baby_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_init_pca.outputs.dir + /init_shape.vtp
     landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_init_mean_shape
+    output_dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/eval_init_mean_shape
   recon_target_distance_baby_fused_mean_shape:
     target_path: baby_ssm_fit_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: baby_ssm_fit_pca.outputs.dir + /init_shape.vtp
     landmarks_path: align_to_reference.aligned_landmarks_dir + /${REFERENCE_SCAN}_landmarks.csv
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/baby_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/eval_fused_mean_shape
+    output_dir: ${OUT}/baby_ssm/${SESSION}/end_to_end/eval_fused_mean_shape
   recon_target_distance_fetus_init_pca_map:
     target_path: fetus_ssm_fit_init_pca.outputs.dir + /rigid_alignment.vtp
     recon_path: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
@@ -510,7 +514,7 @@ paths:
     source: similarity_transform_baby_ssm.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_ssm/${SUBJECT_ID}/${WEEK}
+    output_dir: ${OUT}/resnet_lddmm_baby_ssm/${SESSION}
   resnet_lddmm_apply_baby_ssm:
     train_config: resnet_lddmm_train_baby_ssm.output_dir + /config.json
     checkpoint: resnet_lddmm_train_baby_ssm.output_dir + /checkpoints
@@ -535,7 +539,7 @@ paths:
     source: similarity_transform_baby_mean.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/${SUBJECT_ID}/${WEEK}
+    output_dir: ${OUT}/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/${SESSION}
   resnet_lddmm_apply_baby_mean:
     train_config: resnet_lddmm_train_baby_mean.output_dir + /config.json
     checkpoint: resnet_lddmm_train_baby_mean.output_dir + /checkpoints
@@ -566,7 +570,7 @@ paths:
       eval_dir: recon_target_distance_baby_init_pca_map.output_dir
     - label: Baby PCA sum Matern32 (MAP)
       eval_dir: recon_target_distance_baby_init_pca_sum_matern32_map.output_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fit_summaries/${SUBJECT_ID}/${WEEK}/prefusion_ssm
+    output_dir: ${OUT}/fit_summaries/${SESSION}/prefusion_ssm
     log_y: true
   fit_summary_high_confidence_target:
     sources:
@@ -580,7 +584,7 @@ paths:
       eval_dir: recon_target_distance_fetus_init_pca_map.output_dir
     - label: Fetus SSM PCA sum Matern32 (MAP)
       eval_dir: recon_target_distance_fetus_init_pca_sum_matern32_map.output_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fit_summaries/${SUBJECT_ID}/${WEEK}/high_confidence_target
+    output_dir: ${OUT}/fit_summaries/${SESSION}/high_confidence_target
     log_y: true
   fit_summary_fused_target:
     sources:
@@ -590,7 +594,7 @@ paths:
       eval_dir: recon_target_distance_baby_pca_map.output_dir
     - label: Baby SSM PCA sum Matern32 (MAP)
       eval_dir: recon_target_distance_baby_pca_sum_matern32_map.output_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/fit_summaries/${SUBJECT_ID}/${WEEK}/fused_target
+    output_dir: ${OUT}/fit_summaries/${SESSION}/fused_target
   similarity_transform_fetus_ssm:
     source_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
     landmark_path: align_to_template.out_landmarks_csv_dir + /${REFERENCE_SCAN}.csv
@@ -599,7 +603,7 @@ paths:
     source: similarity_transform_fetus_ssm.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_fetus_ssm/${SUBJECT_ID}/${WEEK}
+    output_dir: ${OUT}/resnet_lddmm_fetus_ssm/${SESSION}
   resnet_lddmm_apply_fetus_ssm:
     train_config: resnet_lddmm_train_fetus_ssm.output_dir + /config.json
     checkpoint: resnet_lddmm_train_fetus_ssm.output_dir + /checkpoints
@@ -624,7 +628,7 @@ paths:
     source: similarity_transform_fetus_mean.output_path
     target: scan_fusion_ssm.output_dir + /fused_scan.vtp
     landmarks: align_to_template.out_landmarks_csv_dir
-    output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_fetus_mean/${SUBJECT_ID}/${WEEK}
+    output_dir: ${OUT}/resnet_lddmm_fetus_mean/${SESSION}
   resnet_lddmm_apply_fetus_mean:
     train_config: resnet_lddmm_train_fetus_mean.output_dir + /config.json
     checkpoint: resnet_lddmm_train_fetus_mean.output_dir + /checkpoints
@@ -642,7 +646,7 @@ paths:
     output_dir: resnet_lddmm_apply_fetus_mean.output_dir + /eval_high_confidence
     lddmm_train_config: resnet_lddmm_train_fetus_mean.output_dir + /config.json
   vtp_to_nrrd_overlay:
-    nrrd_path: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}/${REFERENCE_SCAN}.nrrd
+    nrrd_path: ${SCANS_DIR}/${REFERENCE_SCAN}.nrrd
     output_path: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay.nrrd
     label_maps_dir: resnet_lddmm_train_baby_ssm.output_dir + /overlay/recon_overlay_labels
     layers:

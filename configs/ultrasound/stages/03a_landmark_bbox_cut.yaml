@@ -6,15 +6,16 @@ stage: landmark_bbox_cut
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
 paths:
-  shapes_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/shapes_vtp
-  landmarks_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_vtp
-  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmark_bbox_cut
-  transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms
+  shapes_dir: ${OUT}/${SESSION}/aligned_to_template/shapes_vtp
+  landmarks_dir: ${OUT}/${SESSION}/aligned_to_template/landmarks_vtp
+  output_dir: ${OUT}/${SESSION}/aligned_to_template/landmark_bbox_cut
+  transforms_dir: ${OUT}/${SESSION}/aligned_to_template/transforms
 
 # What a pipeline takes over with `config: ultrasound/stages/03a_landmark_bbox_cut.yaml`.
 hyperparameters:

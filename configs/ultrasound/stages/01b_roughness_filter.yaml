@@ -5,15 +5,16 @@ stage: roughness_filter
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
 paths:
-  input_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/shapes_vtp
-  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/roughness_filtered
-  unfiltered_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/roughness_unfiltered
-  transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/transforms
+  input_dir: ${OUT}/${SESSION}/aligned_to_template/shapes_vtp
+  output_dir: ${OUT}/${SESSION}/aligned_to_template/roughness_filtered
+  unfiltered_dir: ${OUT}/${SESSION}/aligned_to_template/roughness_unfiltered
+  transforms_dir: ${OUT}/${SESSION}/aligned_to_template/transforms
 
 # What a pipeline takes over with `config: ultrasound/stages/01b_roughness_filter.yaml`.
 hyperparameters:

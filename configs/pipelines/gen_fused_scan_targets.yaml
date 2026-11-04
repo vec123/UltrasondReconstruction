@@ -7,7 +7,7 @@
 # folders (Casos_Maternitat/<case>/*.nrrd) run with an empty WEEK.
 #
 # Every output goes under
-#   ${DATA_ROOT}/fused_scan_processing/${DATASET}/${SUBJECT_ID}/${WEEK}/
+#   ${FUSED_DIR}/
 # and the fused target is fused_scan_ssm/fused_scan.vtp there. The Casos_Mar
 # targets of the first batch were moved into the same layout (symlinks at their
 # old places under outputs/Casos_Mar/fetus_ssm/), so they are not run again.
@@ -58,11 +58,11 @@ stages:
 
 paths:
   nrrd_to_vtp:
-    input_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}
-    output_dir: ${DATA_ROOT}/fused_scan_processing/${DATASET}/${SUBJECT_ID}/${WEEK}
-    cache_dir: ${DATA_ROOT}/fused_scan_processing/${DATASET}/${SUBJECT_ID}/${WEEK}/Cache
+    input_dir: ${SCANS_DIR}
+    output_dir: ${FUSED_DIR}
+    cache_dir: ${FUSED_DIR}/Cache
   align_to_reference:
-    landmarks_csv_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}/LMKS
+    landmarks_csv_dir: ${SCANS_DIR}/LMKS
     vtp_shapes_dir: nrrd_to_vtp.output_dir
     output_dir: nrrd_to_vtp.output_dir + /aligned
     raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp

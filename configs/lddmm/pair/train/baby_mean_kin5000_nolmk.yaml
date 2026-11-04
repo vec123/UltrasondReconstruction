@@ -4,13 +4,14 @@ extends: lddmm/pair/train/resnet_lddmm_train.yaml
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  {source: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/baby_mean_aligned.vtp', target: '${PROJECT_ROOT}/outputs/Casos_Mar/fetus_ssm/${SUBJECT_ID}/${WEEK}/end_to_end/fused_scan_ssm/fused_scan.vtp',
-    landmarks: '${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned_to_template/landmarks_csv', output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/${SUBJECT_ID}/${WEEK}'}
+  {source: '${OUT}/${SESSION}/aligned_to_template/baby_mean_aligned.vtp', target: '${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm/fused_scan.vtp',
+    landmarks: '${OUT}/${SESSION}/aligned_to_template/landmarks_csv', output_dir: '${OUT}/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/${SESSION}'}
 
 # What a pipeline takes over (on top of lddmm/pair/train/resnet_lddmm_train.yaml).
 hyperparameters:

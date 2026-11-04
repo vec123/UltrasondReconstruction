@@ -2,13 +2,14 @@ stage: resnet_lddmm_apply
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
 
 # Only for a run of this file alone: a pipeline that names it gives its own paths.
 paths:
-  {train_config: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/config.json', checkpoint: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/checkpoints',
-    output_dir: '${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_baby_mean/${SUBJECT_ID}/${WEEK}/apply'}
+  {train_config: '${OUT}/resnet_lddmm_baby_mean/${SESSION}/config.json', checkpoint: '${OUT}/resnet_lddmm_baby_mean/${SESSION}/checkpoints',
+    output_dir: '${OUT}/resnet_lddmm_baby_mean/${SESSION}/apply'}
 
 # What a pipeline takes over.
 hyperparameters:

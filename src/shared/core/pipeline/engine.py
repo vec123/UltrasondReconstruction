@@ -25,6 +25,7 @@ from src.shared.core.pipeline.cases import with_case_key
 from src.shared.core.pipeline.targets import find_cases
 
 CONFIGS_DIR = "configs"
+SOURCES_FILE = "sources.yaml"  # the layout variables of every run, in CONFIGS_DIR
 SECTIONS = ("paths", "hyperparameters")
 RUN_KEYS = ("targets", "batch")  # which cases run, and how (run_main); not fields of a stage
 
@@ -42,12 +43,8 @@ def _bind_stage_config(registry, stage_name, raw, source):
     return spec, binder(raw)
 
 
-def _variables(yaml_variables, extra_vars, source):
-    """The ``${NAME}`` variables of a run: PROJECT_ROOT/DATA_ROOT (.env), then the YAML's
-    own ``variables:`` block, then ``extra_vars`` (--set, the batch runner), each
-    overriding the ones before, and CASE_KEY (cases.py) when there is a SUBJECT_ID.
-    A variable may use any other variable; it is filled in where a path uses it."""
-    base = path_variables()
+def _own_variables(yaml_variables, base, source):
+    """The ``variables:`` block of ``source`` as strings; it may not redefine a name of ``base`` (.env)."""
     if yaml_variables is None:
         yaml_variables = {}
     if not isinstance(yaml_variables, dict):
@@ -58,7 +55,26 @@ def _variables(yaml_variables, extra_vars, source):
     if clash:
         raise ValueError(f"'variables:' in '{source}' redefines {clash}, which the repo's .env sets; "
                          f"remove them there (every path of the run would silently move).")
-    return with_case_key({**base, **own, **(extra_vars or {})})
+    return own
+
+
+def _source_variables(base):
+    """The layout variables of configs/sources.yaml (none if the file is absent)."""
+    path = os.path.join(get_project_root(), CONFIGS_DIR, SOURCES_FILE)
+    if not os.path.isfile(path):
+        return {}
+    return _own_variables(load_yaml(path).get("variables"), base, path)
+
+
+def _variables(yaml_variables, extra_vars, source):
+    """The ``${NAME}`` variables of a run: PROJECT_ROOT/DATA_ROOT (.env), then the layout
+    of configs/sources.yaml, then the YAML's own ``variables:`` block, then
+    ``extra_vars`` (a case of targets:, --set), each overriding the ones before,
+    and CASE_KEY (cases.py) when there is a SUBJECT_ID. A variable may use any
+    other variable; it is filled in where a path uses it."""
+    base = path_variables()
+    own = _own_variables(yaml_variables, base, source)
+    return with_case_key({**base, **_source_variables(base), **own, **(extra_vars or {})})
 
 
 def _deep_merge(base, override):

@@ -5,6 +5,7 @@ stage: align_to_reference
 
 # The case for a run of this file alone (python scripts/run.py <this file>).
 variables:
+  DATASET: Casos_Mar
   CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/Casos_Mar
   SUBJECT_ID: 1
   WEEK: 20 semanas
@@ -13,14 +14,14 @@ variables:
 
 # Only for a run of this file alone: a pipeline that names it with `config:` gives its own paths.
 paths:
-  landmarks_csv_dir: ${CASES_ROOT}/${SUBJECT_ID}/${WEEK}/LMKS
-  vtp_shapes_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}
-  output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned
-  raw_landmarks_vtp_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/raw_landmarks_vtp
-  transforms_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/transforms
+  landmarks_csv_dir: ${SCANS_DIR}/LMKS
+  vtp_shapes_dir: ${OUT}/${SESSION}
+  output_dir: ${OUT}/${SESSION}/aligned
+  raw_landmarks_vtp_dir: ${OUT}/${SESSION}/raw_landmarks_vtp
+  transforms_dir: ${OUT}/${SESSION}/aligned/transforms
   previous_transforms_dir: null
-  aligned_shapes_vtp_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_shapes_vtp
-  aligned_landmarks_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/${SUBJECT_ID}/${WEEK}/aligned/aligned_landmarks
+  aligned_shapes_vtp_dir: ${OUT}/${SESSION}/aligned/aligned_shapes_vtp
+  aligned_landmarks_dir: ${OUT}/${SESSION}/aligned/aligned_landmarks
 
 # What a pipeline takes over with `config: ultrasound/stages/02_align_to_reference.yaml`.
 hyperparameters:
