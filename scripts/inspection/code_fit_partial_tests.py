@@ -50,11 +50,11 @@ from scripts.inspection import render_frontal_views as views  # noqa: E402
 import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels: colour None draws the point scalars)
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from src.shared.core.config import load_yaml  # noqa: E402
-from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
-from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
+from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
+from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
-from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
+from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
@@ -284,8 +284,8 @@ def code_parametrization(kind, train_cfg, train_codes, template_norm, domain, ar
     if kind != "pca_residual":
         raise ValueError(f"unknown --code-prior {kind!r}")
     import dataclasses
-    from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
-    from src.resnet_lddmm.resnet_flow.config import GridRegCfg
+    from src.models.lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
+    from src.models.lddmm.resnet_flow.config import GridRegCfg
     if not train_cfg.code.grid_direct:
         raise ValueError("--code-prior pca_residual needs a direct-grid run (code.grid_direct)")
     t = template_norm.points[0].to(device)

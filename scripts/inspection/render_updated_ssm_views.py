@@ -40,8 +40,8 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 from scripts.inspection import render_ssm_posterior_views as post  # noqa: E402  (also lets a panel take color=None)
 from scripts.SSM.update_ssm_em import load_cases  # noqa: E402
-from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.SSM.model.inference.posterior import posterior, posterior_with_pose  # noqa: E402
+from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
+from src.models.gpmm.model.inference.posterior import posterior, posterior_with_pose  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.fields import add_point_fields  # noqa: E402

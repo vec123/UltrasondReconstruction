@@ -5,7 +5,7 @@
 # Aligns the mean shape of the .mat model onto a set of target landmarks and
 # writes the similarity transform plus the original and aligned meshes.
 
-shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+shape_model_mat: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
 
 output:
   dir: ${PROJECT_ROOT}/output

@@ -37,12 +37,12 @@ from scripts.inspection import render_frontal_views as views  # noqa: E402
 import scripts.inspection.render_ssm_cohort_views  # noqa: E402,F401  (RGB panels)
 from scripts.inspection.code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
                                                        load_run_config, ssm_decoder)
-from src.resnet_lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
-from src.resnet_lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
+from src.models.lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
+from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import ramp_colors, with_colors  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from scripts.SSM.target_to_ssm_frame import similarity  # noqa: E402
-from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
+from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 

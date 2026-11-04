@@ -10,10 +10,10 @@ import argparse
 from dataclasses import asdict
 from pathlib import Path
 
-from src.SSM.model.builder import BuildContext, ModelSource, build_model, resolve_kernel_spec
-from src.SSM.model.model_memory_io import ModelCacheSpec, save_model
+from src.models.gpmm.model.builder import BuildContext, ModelSource, build_model, resolve_kernel_spec
+from src.models.gpmm.model.model_memory_io import ModelCacheSpec, save_model
 from src.shared.core.config import ConfigClient
-from src.SSM.config import GpmmModelConfig
+from src.models.gpmm.config import GpmmModelConfig
 
 
 def build_and_save(config_path, *, verbose: bool = True):

@@ -1,4 +1,4 @@
-"""Synthetic check of the SSM posterior (src/SSM/model/inference/posterior.py).
+"""Synthetic check of the SSM posterior (src/models/gpmm/model/inference/posterior.py).
 
 Draws one ground-truth shape from the model, observes only one side of it with
 known noise, conditions the model on that side and reports:
@@ -31,9 +31,9 @@ import tempfile
 import numpy as np
 from scipy.spatial import cKDTree
 
-from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
-from src.SSM.model.inference.observations import Observations, build_noise_model  # noqa: E402
-from src.SSM.model.inference.posterior import posterior, posterior_with_pose, save_posterior  # noqa: E402
+from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
+from src.models.gpmm.model.inference.observations import Observations, build_noise_model  # noqa: E402
+from src.models.gpmm.model.inference.posterior import posterior, posterior_with_pose, save_posterior  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 
 DEFAULT_MODEL = "assets/shape_models/baby/baby_pca_sum_matern32.npz"

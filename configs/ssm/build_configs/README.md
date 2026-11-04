@@ -27,11 +27,11 @@ A file is named after its kernel tree, read **left to right**, with `sum` for
 ## Why the numbers differ between the folders
 
 The two models are not in the same units - see the "Units" note in
-`src/SSM/kernels/stationary.py`.
+`src/models/gpmm/kernels/stationary.py`.
 
 |                                  | `baby/`                            | `fetus/`                        |
 | -------------------------------- | ---------------------------------- | ------------------------------- |
-| source                           | `src/SSM/BabyFM/BabyFaceModel.mat` | `src/SSM/FetusModel_x4` (atlas) |
+| source                           | `third_party/BabyFM/BabyFaceModel.mat` | `assets/atlases/FetusModel_x4` (atlas) |
 | vertices / PCA modes             | 31027 / 163                        | 5743 / 183 (184 subjects)       |
 | bounding-box diagonal            | 0.0199                             | 101.1 (mm)                      |
 | mean edge length                 | 9.65e-5                            | 1.05                            |

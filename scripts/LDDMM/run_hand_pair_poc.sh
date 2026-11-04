@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.." || exit 1
 echo "=========================================="
 echo "Running hand pair PoC registration"
 echo "=========================================="
-python -m src.resnet_lddmm.cli configs/hand_pair_poc.yaml
+python -m src.models.lddmm.cli configs/hand_pair_poc.yaml
 
 echo ""
 echo "✓ Training complete!"

@@ -1,4 +1,4 @@
-# Configuration for scripts/SSM/sample_shapes.py  ->  src.SSM.runners.SampleShapesRunner
+# Configuration for scripts/SSM/sample_shapes.py  ->  src.models.gpmm.runners.SampleShapesRunner
 #
 #   python scripts/SSM/sample_shapes.py --config configs/ssm_gui/sample_shapes.yaml
 #   python scripts/SSM/sample_shapes.py --model fetus/pca     # override 'model' below
@@ -60,7 +60,7 @@ models:
   # Only an atlas can do this - a .mat has neither momenta nor a kernel - so
   # there is no 'baby' counterpart.
   fetus_lddmm:
-    path: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+    path: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
     parametrization: lddmm
     lddmm_time_points: 6      # 6 is converged to ~0.14 mm; 11 is deformetrica's default
     camera_axis: "+z"

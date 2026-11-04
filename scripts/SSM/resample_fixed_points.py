@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Resample point clouds to a fixed point count, keeping every point array.
 
-CohortBatchLoader (src/resnet_lddmm/learning/loader/loaders.py) stacks a batch's cohort
+CohortBatchLoader (src/models/lddmm/learning/loader/loaders.py) stacks a batch's cohort
 members with torch.stack, so they need equal point counts; this is the step that gives
 fused targets (variable point counts) that equal count before target_to_ssm_frame.py.
 

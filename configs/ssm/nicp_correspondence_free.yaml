@@ -26,7 +26,7 @@
 # bidirectional or correspondence-free objective.
 
 inputs:
-  shape_model_mat: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   mesh_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/rigid_alignment.vtp
   init_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/refined_vertices.vtp
   # already in model space - nothing to solve or replay
@@ -47,7 +47,7 @@ model:
   normalize: false
   atlas:
     # FetusModel_x4 annotates 13 of the 19 baby landmarks; the rest are dropped
-    landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+    landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
 
 compute:
   device: auto

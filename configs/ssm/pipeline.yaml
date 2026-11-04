@@ -7,8 +7,8 @@
 # against it.
 
 inputs:
-  #shape_model_mat: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat   # SSM (.mat)
-  shape_model_mat: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  #shape_model_mat: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat   # SSM (.mat)
+  shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   mesh_vtp: ${PROJECT_ROOT}/outputs/1/20_semanas/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
   # average of 14-20s-01.csv / 14-20s-02.csv (two annotation passes), name -> [x, y, z]
   landmarks_json: ${PROJECT_ROOT}/outputs/1/20_semanas/aligned_to_template/landmarks_csv
@@ -44,7 +44,7 @@ model:
     # directory. FetusModel_x4 only has 13 of the 19 baby landmarks annotated
     # (no chR/chL/cphR/cphL/li/sl yet) - the pipeline drops the rest from
     # target_landmarks rather than failing on the mismatch.
-    landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+    landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
 
 # used if template and statitsical model are in different coordinate systems 
 #(e.g. BabyFM is in mm, template is in unit cube)

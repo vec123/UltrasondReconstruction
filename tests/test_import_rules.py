@@ -31,11 +31,12 @@ ROOT = Path(__file__).resolve().parents[1]
 LAYERS = {
     "src/__init__.py": "shared",
     "src/shared": "shared",
+    "src/models/__init__.py": "shared",
     "src/ultrasound": "ultrasound",
-    "src/SSM": "gpmm",
-    "src/SSM/outputs": "gpmm.outputs",
-    "src/resnet_lddmm": "lddmm",
-    "src/resnet_lddmm/outputs": "lddmm.outputs",
+    "src/models/gpmm": "gpmm",
+    "src/models/gpmm/outputs": "gpmm.outputs",
+    "src/models/lddmm": "lddmm",
+    "src/models/lddmm/outputs": "lddmm.outputs",
     "src/evaluation": "evaluation",
     "src/GUIs": "apps",
     "scripts": "scripts",
@@ -53,14 +54,11 @@ ALLOWED = {
              "evaluation", "apps"},
 }
 
-# Third-party code that is not checked.
-SKIP = ("src/SSM/BabyFM",)
-
 KNOWN_VIOLATIONS = set()
 
 
 def layer_of(path: str):
-    """The layer of a path relative to ROOT ('src/SSM/nicp/problem.py'), or None.
+    """The layer of a path relative to ROOT ('src/models/gpmm/nicp/problem.py'), or None.
 
     A prefix matches itself, itself + ".py" and everything below it.
     """
@@ -70,7 +68,7 @@ def layer_of(path: str):
 
 
 def module_path(module: str) -> str:
-    """'src.SSM.nicp' -> 'src/SSM/nicp'."""
+    """'src.models.gpmm.nicp' -> 'src/models/gpmm/nicp'."""
     return module.replace(".", "/")
 
 
@@ -106,8 +104,6 @@ def find_violations():
     violations = set()
     for path in sorted((ROOT / "src").rglob("*.py")):
         relative = path.relative_to(ROOT).as_posix()
-        if relative.startswith(SKIP):
-            continue
         own = layer_of(relative)
         assert own is not None, f"{relative} is in no layer: add its package to LAYERS"
         for module in imported_modules(path):

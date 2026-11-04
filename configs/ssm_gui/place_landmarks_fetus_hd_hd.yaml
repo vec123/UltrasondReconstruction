@@ -9,8 +9,8 @@
 # a landmark is a vertex index, and none of the three fetus meshes (1x, 2x,
 # 4x) share an indexing, so each needs its own landmarks.json.
 
-shape_model: ${PROJECT_ROOT}/src/FetusModel_x4
-landmarks_json: ${PROJECT_ROOT}/src/FetusModel_x4/landmarks.json
+shape_model: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
+landmarks_json: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
 
 model:
   normalize: false        # keep millimetres, matching mean_shape_fetus.yaml
@@ -19,7 +19,7 @@ model:
     time_points: 11
     cache: true            # reuses the shooting cache scripts/upsample_atlas.py warmed
 
-# The BabyFM's 23 anatomical landmarks - see src/SSM/config/place_landmarks.py's
+# The BabyFM's 23 anatomical landmarks - see src/models/gpmm/config/place_landmarks.py's
 # DEFAULT_LANDMARK_NAMES for the R/L convention. Press 'a' to add more.
 landmark_names:
   - exR

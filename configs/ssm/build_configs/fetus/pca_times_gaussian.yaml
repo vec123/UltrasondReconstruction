@@ -13,7 +13,7 @@
 #   scale 1.0 is the neutral value for a product child: it modulates
 #   correlation and leaves the per-vertex PCA variance untouched.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

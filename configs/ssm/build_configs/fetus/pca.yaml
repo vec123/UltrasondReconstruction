@@ -8,7 +8,7 @@
 #   params.json says kwd 7.0, i.e. 7/sqrt(2) = 4.95 in this codebase's
 #   exp(-d^2/2 sigma^2) convention.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

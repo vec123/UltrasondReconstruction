@@ -15,7 +15,7 @@
 # Domain: BabyFM, bounding-box diagonal 0.0199, 31027 vertices,
 # 163 PCA modes, mean per-coordinate PCA variance 4.16e-8.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  source: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   metric: euclidean
   mass: true
 

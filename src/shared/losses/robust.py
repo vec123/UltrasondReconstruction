@@ -1,5 +1,5 @@
 """Robust per-point penalty on squared distances, shared by the Chamfer-family data
-terms of both models (src/resnet_lddmm/.../data_terms, src/SSM/nicp/losses/chamfer.py)."""
+terms of both models (src/models/lddmm/.../data_terms, src/models/gpmm/nicp/losses/chamfer.py)."""
 
 from typing import Optional
 

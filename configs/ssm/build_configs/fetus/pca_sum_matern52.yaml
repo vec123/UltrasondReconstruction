@@ -14,7 +14,7 @@
 #   scale 1.449 = 1x the mean per-coordinate PCA variance. In a sum the term
 #   is lifted isotropically and its scale IS a per-coordinate variance.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

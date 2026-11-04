@@ -41,8 +41,8 @@ from scripts.inspection import render_frontal_views as views  # noqa: E402
 from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
 from src.shared.core.config import from_dict  # noqa: E402
 from scripts.pipeline.registry import STAGE_REGISTRY  # noqa: E402
-from src.SSM.stages.ssm_posterior import variant_name  # noqa: E402
-from src.SSM.model.model_memory_io import load_model_file  # noqa: E402
+from src.models.gpmm.stages.ssm_posterior import variant_name  # noqa: E402
+from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.fields import add_point_field  # noqa: E402

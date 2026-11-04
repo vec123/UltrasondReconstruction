@@ -24,12 +24,12 @@ from vtk.util.numpy_support import numpy_to_vtk
 
 from scripts.inspection.code_pca_views import target_path  # noqa: E402
 from scripts.inspection.render_frontal_views import MESH_COLOR, SCAN_COLOR, mesh_actor, text_actor, view_camera  # noqa: E402
-from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
-from src.resnet_lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights  # noqa: E402
-from src.resnet_lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
-from src.resnet_lddmm.resnet_flow.io import load_shape  # noqa: E402
-from src.resnet_lddmm.resnet_flow.guidance.landmarks import resolve_template_points  # noqa: E402
-from src.resnet_lddmm.resnet_flow.runner import _normalization_domain, cohort_paths, load_cohort  # noqa: E402
+from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
+from src.models.lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights  # noqa: E402
+from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
+from src.models.lddmm.resnet_flow.io import load_shape  # noqa: E402
+from src.models.lddmm.resnet_flow.guidance.landmarks import resolve_template_points  # noqa: E402
+from src.models.lddmm.resnet_flow.runner import _normalization_domain, cohort_paths, load_cohort  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")

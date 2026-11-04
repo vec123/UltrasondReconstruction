@@ -11,7 +11,7 @@
 #   The outer gaussian is the envelope, so it block-scales and stays neutral:
 #     sigma 15.0 (local, 15% of the diagonal), scale 1.0.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

@@ -459,7 +459,7 @@ paths:
   #
   # target_path is ALWAYS that fit's own rigid_alignment.vtp, never the scan
   # file the fit read. steps.align maps the target scan into MODEL space and
-  # every reconstruction comes out there (see src/SSM/runners/pipeline.py) -
+  # every reconstruction comes out there (see src/models/gpmm/runners/pipeline.py) -
   # the baby models' frame is ~0.02 units across against the fetus template's
   # ~100, so pairing a recon with the scan in its own frame measures the frame
   # gap, not the fit. rigid_alignment.vtp is that same scan already carried
@@ -1115,7 +1115,7 @@ hyperparameters:
       atlas:
         # FetusModel_x4 only has 13 of the 19 baby landmarks annotated;
         # Read for the fetus models only
-        landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+        landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
     rigid:
       iterations: 10
       landmark_fit_learning_rate: 1.0
@@ -1181,7 +1181,7 @@ hyperparameters:
   # `mahalanobis` is the model's own Gaussian prior: alpha ~ N(0, Lambda), so
   # the penalty sum(alpha_i^2 / lambda_i) is its negative log density. This
   # project stores the UNWHITENED alpha (the basis is normalised and does not
-  # absorb sqrt(Lambda) - see src/SSM/model/model.py::reconstruct), which is why
+  # absorb sqrt(Lambda) - see src/models/gpmm/model/model.py::reconstruct), which is why
   # the isotropic prior is not the matching one here: with normalize:true this
   # is exactly an isotropic penalty on the whitened z_i = alpha_i/sqrt(lambda_i).
   #

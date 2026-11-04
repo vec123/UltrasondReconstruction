@@ -22,9 +22,9 @@ Usage:
 
 import argparse
 
-from src.resnet_lddmm.config import load_yaml_mapping
-from src.resnet_lddmm.io import load_shape, export_shape, FrameTransform
-from src.resnet_lddmm.landmark_weight_field import (
+from src.models.lddmm.config import load_yaml_mapping
+from src.models.lddmm.io import load_shape, export_shape, FrameTransform
+from src.models.lddmm.landmark_weight_field import (
     LandmarkWeightFieldCfg,
     compute_landmark_weight_field,
 )

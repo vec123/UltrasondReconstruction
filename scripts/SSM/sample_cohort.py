@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.SSM.model.model_memory_io import load_model_file
+from src.models.gpmm.model.model_memory_io import load_model_file
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.io import save_vtp
 

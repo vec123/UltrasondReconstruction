@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Split a trained ResNet-LDDMM run's deformation into the network and each designed mode.
 
-CLI for ``src/resnet_lddmm/resnet_flow/callbacks/deformation/modes`` (see export.py
+CLI for ``src/models/lddmm/resnet_flow/callbacks/deformation/modes`` (see export.py
 there for the files written to ``<run>/mode_decomposition/``). Nothing is trained.
 
 Usage:
@@ -12,7 +12,7 @@ Usage:
 import argparse
 from pathlib import Path
 
-from src.resnet_lddmm.resnet_flow.callbacks.deformation.modes import export_decomposition  # noqa: E402
+from src.models.lddmm.resnet_flow.callbacks.deformation.modes import export_decomposition  # noqa: E402
 
 
 def main(argv=None) -> int:

@@ -19,8 +19,8 @@ from src.evaluation.loader.pair_loader import (
     PairLayout,
     register_layout,
 )
-from src.SSM.outputs import PipelineOutputFiles
-from src.resnet_lddmm.outputs import ApplyOutputFiles
+from src.models.gpmm.outputs import PipelineOutputFiles
+from src.models.lddmm.outputs import ApplyOutputFiles
 from src.shared.transforms.similarity import SimilarityTransform
 
 _SSM_FILES = PipelineOutputFiles()
@@ -40,7 +40,7 @@ def _similarity_from_json(path: Path) -> SimilarityTransform:
 @register_layout("direct_ssm_fit")
 @dataclass(frozen=True)
 class DirectSSMFitLayout(PairLayout):
-    """A case folder of the SSM pipeline runner (src/SSM/runners/pipeline.py).
+    """A case folder of the SSM pipeline runner (src/models/gpmm/runners/pipeline.py).
 
     recon      the fit named ``fit``: nicp_refined_vertices_<fit>.vtp, or
                refined_vertices.vtp for "refined" (the landmark step's result).
@@ -55,7 +55,7 @@ class DirectSSMFitLayout(PairLayout):
     fit: str
 
     marker: ClassVar[str] = _SSM_FILES.rigid_alignment
-    refined_key: ClassVar[str] = "refined"     # REFINED_KEY in src/SSM/runners/pipeline.py
+    refined_key: ClassVar[str] = "refined"     # REFINED_KEY in src/models/gpmm/runners/pipeline.py
 
     def _recon_file(self) -> str:
         if self.fit == self.refined_key:
@@ -96,7 +96,7 @@ class DirectSSMFitLayout(PairLayout):
 @register_layout("direct_flow_apply")
 @dataclass(frozen=True)
 class DirectFlowApplyLayout(PairLayout):
-    """A member folder of a resnet_flow apply run (src/resnet_lddmm/resnet_flow/apply/runner.py).
+    """A member folder of a resnet_flow apply run (src/models/lddmm/resnet_flow/apply/runner.py).
 
     recon      world/deformed.vtp.
     target     the cohort member the flow was applied to (apply.json ->

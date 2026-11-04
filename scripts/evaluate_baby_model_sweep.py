@@ -9,8 +9,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 from src.shared.core.config import ConfigClient
-from src.SSM.config import PipelineConfig
-from src.SSM.runners.pipeline import PipelineRunner
+from src.models.gpmm.config import PipelineConfig
+from src.models.gpmm.runners.pipeline import PipelineRunner
 from src.evaluation.stages import recon_target_distance
 
 

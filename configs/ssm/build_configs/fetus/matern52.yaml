@@ -10,7 +10,7 @@
 #   scale 1.449 = 1x the mean per-coordinate PCA variance, so the prior
 #   carries as much deformation as the population it replaces.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

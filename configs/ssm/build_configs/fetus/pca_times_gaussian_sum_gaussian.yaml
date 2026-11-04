@@ -11,7 +11,7 @@
 #   The outer gaussian is a summand, so its scale is a variance:
 #     sigma 25.0 (smooth, 25% of the diagonal), scale 1.449 = 1x PCA variance.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

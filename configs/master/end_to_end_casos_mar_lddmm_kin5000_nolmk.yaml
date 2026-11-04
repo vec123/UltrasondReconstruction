@@ -884,7 +884,7 @@ hyperparameters:
     model: &id003
       normalize: false
       atlas:
-        landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+        landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
     rigid: &id004
       iterations: 10
       landmark_fit_learning_rate: 1.0

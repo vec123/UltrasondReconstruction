@@ -32,6 +32,6 @@ torch_cluster==1.6.3+pt28cu128
 e3nn==0.6.0
 geomloss==0.3.1
 
-# Imported by src/resnet_lddmm/learning/modules/position_encodings.py
+# Imported by src/models/lddmm/learning/modules/position_encodings.py
 jax==0.12.0
 dm-haiku==0.0.17

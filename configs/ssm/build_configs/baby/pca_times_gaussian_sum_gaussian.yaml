@@ -8,7 +8,7 @@
 #   The outer gaussian is a summand, so its scale is a variance:
 #     sigma 0.005 (smooth, 25% of the diagonal), scale 4.160e-08 = 1x PCA variance.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/BabyFM/BabyFaceModel.mat
+  source: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   metric: euclidean
   mass: true
 

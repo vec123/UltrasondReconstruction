@@ -28,15 +28,15 @@ from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from scripts.inspection import render_frontal_views as views  # noqa: E402
 from scripts.inspection.code_pca_views import similarity_map, template_landmarks  # noqa: E402
-from src.resnet_lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
-from src.resnet_lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
+from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
+from src.models.lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from src.shared.core.pipeline import no_pipeline_context  # noqa: E402
 from src.shared.core.config import interpolate_paths, path_variables  # noqa: E402
 from src.shared.core.config import load_yaml  # noqa: E402
-from src.resnet_lddmm.resnet_flow.apply.config import ApplyCfg, load_training_config  # noqa: E402
-from src.resnet_lddmm.resnet_flow.callbacks.checkpoints import load_checkpoint, resolve_checkpoint  # noqa: E402
-from src.resnet_lddmm.resnet_flow.io import load_shape  # noqa: E402
-from src.resnet_lddmm.resnet_flow.runner import _normalization_domain, load_cohort, set_default_dtype  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.config import ApplyCfg, load_training_config  # noqa: E402
+from src.models.lddmm.resnet_flow.callbacks.checkpoints import load_checkpoint, resolve_checkpoint  # noqa: E402
+from src.models.lddmm.resnet_flow.io import load_shape  # noqa: E402
+from src.models.lddmm.resnet_flow.runner import _normalization_domain, load_cohort, set_default_dtype  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
 COMPONENTS = (0, 1)

@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.shared.core.config import ConfigClient
-from src.SSM.config import AlignMeshesConfig
-from src.SSM.runners import AlignMeshesRunner
+from src.models.gpmm.config import AlignMeshesConfig
+from src.models.gpmm.runners import AlignMeshesRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "align_fetus_to_baby.yaml"
 

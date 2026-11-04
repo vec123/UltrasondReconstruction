@@ -7,7 +7,7 @@
 # model itself, not of any fit, so it is the reference picture of what the SSM
 # can do and where it is confident.
 
-shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+shape_model_mat: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
 
 outputs:
   dir: ${PROJECT_ROOT}/outputs/mean_shape

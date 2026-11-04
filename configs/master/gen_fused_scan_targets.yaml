@@ -188,7 +188,7 @@ hyperparameters:
       normalize: false
       atlas:
         # FetusModel_x4 only has 13 of the 19 baby landmarks annotated
-        landmarks: ${PROJECT_ROOT}/src/SSM/FetusModel_x4/landmarks.json
+        landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
     rigid:
       iterations: 10
       landmark_fit_learning_rate: 1.0

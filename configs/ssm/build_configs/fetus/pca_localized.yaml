@@ -15,7 +15,7 @@
 # Domain: FetusModel_x4, bounding-box diagonal 101.1 mm, 5743 vertices,
 # 183 PCA modes, mean per-coordinate PCA variance 1.449.
 domain:
-  source: ${PROJECT_ROOT}/src/SSM/FetusModel_x4
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean
   mass: true
 

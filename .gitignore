@@ -19,10 +19,10 @@ venv/
 # The tracked ones are stored with Git LFS (see .gitattributes).
 /assets/shape_models/
 
-src\SSM\BabyFM\BabyFaceModel.mat
+/third_party/BabyFM/BabyFaceModel.mat
 
 theory*
 docs*
 outputs*
-# ...but not the output-name modules of the models (src/SSM/outputs.py)
+# ...but not the output-name modules of the models (src/models/gpmm/outputs.py)
 !src/**/outputs.py

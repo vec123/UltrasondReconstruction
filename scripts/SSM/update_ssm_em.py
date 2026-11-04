@@ -3,7 +3,7 @@
 
 Every case of a resnet_lddmm apply run is a deformation of the model mean, in
 vertex correspondence with it, and only part of it is near the scan. As in
-src/SSM/stages/ssm_posterior.py, a noise model turns each vertex's
+src/models/gpmm/stages/ssm_posterior.py, a noise model turns each vertex's
 error into an observation std and drops the vertices it does not trust, so each
 case observes a different subset of the vertices.
 
@@ -11,7 +11,7 @@ The new model keeps the base model's span: ``x = mu0 + Phi alpha`` with
 ``alpha ~ N(m, C)``. EM estimates ``m`` and ``C``:
 
     E-step   per case, the posterior of alpha under the current N(m, C), pose
-             removed (src.SSM.model.inference.posterior.posterior_with_pose):
+             removed (src.models.gpmm.model.inference.posterior.posterior_with_pose):
              alpha_i | y_i ~ N(a_i, S_i)
     M-step   m = sum w_i a_i / sum w_i
              C = (nu Lambda0 + sum w_i ((a_i - m)(a_i - m)^T + S_i)) / (nu + sum w_i)
@@ -60,12 +60,12 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
-from src.SSM.stages.ssm_posterior import (DIRECTION_TOKENS, POSE_TOKENS, fit_frame,
+from src.models.gpmm.stages.ssm_posterior import (DIRECTION_TOKENS, POSE_TOKENS, fit_frame,
                                                       mesh_points, point_array,
                                                       target_to_recon_errors)
-from src.SSM.model.model_memory_io import ModelCacheSpec, load_model_file, save_model
-from src.SSM.model.inference.observations import Observations, build_noise_model
-from src.SSM.model.inference.posterior import _posterior_model, condition_whitened
+from src.models.gpmm.model.model_memory_io import ModelCacheSpec, load_model_file, save_model
+from src.models.gpmm.model.inference.observations import Observations, build_noise_model
+from src.models.gpmm.model.inference.posterior import _posterior_model, condition_whitened
 from src.shared.transforms.similarity import SimilarityTransform
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.fields import add_point_fields
@@ -171,9 +171,9 @@ def case_weights(cases, weighting):
 
 def fit_case(base, case, m, L, args):
     """Posterior of one case under alpha ~ N(m, L L^T), pose refitted as in
-    src.SSM.model.inference.posterior.posterior_with_pose: first onto the prior mean,
+    src.models.gpmm.model.inference.posterior.posterior_with_pose: first onto the prior mean,
     then onto the latest posterior mean. The pose is fitted on the observed
-    rows only, as src.SSM.model.inference.posterior.fit_pose does on the full shape."""
+    rows only, as src.models.gpmm.model.inference.posterior.fit_pose does on the full shape."""
     a, pose, observations = m, None, case.observations
     for _ in range(1 if args.pose == "none" else max(1, args.pose_iterations)):
         if args.pose != "none":

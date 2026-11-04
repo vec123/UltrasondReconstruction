@@ -35,7 +35,7 @@ import numpy as np
 
 from scripts.SSM.sample_cohort import draw_cohort
 from scripts.SSM.target_to_ssm_frame import similarity
-from src.SSM.model.model_memory_io import load_model_file
+from src.models.gpmm.model.model_memory_io import load_model_file
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.io import save_vtp
 
@@ -45,7 +45,7 @@ def main():
     parser.add_argument("--baby-model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--baby-data", required=True, help="sample_cohort.py output of the baby samples")
     parser.add_argument("--fetus-model", default="assets/shape_models/fetus/fetus_pca.npz")
-    parser.add_argument("--fetus-landmarks", default="src/SSM/FetusModel_x4/landmarks.json",
+    parser.add_argument("--fetus-landmarks", default="assets/atlases/FetusModel_x4/landmarks.json",
                         help="fetus landmark name -> vertex index")
     parser.add_argument("--template", required=True, help="the baby mean with its point arrays, in the baby frame")
     parser.add_argument("--output-dir", required=True)

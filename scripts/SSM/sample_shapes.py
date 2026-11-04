@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.shared.core.config import ConfigClient
-from src.SSM.config import SampleShapesConfig
-from src.SSM.runners import SampleShapesRunner
+from src.models.gpmm.config import SampleShapesConfig
+from src.models.gpmm.runners import SampleShapesRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "ssm_gui" / "sample_shapes.yaml"
 

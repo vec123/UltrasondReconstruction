@@ -32,7 +32,7 @@
 #     else needs the gradient solver
 
 inputs:
-  shape_model_mat: ${PROJECT_ROOT}/src/BabyFM/BabyFaceModel.mat
+  shape_model_mat: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   mesh_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/merged_high_confidence_scan.vtp   # the scan to fit
 
   # The fit happens in model space; the raw scan is not there. template.vtp is

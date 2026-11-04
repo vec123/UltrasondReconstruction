@@ -1,0 +1,422 @@
+import numpy as np
+from dataclasses import dataclass, field
+from typing import Any, Optional
+from scipy.stats import chi2
+from scipy import sparse
+
+@dataclass
+class StatisticalShapeModel:
+    """(mean, Phi, Lambda) plus, optionally, the prior they were derived from.
+
+    The four original fields are the contract everything downstream reads, and
+    they are unchanged: a model built from a .mat, from a Deformetrica atlas or
+    from a GPMM kernel spec is the same object here, and ``ShapeInstance`` never
+    learns the difference. The fields below are what a Gaussian Process
+    Morphable Model additionally knows about itself - see
+    ``docs/gpmm_architecture.md`` section 10.
+
+    A point distribution model *is* a GPMM whose kernel is the empirical one, so
+    these are extra knowledge rather than a different type; that is why this is
+    one class and not a subclass.
+    """
+
+    mean: np.ndarray                    # (3N,)
+    eigenfunctions: np.ndarray         # (3N, K)
+    eigenvalues: np.ndarray            # (K,)
+    landmarks: dict
+
+    #: (F, 3) triangulation. Already required by normals, varifolds and every
+    #: .vtp write, and currently threaded through those call sites separately.
+    faces: Optional[np.ndarray] = None
+    #: :class:`~src.models.gpmm.model.mean_domain.MeanDomain` - the points the process
+    #: is discretised on, with the quadrature measure and metric the flat
+    #: ``mean`` cannot express. Built from mean+faces when omitted.
+    domain: Optional[Any] = None
+    #: :class:`~src.models.gpmm.kernels.base.Kernel` - the covariance this model's
+    #: (Phi, Lambda) is a decomposition of. Free for a PCA model, so in
+    #: practice never None once built through ``builder.build_model``.
+    kernel: Optional[Any] = None
+    #: :class:`~src.models.gpmm.model.inference.continuous_inference.ContinuousInference` - how
+    #: the model is evaluated away from its own vertices.
+    inference: Optional[Any] = None
+    #: Per-coordinate variance the truncated model does NOT represent -
+    #: Eq. ``ppca_gen_model``'s epsilon, and the sigma^2 of the extension
+    #: operator. Set by the builder from the decomposition's residual.
+    noise: float = 0.0
+    #: Which inner product ``eigenfunctions`` is orthonormal in: ``euclidean``
+    #: (Phi^T Phi = I) or ``mass`` (Phi^T M Phi = I, the mesh quadrature). The
+    #: difference is invisible in the array and changes what a projection means:
+    #: ``Phi^T r`` is the projection only under ``euclidean``, which is why
+    #: ``ShapeInstance.closed_form_solution`` forms Phi^T Phi rather than
+    #: assuming it away.
+    inner_product: str = "euclidean"
+
+    def __post_init__(self):
+        # A hand-built model that was given faces gets a domain for free; one
+        # built without them keeps the old behaviour exactly (domain stays
+        # None) rather than silently adopting the uniform-measure assumption.
+        if self.domain is None and self.faces is not None:
+            from src.models.gpmm.model.mean_domain import MeanDomain
+
+            self.domain = MeanDomain.from_mean(self.mean, self.faces)
+
+    @property
+    def n_vertices(self):
+        return self.mean.size // 3
+
+    @property
+    def n_components(self):
+        return self.eigenfunctions.shape[1]
+
+    def reconstruct(self, alpha: np.ndarray):
+        return self.mean + self.eigenfunctions @ alpha
+
+    def instance(self, alpha=None):
+        if alpha is None:
+            alpha = np.zeros(self.n_components)
+        return ShapeInstance(self, alpha)
+
+    def phi_rows(self, idx_list):
+        """(3R, K) block of Phi for R vertices - the design matrix of a fit.
+
+        Which vertices they are is the caller's business: landmark indices for a
+        landmark fit, matched indices for a surface fit. Same operation either
+        way, hence the neutral name.
+        """
+        Phi = self.eigenfunctions.reshape(-1, 3, self.n_components)
+        return Phi[idx_list].reshape(-1, self.n_components)
+
+    def x_rows(self, vertices, idx_list):
+        """(3R,) coordinates of those same vertices, flattened to match."""
+        return vertices.reshape(-1, 3)[idx_list].reshape(-1)
+
+    def vertex_variance(self, include_noise=False):
+        """(N, 3) per-coordinate variance, the diagonal of ``Phi Lambda Phi^T``."""
+        variance = (self.eigenfunctions ** 2) @ self.eigenvalues
+        if include_noise:
+            variance = variance + self.noise
+        return variance.reshape(-1, 3)
+
+    def vertex_std(self, include_noise=False):
+        """(N,) ``sqrt(trace)`` of each vertex's 3x3 covariance.
+
+        The same quantity as the ``total_std`` point field the mean-shape
+        runner writes, so the two can be compared directly.
+        """
+        return np.sqrt(self.vertex_variance(include_noise=include_noise).sum(axis=1))
+
+    def sample(self, n=1, rng=None, include_noise=False):
+        """(n, 3N) shapes drawn from the model."""
+        rng = np.random.default_rng(rng)
+        alpha = rng.standard_normal((int(n), self.n_components)) * np.sqrt(
+            np.clip(self.eigenvalues, 0.0, None))[None, :]
+        shapes = self.mean[None, :] + alpha @ self.eigenfunctions.T
+        if include_noise and self.noise > 0:
+            shapes = shapes + rng.standard_normal(shapes.shape) * np.sqrt(self.noise)
+        return shapes
+
+    def posterior(self, observations, include_model_noise=True):
+        """This model conditioned on ``observations`` - see ``src.models.gpmm.model.inference.posterior``."""
+        from src.models.gpmm.model.inference.posterior import posterior
+
+        return posterior(self, observations, include_model_noise=include_model_noise)
+
+    def landmark_indices(self):
+        return np.asarray(self.landmarks["verts "], dtype=np.int32)
+
+    def landmark_names(self):
+        return [n.strip() for n in self.landmarks["names "]]
+
+    def print_summary(self, alpha=None):
+        """
+        Prints statistical information regarding the model and a specific instance.
+        """
+        print("--- Summary ---")
+        print(f"Vertices: {self.n_vertices}")
+        print(f"Components: {self.n_components}")
+        
+        # Eigenvalue statistics
+        print(f"\nEigenvalues (Total Variance: {np.sum(self.eigenvalues):.8f}):")
+        print(f"  Range: [{self.eigenvalues.min():.8f}, {self.eigenvalues.max():.8f}]")
+        print(f"  Mean: {np.mean(self.eigenvalues):.8f}")
+
+        # Eigenfunction statistics (the modes of variation)
+        print(f"\nEigenfunctions (Magnitude per mode):")
+        mode_norms = np.linalg.norm(self.eigenfunctions, axis=0)
+        print(f"  Range: [{mode_norms.min():.8f}, {mode_norms.max():.8f}]")
+        print("Phi norm:", np.linalg.norm(self.eigenfunctions))
+
+        # Mean shape position statistics
+        mean_reshaped = self.mean.reshape(-1, 3)
+        print(f"\nMean Shape Positions (Spatial):")
+        print(f"  Centroid: {np.mean(mean_reshaped, axis=0)}")
+        print(f"  Spatial Range (X, Y, Z):")
+        print(f"    Min: {mean_reshaped.min(axis=0)}")
+        print(f"    Max: {mean_reshaped.max(axis=0)}")
+
+        if alpha is not None:
+            print(f"\nProvided Alpha Coefficients (Shape Instance):")
+            print(f"  Range: [{alpha.min():.4f}, {alpha.max():.4f}]")
+            print(f"  L2 Norm: {np.linalg.norm(alpha):.4f}")
+
+@dataclass
+class ShapeInstance:
+    model: StatisticalShapeModel
+    alpha: np.ndarray = field(default_factory=lambda: None)
+
+    def __post_init__(self):
+        if self.alpha is None:
+            self.alpha = np.zeros(self.model.n_components)
+
+    def parameters(self):
+        return self.alpha
+
+    def reconstruct(self):
+        return self.model.reconstruct(self.alpha)
+    
+    def closed_form_solution(self, Phi, x_current, x_target, gamma=0.0):
+        """da minimising ||Phi da - r||^2 + gamma ||da||^2, with r = x_target - x_current.
+
+            (Phi^T Phi + gamma I) da = Phi^T r
+
+        The single solver behind every fit on this class. Only the rows handed
+        in differ: all of Phi (``fit``), the landmark rows (``fit_landmarks``)
+        or the matched rows (``l2_closed_form_step``). Solving the normal
+        equations rather than taking Phi^T r means the answer is exact for a row
+        *subset* too, where Phi_r^T Phi_r != I and Phi^T r would only be a
+        gradient direction.
+
+        ``gamma`` damps the *step*; it is not a MAP prior on the coefficients. A
+        prior would carry a ``- gamma * alpha`` term on the right-hand side, and
+        this does not, so gamma shortens each update rather than pulling alpha
+        towards the mean. The two readings coincide only from alpha = 0 in a
+        single step.
+
+        It also conditions the system. With fewer rows than modes - 13 landmarks
+        give 39 rows against 163 modes - Phi^T Phi is rank-deficient, and at
+        gamma = 0 the minimum-norm solution below interpolates the data exactly
+        while staying free to be implausible everywhere else. Damp it.
+        """
+        x_current = np.asarray(x_current).reshape(-1)
+        x_target = np.asarray(x_target).reshape(-1)
+
+        lhs = Phi.T @ Phi + gamma * np.eye(Phi.shape[1])
+        rhs = Phi.T @ (x_target - x_current)
+
+        # Rank-deficient by construction, so go straight to the least-squares
+        # route: np.linalg.solve raises only on an *exactly* singular matrix and
+        # returns quietly from a merely ill-conditioned one, which here would be
+        # silent garbage rather than an error.
+        if gamma <= 0.0 and Phi.shape[0] < Phi.shape[1]:
+            return np.linalg.lstsq(lhs, rhs, rcond=None)[0]
+
+        try:
+            return np.linalg.solve(lhs, rhs)
+        except np.linalg.LinAlgError:
+            return np.linalg.lstsq(lhs, rhs, rcond=None)[0]
+
+    def fit(self, target_vertices, gamma=0.0):
+        """Projects a full set of vertices onto the model basis.
+
+        With the whole of Phi and ``inner_product='euclidean'`` the system is
+        Phi^T Phi = I, so this reduces to the plain projection Phi^T r and one
+        call converges - at the cost of forming a (3N, K) x (3N, K) product that
+        is the identity. Worth it for the one place it is not: a model
+        orthonormal in the mass inner product instead, where Phi^T r is the
+        wrong projection and this is the right one.
+        """
+        delta_alpha = self.closed_form_solution(
+            self.model.eigenfunctions,
+            self.reconstruct(),
+            np.asarray(target_vertices).reshape(-1),
+            gamma=gamma,
+        )
+
+        self.alpha = self.alpha + delta_alpha
+        return self.alpha
+
+    def get_landmark_data(self):
+        print("self.model.landmarks: ", self.model.landmarks)
+        names = [n.strip() for n in self.model.landmarks["names "]]
+        indices = np.asarray(self.model.landmarks["verts "])
+
+        vertices = self.reconstruct().reshape(-1, 3)
+
+        landmarks = {}
+        for name, idx in zip(names, indices):
+            entry = {"index": int(idx)}
+
+            entry["position"] = np.asarray(
+                vertices[idx],
+                dtype=np.float32
+            )
+
+            landmarks[name] = entry
+
+        return landmarks
+    
+    def get_landmark_indices(self):
+        return self.model.landmark_indices()
+
+    def get_landmark_names(self):
+        return self.model.landmark_names()
+
+    def get_current_landmarks(self):
+        x = self.reconstruct()
+        idx = self.get_landmark_indices()
+        return self.model.x_rows(x, idx), idx
+
+    def extract_target_landmarks(self, target_landmarks: dict):
+        names = self.get_landmark_names()
+        idx_all = self.get_landmark_indices()
+
+        x_list = []
+        idx_used = []
+
+        for name, idx in zip(names, idx_all):
+            if name not in target_landmarks:
+                continue
+
+            x_list.append(np.asarray(target_landmarks[name], dtype=np.float32))
+            idx_used.append(idx)
+
+        x_target = np.asarray(x_list).reshape(-1)
+        idx_used = np.asarray(idx_used, dtype=np.int32)
+
+        return x_target, idx_used
+
+    def fit_landmarks(self, target_landmarks, learning_rate=0.01, gamma=0.0):
+        """Pulls the instance's landmarks towards the given target positions.
+
+        The same solve as ``l2_closed_form_step``, on the landmark rows instead
+        of the matched ones - so it reaches the least-squares answer in one call
+        rather than stepping towards it, and ``learning_rate`` is only how much
+        of that step to take.
+
+        Mind the shape of the problem: R landmarks give 3R rows against K modes,
+        so at 13-23 landmarks this is heavily underdetermined and gamma = 0 hits
+        the landmarks exactly with whatever the remaining modes happen to do.
+        Damping, a learning rate below 1, or both, is what keeps the rest of the
+        surface plausible.
+        """
+        x_current_full = self.reconstruct()
+        x_target, idx = self.extract_target_landmarks(target_landmarks)
+
+        x_current = self.model.x_rows(x_current_full, idx)
+        Phi_r = self.model.phi_rows(idx)
+
+        delta_alpha = self.closed_form_solution(Phi_r, x_current, x_target, gamma=gamma)
+        self.alpha += learning_rate * delta_alpha
+
+        return self.alpha
+
+    def l2_closed_form_step(self, target_vertices, matches, learning_rate=0.1, gamma=5, chi_clamp=None):
+        """
+        One closed-form least-squares step against a fixed set of matches.
+
+        Solves (Phi_I.T @ Phi_I + gamma*I) delta_alpha = Phi_I.T @ residual over
+        the matched rows, then takes learning_rate of that step. This is an
+        *optimizer for one objective* (matched L2), not a general fit: the data
+        term is baked into the equation, so a distance with no closed form -
+        Chamfer, CPD - cannot be expressed here and needs a gradient step
+        instead (see src.models.gpmm.nicp.solvers.GradientSolver).
+
+        gamma: damping on the *step*, not a MAP prior on the coefficients. A
+               prior would add a -gamma*alpha term to the right-hand side; this
+               does not, so gamma only shortens each update. The two coincide
+               only from alpha = 0 in a single step.
+               - Increase if the shape is distorting/folding.
+               - Decrease if the shape is too rigid to reach the target.
+        """
+        matches = np.array(matches)
+        model_idx = matches[:, 0].astype(int)
+        target_idx = matches[:, 1].astype(int)
+        
+        # the matched points, on both surfaces
+        current_full = self.reconstruct().reshape(-1, 3)
+        x_current = current_full[model_idx].reshape(-1)
+        x_target = target_vertices[target_idx].reshape(-1)
+
+        # the rows of Phi belonging to them - the design matrix of the fit
+        Phi_I = self.model.phi_rows(model_idx)
+
+        delta_alpha = self.closed_form_solution(Phi_I, x_current, x_target, gamma=gamma)
+        self.alpha += learning_rate * delta_alpha
+
+        if chi_clamp is not None:
+            self.alpha = self.clamp_coefficients(chi_clamp)
+
+        return self.alpha
+
+    def clamp_coefficients(self, p=0.99):
+        """
+        Constrains alpha so that sum( (alpha_i / sqrt(lambda_i))^2 ) <= chi2_threshold
+        """
+        # Calculate normalized coefficients z_i = alpha_i / sqrt(lambda_i)
+        # Note: eigenvalues are likely variances (sigma_i), 
+        # so sqrt(lambda_i) is the standard deviation.
+        std_devs = np.sqrt(self.model.eigenvalues)
+        z = self.alpha / std_devs
+        
+        # Calculate the current Mahalanobis distance squared
+        dist_sq = np.sum(z**2)
+        
+        # Define the threshold beta^2 from the Chi-square distribution
+        M = self.model.n_components
+        beta_sq = chi2.ppf(p, df=M)
+        print(f" chi_clamp p={p}, M={M}, beta={beta_sq ** 0.5:.6g}")
+        # If outside the hyper-ellipsoid, scale alpha back to the boundary
+        if dist_sq > beta_sq:
+            scale = np.sqrt(beta_sq / dist_sq)
+            self.alpha = self.alpha * scale
+            
+        return self.alpha
+
+    def regional_mask(self, lmk_name: str, radius: float):
+        """
+        Generates a binary mask of vertices within a specified radius 
+        of a given landmark on the current shape instance.
+        """
+        # 1. Get landmarks to find the index of the requested landmark
+        landmarks = self.get_landmark_data()
+        
+        if lmk_name not in landmarks:
+            raise ValueError(f"Landmark '{lmk_name}' not found. Available: {list(landmarks.keys())}")
+        
+        lmk_idx = landmarks[lmk_name]['index']
+        
+        # 2. Get current full mesh vertices
+        current_vertices = self.reconstruct().reshape(-1, 3)
+        anchor_point = current_vertices[lmk_idx]
+        
+        # 3. Compute Euclidean distances from the anchor point to all vertices
+        dists = np.linalg.norm(current_vertices - anchor_point, axis=1)
+        
+        # 4. Create binary mask
+        mask = (dists <= radius).astype(np.float32)
+        
+        return mask
+    
+    def get_selection_matrix(self,  lmk_name: str, radius: float):
+        """
+        Converts a boolean/binary mask of length N into a Sparse Matrix (M, N),
+        where M is the number of vertices where mask == 1.
+        """
+        mask = self.regional_mask(lmk_name, radius)
+        # Get indices of the vertices that are 'selected'
+        selected_indices = np.where(mask > 0)[0]
+        M = len(selected_indices)
+        N = len(mask)
+        
+        # Create the sparse matrix (M, N)
+        # Each row 'i' has a '1' at column 'selected_indices[i]'
+        rows = np.arange(M)
+        cols = selected_indices
+        data = np.ones(M)
+        
+        return sparse.csr_matrix((data, (rows, cols)), shape=(M, N))
+
+    def region_vertices(self, lmk_name: str, radius: float ):
+        mask = self.regional_mask(lmk_name, radius)
+        verts = self.reconstruct().reshape(-1, 3)[mask.astype(bool)]
+        return verts

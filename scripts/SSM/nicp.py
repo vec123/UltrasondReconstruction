@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.shared.core.config import ConfigClient
-from src.SSM.config import NicpFitConfig
-from src.SSM.runners import NicpRunner
+from src.models.gpmm.config import NicpFitConfig
+from src.models.gpmm.runners import NicpRunner
 
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "nicp.yaml"
 
