@@ -6,11 +6,20 @@ may run (scripts/pipeline/registry.py joins those of every layer).
 A YAML is one stage (``stage: <name>``) or a pipeline (``stages: [...]``);
 run_main runs either. Both may define the ``${NAME}`` variables they use in a
 top-level ``variables:`` block, so the YAML alone says what a run does.
+
+A stage file may split its fields into ``paths:`` and ``hyperparameters:``,
+as a pipeline does. A pipeline entry can then name it (``config:``, relative
+to configs/) and takes over its hyperparameters - never its paths - so each
+stage's settings are written once, in its domain folder.
 """
 
 import os
 
 from src.shared.core.config import from_dict, interpolate, interpolate_paths, load_yaml, path_variables
+from src.shared.core.paths import get_project_root
+
+CONFIGS_DIR = "configs"
+SECTIONS = ("paths", "hyperparameters")
 
 
 def _bind_stage_config(registry, stage_name, raw, source):
@@ -44,6 +53,52 @@ def _variables(yaml_variables, extra_vars, source):
     return {**base, **own, **(extra_vars or {})}
 
 
+def _deep_merge(base, override):
+    """``override`` on top of ``base``: nested mappings merge key by key, any other value replaces."""
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _section(raw, name, source):
+    section = raw.get(name)
+    if section is None:
+        return {}
+    if not isinstance(section, dict):
+        raise ValueError(f"'{name}:' in '{source}' must be a mapping, got {type(section).__name__}.")
+    return section
+
+
+def _join_sections(raw, source):
+    """A stage file's ``paths:`` and ``hyperparameters:`` as one flat field mapping."""
+    extra = sorted(set(raw) - set(SECTIONS))
+    if extra:
+        raise ValueError(f"'{source}' has 'paths:'/'hyperparameters:' sections, so its fields belong in them; "
+                         f"move {extra} into one of the two.")
+    paths, hyperparameters = _section(raw, "paths", source), _section(raw, "hyperparameters", source)
+    overlap = sorted(set(paths) & set(hyperparameters))
+    if overlap:
+        raise ValueError(f"Field(s) {overlap} appear in both 'paths' and 'hyperparameters' in '{source}'.")
+    return {**paths, **hyperparameters}
+
+
+def _included_hyperparameters(config, stage_name, source):
+    """The ``hyperparameters:`` of the stage file that a pipeline entry names with ``config:``."""
+    path = os.path.join(get_project_root(), CONFIGS_DIR, config)
+    raw = load_yaml(path)
+    if raw.get("stage") != stage_name:
+        raise ValueError(f"{source}: 'config: {config}' is a '{raw.get('stage')}' stage file, "
+                         f"but the entry runs '{stage_name}'.")
+    if not isinstance(raw.get("hyperparameters"), dict):
+        raise ValueError(f"{source}: 'config: {config}' has no 'hyperparameters:' section. A pipeline takes "
+                         f"over only that section, never a stage file's paths.")
+    return raw["hyperparameters"]
+
+
 def run_main(config_path, registry, extra_vars=None):
     """Runs ``config_path`` as one stage (``stage:``) or as a pipeline (``stages:``)."""
     raw = load_yaml(config_path)
@@ -72,6 +127,8 @@ def stage_main(config_path, registry, extra_vars=None):
     if stage_name is None:
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
     variables = _variables(raw.pop("variables", None), extra_vars, config_path)
+    if "hyperparameters" in raw:
+        raw = _join_sections(raw, config_path)
 
     raw = interpolate_paths(raw, variables, resolve_ref=no_pipeline_context)
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
@@ -96,6 +153,13 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     its own `id` lets the same implementation run more than once in one
     pipeline - e.g. two `name: roughness_filter` entries, `id: roughness_filter`
     and `id: roughness_filter_final`, each with their own paths/hyperparameters.
+
+    An entry may also name its stage's own file with `config:` (relative to
+    configs/, e.g. `config: ultrasound/stages/01_nrrd_to_vtp.yaml`): its
+    `hyperparameters:` section is the base, and this file's
+    `hyperparameters:` block for the entry's own `id` overrides single keys of
+    it; a `name`-keyed block does not apply to such an entry. The stage
+    file's paths are never used: they are only for a run of it alone.
 
     `paths:` is looked up by `id` only - paths are inherently per-instance
     (each run needs its own output_dir). `hyperparameters:`, however, falls
@@ -173,6 +237,14 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
         stage_hyperparameters = all_hyperparameters.get(
             stage_id, all_hyperparameters.get(stage_name, {})
         )
+        # `config:` names the stage's own file; then only this entry's own id
+        # block overrides single keys of it (nested ones too). The shared
+        # name block does not apply: the stage file has that role.
+        if "config" in stage_entry:
+            stage_hyperparameters = _deep_merge(
+                _included_hyperparameters(stage_entry["config"], stage_name, f"{pipeline_config_path} ({stage_id})"),
+                all_hyperparameters.get(stage_id, {}),
+            )
         overlap = set(stage_paths) & set(stage_hyperparameters)
         if overlap:
             raise ValueError(
