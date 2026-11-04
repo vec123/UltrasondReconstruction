@@ -39,6 +39,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 from src.shared.vtk import render as views  # noqa: E402
 from src.models.lddmm.resnet_flow.apply.trained_run import decode, load_run  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
+from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
@@ -72,12 +73,7 @@ def main():
     device = torch.device(args.device)
 
     root = args.fit_root
-    with open(os.path.join(root, "similarity.json")) as f:
-        sim = json.load(f)
-    scale, rot, trans = sim["scale"], np.array(sim["rotation"]), np.array(sim["translation"])
-
-    def to_mm(points):
-        return scale * points @ rot.T + trans
+    to_mm = SimilarityTransform.from_json(os.path.join(root, "similarity.json")).apply_points
 
     scan_name = os.path.basename(sorted(glob.glob(os.path.join(root, "targets", "*.vtp")))[0])
     scan_mm = load_vtp(next(p for p in sim["scans"] if os.path.basename(p) == scan_name))

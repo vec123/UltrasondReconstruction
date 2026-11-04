@@ -27,16 +27,6 @@ _SSM_FILES = PipelineOutputFiles()
 _FLOW_FILES = ApplyOutputFiles()
 
 
-def _similarity_from_json(path: Path) -> SimilarityTransform:
-    """A ``{scale, rotation, translation}`` file (x' = s R x + t), as scripts/SSM/target_to_ssm_frame.py writes it."""
-    with open(path) as f:
-        data = json.load(f)
-    matrix = np.eye(4)
-    matrix[:3, :3] = float(data["scale"]) * np.asarray(data["rotation"], dtype=np.float64)
-    matrix[:3, 3] = np.asarray(data["translation"], dtype=np.float64)
-    return SimilarityTransform(matrix, stage=str(path))
-
-
 @register_layout("direct_ssm_fit")
 @dataclass(frozen=True)
 class DirectSSMFitLayout(PairLayout):
@@ -124,7 +114,7 @@ class DirectFlowApplyLayout(PairLayout):
         target_path = Path(member["path"])
 
         similarity_path = target_path.parent.parent / self.similarity_file
-        recon_to_surface = _similarity_from_json(similarity_path) if similarity_path.is_file() else None
+        recon_to_surface = SimilarityTransform.from_json(similarity_path) if similarity_path.is_file() else None
 
         landmarks_path: Optional[Path] = None
         train_config = manifest.get("train_config")
@@ -157,8 +147,8 @@ class DirectFlowEvalLayout(PairLayout):
     target     eval/target_w_distance.vtp, moved by the same similarity. Two kinds:
                a mesh (the fused scan, as scripts/inspection/eval_cohort_apply.py
                scores it) uses its own face normals; a point cloud must be the
-               cohort member, whose ``normal`` array that move did not rotate
-               (vtkTransformPolyDataFilter rotates only the active normals), so
+               cohort member, whose ``normal`` array an eval written before
+               transform_polydata_matrix did not rotate (or scaled by s), so
                the member's own normals are rotated with the similarity that is
                recovered from the recon.
     frame      eval -> world (that similarity, inverted), then the cohort's

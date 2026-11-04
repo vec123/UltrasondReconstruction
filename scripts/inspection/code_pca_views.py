@@ -23,6 +23,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from src.shared.vtk.render import MESH_COLOR, SCAN_COLOR, read_landmarks, view_camera, write_grid  # noqa: E402
+from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # noqa: E402
@@ -85,11 +86,7 @@ def similarity_map(path):
     """
     if path is None:
         return lambda points: points
-    with open(path) as f:
-        sim = json.load(f)
-    scale, rotation = float(sim["scale"]), np.asarray(sim["rotation"], dtype=np.float64)
-    translation = np.asarray(sim["translation"], dtype=np.float64)
-    return lambda points: scale * np.asarray(points, dtype=np.float64) @ rotation.T + translation
+    return SimilarityTransform.from_json(path).apply_points
 
 
 def template_landmarks(run, member, to_frame=None, model=None):

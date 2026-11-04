@@ -15,12 +15,12 @@ and invert it.
 """
 
 import glob
+import json
 import os
 
 import numpy as np
-import vtk
 
-from src.shared.vtk.transform import decompose_similarity_transform
+from src.shared.vtk.transform import decompose_similarity_transform, transform_polydata_matrix
 
 
 def umeyama_similarity_transform(src_pts, dst_pts, with_scale=True, weights=None):
@@ -142,21 +142,27 @@ class SimilarityTransform:
         return dict(zip(names, transformed))
 
     def apply_polydata(self, polydata):
-        """Applies the transform to a vtkPolyData, returning a new vtkPolyData."""
-        vtk_matrix = vtk.vtkMatrix4x4()
-        for i in range(4):
-            for j in range(4):
-                vtk_matrix.SetElement(i, j, self.matrix[i, j])
+        """Applies the transform to a vtkPolyData, returning a new vtkPolyData
+        (see src.shared.vtk.transform.transform_polydata_matrix: normals rotate)."""
+        return transform_polydata_matrix(polydata, self.matrix)
 
-        transform = vtk.vtkTransform()
-        transform.SetMatrix(vtk_matrix)
+    @classmethod
+    def from_json(cls, path, stage=None, with_scale=True):
+        """The transform x' = s R x + t of a ``{scale, rotation, translation}`` JSON file
+        (see to_json). Other keys in the file are ignored."""
+        with open(path) as f:
+            data = json.load(f)
+        matrix = np.eye(4)
+        matrix[:3, :3] = float(data["scale"]) * np.asarray(data["rotation"], dtype=np.float64)
+        matrix[:3, 3] = np.asarray(data["translation"], dtype=np.float64)
+        return cls(matrix, stage=str(path) if stage is None else stage, with_scale=with_scale)
 
-        transform_filter = vtk.vtkTransformPolyDataFilter()
-        transform_filter.SetInputData(polydata)
-        transform_filter.SetTransform(transform)
-        transform_filter.Update()
-
-        return transform_filter.GetOutput()
+    def to_json(self, path, **extra):
+        """Writes ``{scale, rotation, translation}`` (x' = s R x + t) and the `extra` keys
+        (e.g. which files the transform was fitted on) as JSON."""
+        s, R, t = decompose_similarity_transform(self.matrix)
+        with open(path, "w") as f:
+            json.dump({"scale": float(s), "rotation": R.tolist(), "translation": t.tolist(), **extra}, f, indent=2)
 
     def save(self, path, labels=None, **extra):
         os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -26,16 +26,14 @@ Usage:
 """
 
 import argparse
-import json
 import os
 from pathlib import Path
 
 import numpy as np
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from src.shared.transforms.similarity import umeyama_similarity_transform
+from src.shared.transforms.similarity import SimilarityTransform, umeyama_similarity_transform
 from src.shared.vtk.io import load_vtp, save_vtp
-from src.shared.vtk.transform import decompose_similarity_transform
 
 VECTOR_ARRAYS = ("normal",)   # point arrays that rotate with the frame
 
@@ -60,7 +58,8 @@ def main():
     a, b = points_of(model_t), points_of(aligned_t)
     if a.shape != b.shape:
         raise ValueError(f"templates differ in vertex count: {a.shape} vs {b.shape}")
-    scale, rot, trans = decompose_similarity_transform(umeyama_similarity_transform(a, b))
+    model_to_aligned = SimilarityTransform(umeyama_similarity_transform(a, b))
+    scale, rot, trans = model_to_aligned.scale, model_to_aligned.rotation, model_to_aligned.translation
     residual = np.linalg.norm(scale * a @ rot.T + trans - b, axis=1)
     print(f"similarity: scale {scale:.2f}, residual mean {residual.mean():.2e} max {residual.max():.2e} (aligned units)")
 
@@ -82,10 +81,8 @@ def main():
     template = load_vtp(args.aligned_template)
     set_points(template, a)
     save_vtp(template, str(out / "template.vtp"))
-    with open(out / "similarity.json", "w") as f:
-        json.dump({"scale": scale, "rotation": rot.tolist(), "translation": trans.tolist(),
-                   "model_template": args.model_template, "aligned_template": args.aligned_template,
-                   "scans": args.scan}, f, indent=2)
+    model_to_aligned.to_json(out / "similarity.json", model_template=args.model_template,
+                             aligned_template=args.aligned_template, scans=args.scan)
     print(f"wrote {len(args.scan)} scan(s) + template to {out}")
 
 
