@@ -70,7 +70,8 @@ from src.shared.vtk import render as views  # noqa: E402
 from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa: E402
 from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization, load_run_config  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
-from scripts.inspection.render_ssm_posterior_views import faces_of, ramp_colors, with_colors  # noqa: E402
+from src.shared.vtk.extract import get_vtp_faces  # noqa: E402
+from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from src.shared.transforms.similarity import umeyama_similarity_transform  # noqa: E402
 from src.shared.vtk.transform import decompose_similarity_transform  # noqa: E402
 from src.models.lddmm.resnet_flow.fields.fourier import FourierStationaryField  # noqa: E402
@@ -353,7 +354,7 @@ def main():
         # mm, unposed: the model frame scaled by s (x = s R a + t  ->  s a = R^T (x - t)).
         targets.append((torch.as_tensor((pts - trans) @ rot, dtype=torch.float32, device=device),
                         torch.as_tensor(scans[case][2], dtype=torch.float32, device=device),
-                        torch.as_tensor(scan_rim(pts, faces_of(scan), args.rim_mm), device=device)))
+                        torch.as_tensor(scan_rim(pts, get_vtp_faces(scan), args.rim_mm), device=device)))
         print(f"{case}: {100 * targets[-1][2].float().mean():.0f}% of the scan points on the rim")
     print("stage 1: codes of all cases")
     theta1, _ = optimise(flow, "code", torch.zeros(len(targets), z_of.k, device=device), z_of, geometry, targets,

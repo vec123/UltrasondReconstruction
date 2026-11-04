@@ -38,7 +38,8 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
+from src.shared.vtk.process import sub_surface  # noqa: E402
+from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from src.shared.core.config import from_dict  # noqa: E402
 from scripts.pipeline.registry import STAGE_REGISTRY  # noqa: E402
 from src.models.gpmm.stages.ssm_posterior import variant_name  # noqa: E402

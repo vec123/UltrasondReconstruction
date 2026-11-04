@@ -3,7 +3,8 @@ import numpy as np
 import vtk
 
 from src.shared.vtk.create import create_polydata
-from src.shared.vtk.extract import extract_all_vtp_point_fields, extract_vtp_points_cells
+from src.shared.vtk.extract import (extract_all_vtp_point_fields, extract_vtp_points_cells, get_vtp_faces,
+                                    get_vtp_vertices)
 from src.shared.vtk.fields import add_point_fields
 
 
@@ -72,6 +73,18 @@ def extract_polydata_vertex_subset(poly_data, mask):
         add_point_fields(new_polydata, new_fields)
 
     return new_polydata
+
+
+def sub_surface(poly, mask):
+    """The faces of `poly` with a vertex that has `mask` set, over all of its points.
+
+    Any rather than all three: a target_to_recon mask picks one vertex per scan
+    point, and with fewer scan points than vertices few faces have all three.
+    Unlike extract_polydata_vertex_subset, the points are not reindexed and
+    the point data is not carried over.
+    """
+    faces = get_vtp_faces(poly)
+    return create_polydata(get_vtp_vertices(poly).astype(float), faces[mask[faces].any(axis=1)])
 
 
 def smooth_vtp(poly_data, iterations=30, pass_band=0.1, boundary_smoothing=True,

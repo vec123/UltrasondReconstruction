@@ -8,14 +8,14 @@ millimetres.
 
 The colour of a panel selects how mesh_actor draws its mesh:
   * an (r, g, b) tuple: one colour;
-  * None: the mesh's own RGB point scalars (e.g. an error or std ramp);
+  * None: the mesh's own RGB point scalars (with_colors, e.g. of ramp_colors);
   * a function poly -> vtkActor: that function builds the actor (e.g. a
     scalar field through a lookup table).
 """
 
 import numpy as np
 import vtk
-from vtk.util.numpy_support import vtk_to_numpy
+from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from src.shared.vtk.io import load_vtp
 
@@ -23,6 +23,8 @@ MESH_COLOR = (0.93, 0.80, 0.70)
 SCAN_COLOR = (0.55, 0.70, 0.85)
 LANDMARK_COLOR = (0.84, 0.15, 0.16)
 NEAR_PLANE_MM = 10.0  # how far in front of the nose tip the camera starts seeing
+# Sequential ramp, light (0) -> dark (max_value and above).
+SEQUENTIAL_RAMP = ("#fff5d6", "#fdd98b", "#f9a94b", "#e8712c", "#c44620", "#8f2618", "#561410")
 
 
 def read_landmarks(path):
@@ -73,6 +75,26 @@ def view_camera(lmk, meshes, view):
     camera.SetParallelScale(0.55 * max(hi[across] - lo[across], hi[1] - lo[1]))
     camera.SetClippingRange(distance - near - NEAR_PLANE_MM, distance + 1000.0)
     return camera
+
+
+def ramp_colors(values, max_value, ramp=SEQUENTIAL_RAMP):
+    """[N] values -> [N, 3] uint8 RGB on `ramp`, clipped at max_value."""
+    stops = np.array([[int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in ramp], dtype=float)
+    t = np.clip(np.asarray(values, dtype=float) / max_value, 0, 1) * (len(ramp) - 1)
+    lo = np.floor(t).astype(int)
+    hi = np.minimum(lo + 1, len(ramp) - 1)
+    frac = (t - lo)[:, None]
+    return ((1 - frac) * stops[lo] + frac * stops[hi]).round().astype(np.uint8)
+
+
+def with_colors(poly, rgb):
+    """A copy of `poly` with [N, 3] uint8 `rgb` as its RGB point scalars (a panel with colour None)."""
+    colored = vtk.vtkPolyData()
+    colored.DeepCopy(poly)
+    array = numpy_to_vtk(rgb, deep=True)
+    array.SetName("rgb")
+    colored.GetPointData().SetScalars(array)
+    return colored
 
 
 def mesh_actor(poly, color):

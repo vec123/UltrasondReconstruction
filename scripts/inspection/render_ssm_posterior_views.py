@@ -23,55 +23,18 @@ import argparse
 import os
 
 import numpy as np
-import vtk
-from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
-from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
+from src.shared.vtk.process import sub_surface  # noqa: E402
 
-# Sequential ramp, light (std 0) -> dark (std-max and above).
-STD_RAMP = ("#fff5d6", "#fdd98b", "#f9a94b", "#e8712c", "#c44620", "#8f2618", "#561410")
 OBSERVED_COLOR = (0.45, 0.65, 0.88)
-
-
-def ramp_colors(values, max_value):
-    """[N] values -> [N, 3] uint8 RGB on STD_RAMP, clipped at max_value."""
-    stops = np.array([[int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in STD_RAMP], dtype=float)
-    t = np.clip(np.asarray(values, dtype=float) / max_value, 0, 1) * (len(STD_RAMP) - 1)
-    lo = np.floor(t).astype(int)
-    hi = np.minimum(lo + 1, len(STD_RAMP) - 1)
-    frac = (t - lo)[:, None]
-    return ((1 - frac) * stops[lo] + frac * stops[hi]).round().astype(np.uint8)
-
-
-def with_colors(poly, rgb):
-    colored = vtk.vtkPolyData()
-    colored.DeepCopy(poly)
-    array = numpy_support.numpy_to_vtk(rgb, deep=True)
-    array.SetName("rgb")
-    colored.GetPointData().SetScalars(array)
-    return colored
 
 
 def points_of(poly):
     return vtk_to_numpy(poly.GetPoints().GetData()).astype(float)
-
-
-def faces_of(poly):
-    return vtk_to_numpy(poly.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-
-
-def sub_surface(poly, mask):
-    """The faces of `poly` with a vertex that has `mask` set.
-
-    Any rather than all three: a target_to_recon mask picks one vertex per scan
-    point, and with fewer scan points than vertices few faces have all three.
-    """
-    faces = faces_of(poly)
-    return create_polydata(points_of(poly), faces[mask[faces].any(axis=1)])
 
 
 def render_case(case_dir, posterior_name, out_path, std_max, panel_px):
@@ -91,7 +54,7 @@ def render_case(case_dir, posterior_name, out_path, std_max, panel_px):
     std = vtk_to_numpy(posterior.GetPointData().GetArray("posterior_std_mm"))
     informative = vtk_to_numpy(posterior.GetPointData().GetArray("informative")).astype(bool)
     observed = sub_surface(lddmm, informative)
-    std_mesh = with_colors(posterior, ramp_colors(std, std_max))
+    std_mesh = views.with_colors(posterior, views.ramp_colors(std, std_max))
 
     cameras = {view: views.view_camera(ref_lmk, [target, lddmm, posterior], view)
                for view in ("frontal", "left", "right")}

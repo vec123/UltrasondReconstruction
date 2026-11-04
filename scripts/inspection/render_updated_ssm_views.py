@@ -38,16 +38,16 @@ import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection import render_ssm_posterior_views as post  # noqa: E402  (also lets a panel take color=None)
 from scripts.SSM.update_ssm_em import load_cases  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.models.gpmm.model.inference.posterior import posterior, posterior_with_pose  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
+from src.shared.vtk import render as views  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
+from src.shared.vtk.extract import get_vtp_vertices  # noqa: E402
 from src.shared.vtk.fields import add_point_fields  # noqa: E402
 from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402
 
-views = post.views
 VIEWS = ("frontal", "left", "right")
 
 
@@ -128,7 +128,8 @@ def render_fit_worlds(case_dir, worlds, distance_max, header, out_path, panel_px
     ref_lmk = views.read_landmarks(os.path.join(case_dir, "eval", "reference_landmarks.vtp"))
     deformed = load_vtp(os.path.join(case_dir, "world", "deformed.vtp"))
     # world -> the LDDMM eval's landmark frame, exact: same vertices on both sides.
-    to_eval = SimilarityTransform.from_correspondences(post.points_of(deformed), post.points_of(lddmm))
+    to_eval = SimilarityTransform.from_correspondences(get_vtp_vertices(deformed).astype(float),
+                                                    get_vtp_vertices(lddmm).astype(float))
 
     fits = {}
     for label, world in worlds.items():
@@ -146,7 +147,7 @@ def render_fit_worlds(case_dir, worlds, distance_max, header, out_path, panel_px
         if view == "frontal":
             rows.append((camera, [None, None] + [
                 (f"Target to {label.lower()} fit, 0-{distance_max:g} mm (median {np.median(d):.2f})",
-                 post.with_colors(target, post.ramp_colors(d, distance_max)), None, [])
+                 views.with_colors(target, views.ramp_colors(d, distance_max)), None, [])
                 for label, (_, d) in fits.items()]))
     views.write_grid(rows, 4, header, out_path, panel_px)
     target_out = vtk.vtkPolyData()

@@ -52,7 +52,8 @@ from src.shared.core.config import load_yaml  # noqa: E402
 from src.models.lddmm.resnet_flow.config import ExperimentCfg  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
-from scripts.inspection.render_ssm_posterior_views import ramp_colors, sub_surface, with_colors  # noqa: E402
+from src.shared.vtk.process import sub_surface  # noqa: E402
+from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402

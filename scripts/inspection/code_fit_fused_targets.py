@@ -38,7 +38,7 @@ from scripts.inspection.code_fit_partial_tests import (ERROR_MAX_MM, code_parame
                                                        load_run_config, ssm_decoder)
 from src.models.lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
-from scripts.inspection.render_ssm_posterior_views import ramp_colors, with_colors  # noqa: E402
+from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from scripts.inspection.eval_ssm_cohort import load_run  # noqa: E402
 from src.shared.transforms.similarity import umeyama_similarity_transform  # noqa: E402
 from src.shared.vtk.transform import decompose_similarity_transform  # noqa: E402
@@ -207,10 +207,10 @@ def main():
     # Varifold: the scan's own triangles, in the same unposed mm frame as its points.
     vf_inputs = {}
     if args.data == "varifold":
-        from scripts.inspection.render_ssm_posterior_views import faces_of
+        from src.shared.vtk.extract import get_vtp_faces
         obs_tris = []
         for case, target in zip(args.cases, targets):
-            obs_tris.append(target[torch.as_tensor(faces_of(scans[case][0]), dtype=torch.long, device=device)])
+            obs_tris.append(target[torch.as_tensor(get_vtp_faces(scans[case][0]), dtype=torch.long, device=device)])
         vf_inputs = {"template_mm": torch.as_tensor(model.mean.reshape(-1, 3) * s, dtype=torch.float32, device=device),
                      "template_faces": torch.as_tensor(faces, dtype=torch.long, device=device),
                      "obs_triangles": obs_tris}
