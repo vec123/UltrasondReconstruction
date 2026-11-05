@@ -13,12 +13,32 @@
 # old places under outputs/Casos_Mar/fetus_ssm/), so they are not run again.
 #
 # Run with:
+#    python scripts/run.py configs/pipelines/gen_fused_scan_targets.yaml
+# It runs every session of DATASET whose fused target does not exist yet (targets:
+# and batch: below), 4 at a time, each in its own process with a log. For another
+# dataset, change DATASET. One session alone still runs with
 #    python scripts/run_pipeline.py --config configs/pipelines/gen_fused_scan_targets.yaml \
-#        --set CASES_ROOT=/home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/Estudio_Dexeus \
-#        --set DATASET=Estudio_Dexeus --set SUBJECT_ID=Dex-76 --set "WEEK=26 semanas" \
-#        --set REFERENCE_SCAN=Dex-76-26s-01 --set LANDMARKS_FRAME=LPS
+#        --set SUBJECT_ID=Dex-76 --set "WEEK=26 semanas" --set REFERENCE_SCAN=Dex-76-26s-01
 # The predictor writes 1mm isotropic volumes with origin 0 and identity
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
+
+variables:
+  DATASET: Casos_Mar
+  CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/${DATASET}
+  LANDMARKS_FRAME: LPS
+
+# Every session: <case>/<week>/*.nrrd, or <case>/*.nrrd for a dataset without week
+# folders (WEEK is then empty); its first scan is the reference.
+targets:
+  match:
+    - ${SCANS}
+    - ${CASES_ROOT}/${SUBJECT_ID}/${REFERENCE_SCAN}.nrrd
+  first: [REFERENCE_SCAN]
+
+batch:
+  workers: 4
+  log_dir: ${DATA_ROOT}/fused_scan_processing/${DATASET}/batch_logs
+  skip_if_exists: ${FUSED_SCAN}
 
 # Default stage files: an entry of these stages without its own `config:` takes
 # its hyperparameters from them (see src/shared/core/pipeline/engine.py).

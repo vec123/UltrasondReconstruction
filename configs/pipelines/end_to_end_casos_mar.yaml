@@ -4,9 +4,11 @@
 # outputs/Casos_Mar/... so they never overwrite the original subjects (ids overlap).
 #
 # Run with:
+#    python scripts/run.py configs/pipelines/end_to_end_casos_mar.yaml
+# It runs every session of the subjects under targets: only, one after the other,
+# each in its own process with a log (batch: below). One session alone still runs with
 #    python scripts/run_pipeline.py --config configs/pipelines/end_to_end_casos_mar.yaml \
-#        --set CASES_ROOT=/home/victor/Projects/UltrasoundLandmarkPredictor/inference/results/Casos_Mar \
-#        --set SUBJECT_ID=14 --set "WEEK=20 semanas" --set REFERENCE_SCAN=14-20s-01 --set LANDMARKS_FRAME=LPS
+#        --set SUBJECT_ID=14 --set "WEEK=20 semanas" --set REFERENCE_SCAN=14-20s-01
 # The predictor writes 1mm isotropic volumes with origin 0 and identity
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
 # Keep stages and hyperparameters in sync with end_to_end.yaml.
@@ -14,6 +16,20 @@
 # The dataset of this pipeline: its outputs go to ${OUT} (configs/sources.yaml).
 variables:
   DATASET: Casos_Mar
+  CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/${DATASET}
+  LANDMARKS_FRAME: LPS
+
+# Every session of these subjects; its first scan is the reference.
+targets:
+  match: ${SCANS}
+  first: [REFERENCE_SCAN]
+  only: [{SUBJECT_ID: 1}, {SUBJECT_ID: 2}, {SUBJECT_ID: 3}, {SUBJECT_ID: 4}, {SUBJECT_ID: 5},
+         {SUBJECT_ID: 6}, {SUBJECT_ID: 11}, {SUBJECT_ID: 13}, {SUBJECT_ID: 14}]
+
+# One session at a time: the pipeline trains a flow on the GPU.
+batch:
+  workers: 1
+  log_dir: ${OUT}/batch_logs/end_to_end_casos_mar
 
 # Default stage files: an entry of these stages without its own `config:` takes
 # its hyperparameters from them (see src/shared/core/pipeline/engine.py).

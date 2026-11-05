@@ -2,12 +2,27 @@
 # (train, apply, both evals) with kinetic_weight 5000 (was 2000) and landmark_weight 0
 # (was 1), into outputs/Casos_Mar/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/ (training on cuda). Every other
 # stage is disabled but still binds, so it reads the existing end_to_end_casos_mar
-# outputs of the same case/week - run that first. Same --set variables as the base.
+# outputs of the same case/week - run that first. The same sessions as the base:
+#    python scripts/run.py configs/pipelines/end_to_end_casos_mar_lddmm_kin5000_nolmk.yaml
 # Generated from end_to_end_casos_mar.yaml (comments and anchors are not kept).
 
 # The dataset of this pipeline: its outputs go to ${OUT} (configs/sources.yaml).
 variables:
   DATASET: Casos_Mar
+  CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/${DATASET}
+  LANDMARKS_FRAME: LPS
+
+# Every session of these subjects, as in end_to_end_casos_mar.yaml.
+targets:
+  match: ${SCANS}
+  first: [REFERENCE_SCAN]
+  only: [{SUBJECT_ID: 1}, {SUBJECT_ID: 2}, {SUBJECT_ID: 3}, {SUBJECT_ID: 4}, {SUBJECT_ID: 5},
+         {SUBJECT_ID: 6}, {SUBJECT_ID: 11}, {SUBJECT_ID: 13}, {SUBJECT_ID: 14}]
+
+# One session at a time: the pipeline trains a flow on the GPU.
+batch:
+  workers: 1
+  log_dir: ${OUT}/batch_logs/end_to_end_casos_mar_lddmm_kin5000_nolmk
 
 # Default stage files: an entry of these stages without its own `config:` takes
 # its hyperparameters from them (see src/shared/core/pipeline/engine.py).
