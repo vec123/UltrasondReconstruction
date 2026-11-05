@@ -68,6 +68,9 @@ def test_find_cases():
             "FLA1"]
         listed = find_cases({"cases": [{"SUBJECT_ID": 3, "WEEK": "20 semanas"}]}, {}, "t")
         assert [(c.name, c.values) for c in listed] == [("3_20_semanas", {"SUBJECT_ID": "3", "WEEK": "20 semanas"})]
+        # All its variables given (e.g. by the caller): the one case, a first: variable included.
+        given = {"ROOT": root, "SUBJECT_ID": "1", "WEEK": "20 semanas", "SCAN": "b"}
+        assert [(c.name, c.values, c.n_files) for c in find_cases(targets, given, "t")] == [("case", {}, 1)]
 
         for wrong, message in [({"match": "x", "cases": []}, "exactly one"), ({"cases": [], "where": 1}, "unknown"),
                                ({"match": f"{root}/none/${{X}}"}, "No path fits"),

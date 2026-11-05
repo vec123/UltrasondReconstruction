@@ -32,10 +32,11 @@ class Case:
 
     @property
     def name(self):
-        """CASE_KEY (``1_20_semanas``), or the values joined when there is no SUBJECT_ID."""
+        """CASE_KEY (``1_20_semanas``), or the values joined when there is no SUBJECT_ID;
+        "case" for the one case of a pattern whose variables all have a value."""
         if SUBJECT_ID in self.values:
             return with_case_key(self.values)[CASE_KEY]
-        return "_".join(value.replace(" ", "_") for value in self.values.values())
+        return "_".join(value.replace(" ", "_") for value in self.values.values()) or "case"
 
 
 def _values(entry, key, source):
@@ -52,7 +53,8 @@ def _matched(patterns, first, variables, source):
     names = list(dict.fromkeys(
         part for pattern in patterns for name in unknown_variables(pattern, variables)
         for part in ((SUBJECT_ID, WEEK) if name == CASE_KEY else (name,))))
-    missing = sorted(set(first) - set(names))
+    # A first: variable with a value already (e.g. given by the caller) has nothing to find.
+    missing = sorted(set(first) - set(names) - set(variables))
     if missing:
         raise ValueError(f"'targets: first:' in '{source}' names {missing}, which no 'match:' pattern finds.")
     groups = {}  # the values that make the case -> [its values, its first path, its number of paths]
