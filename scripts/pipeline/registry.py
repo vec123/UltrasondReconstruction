@@ -8,8 +8,10 @@ registered item is a `StageSpec` (see `src/shared/core/pipeline/stage_spec.py`).
 Each layer owns the list of what it registers, in its `registrations.py`
 (src/ultrasound, src/evaluation, src/models/gpmm, src/models/lddmm); this
 module only joins them into one registry, so a pipeline YAML can name a
-stage from any of them. A layer imports only its Configs eagerly; the code
-behind a stage's run() is imported when a run reaches it.
+stage from any of them. Loading this registry imports almost no stage code:
+most stages name their module (StageSpec.of_module), which is imported when a
+run first uses the stage; the others import only their Config here, and their
+run() imports the rest when a run reaches it.
 """
 
 from src.evaluation.registrations import STAGE_SPECS as _EVALUATION_STAGE_SPECS
