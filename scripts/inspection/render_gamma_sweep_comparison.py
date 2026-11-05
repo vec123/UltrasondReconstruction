@@ -74,11 +74,11 @@ def scaled(mesh, factor):
 
 
 def view_rows(cameras, target, recons):
-    """A frontal row (target, then the fits), then a left and a right row of the fits only."""
-    frontal, left, right = cameras
-    rows = [(frontal, [("target", target, SCAN_COLOR, [])] + [(label, mesh, MESH_COLOR, []) for label, mesh in recons])]
-    for camera, side in ((left, "left"), (right, "right")):
-        rows.append((camera, [None] + [(f"{label} {side}", mesh, MESH_COLOR, []) for label, mesh in recons]))
+    """A frontal, a left and a right row; each row has the target, then the fits."""
+    rows = []
+    for camera, side in zip(cameras, ("", " left", " right")):
+        rows.append((camera, [(f"target{side}", target, SCAN_COLOR, [])]
+                     + [(f"{label}{side}", mesh, MESH_COLOR, []) for label, mesh in recons]))
     return rows
 
 
