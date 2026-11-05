@@ -22,7 +22,7 @@
 # python scripts/run.py configs/gpmm/sample/mean_shape_fetus.yaml
 stage: ssm_mean_shape
 
-shape_model_mat: ${PROJECT_ROOT}/src/FetusModel
+shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
 
 outputs:
   dir: ${PROJECT_ROOT}/outputs/mean_shape_fetus
@@ -59,7 +59,7 @@ model:
     # below that needs landmarks quietly stays off (0 landmarks -> nothing to
     # compute) until this file has entries in it, so there is nothing to
     # re-enable by hand once the picker has been used.
-    landmarks: ${PROJECT_ROOT}/src/FetusModel/landmarks.json
+    landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
 
 fields:
   total_std: true           # per-vertex sd under the model, in mm here
