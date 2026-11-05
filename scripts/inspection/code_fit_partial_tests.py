@@ -50,6 +50,7 @@ from src.shared.vtk import render as views  # noqa: E402
 from src.models.gpmm.shape_model import GpmmShapeModel  # noqa: E402
 from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run, load_run_config  # noqa: E402
 from src.models.lddmm.shape_model import build_code_prior  # noqa: E402
+from src.shared.fitting.code_fit import fit_codes as shared_fit_codes, parse_variant  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from src.shared.vtk.process import sub_surface  # noqa: E402
@@ -106,14 +107,6 @@ def ssm_decoder(model, mm_per_unit, device):
     return decode
 
 
-def triangle_geometry(tris):
-    """[..., F, 3, 3] triangle vertices -> (centres, unit normals, areas), as fshape.face_geometry."""
-    v0, v1, v2 = tris.unbind(-2)
-    cross = torch.cross(v1 - v0, v2 - v0, dim=-1)
-    norm = cross.norm(dim=-1, keepdim=True)
-    return (v0 + v1 + v2) / 3.0, cross / norm.clamp_min(1e-12), 0.5 * norm[..., 0]
-
-
 def laplacian_smooth(points, faces, iterations, lam=0.5):
     """[N, 3] points after `iterations` uniform Laplacian steps over the edges of `faces`.
 
@@ -132,113 +125,6 @@ def laplacian_smooth(points, faces, iterations, lam=0.5):
         mean[has] = mean[has] / degree[has, None]
         points = torch.where(has[:, None], (1 - lam) * points + lam * mean, points)
     return points
-
-
-def varifold_setup(template_mm, template_faces, obs_triangles, n_faces, seed=0):
-    """Fixed, area-proportional triangle subsets (drawn once, without replacement), as fshape.py.
-
-    A fixed subset keeps the varifold a deterministic, smooth function of the vertex
-    positions; re-drawing it every step made the objective noisy, and drawing with
-    replacement put duplicate pairs into <fit, fit>. Each subset's masses are scaled by
-    total area / subset area, so it stands for the whole surface.
-
-    Returns:
-        dict with the template subset (faces [F, 3], its vertices [U] and the faces
-        re-indexed into them [F, 3], the area scale) and per target the observed subset
-        (centres, normals, masses).
-    """
-    gen = torch.Generator(device=template_mm.device).manual_seed(seed)
-    tmpl_area = triangle_geometry(template_mm[template_faces])[2]
-    fi = torch.multinomial(tmpl_area, min(n_faces, len(tmpl_area)), replacement=False, generator=gen)
-    faces = template_faces[fi]
-    verts, local = torch.unique(faces, return_inverse=True)
-    obs = []
-    for tris in obs_triangles:
-        c, n, a = triangle_geometry(tris)
-        gi = torch.multinomial(a, min(n_faces, len(a)), replacement=False, generator=gen)
-        m = a[gi] * a.sum() / a[gi].sum()
-        pad = n_faces - len(gi)                  # fewer observed triangles: zero-mass padding
-        obs.append(tuple(torch.cat([x, x.new_zeros((pad,) + x.shape[1:])]) for x in (c[gi], n[gi], m)))
-    return {"verts": verts, "local": local, "area_scale": tmpl_area.sum() / tmpl_area[fi].sum(), "obs": obs}
-
-
-def varifold_data(vf, decoder, z, args, gen=None):
-    """[T] varifold distance of each target's fit to its observations, in mm^2.
-
-    Unoriented varifold (fshape.py's kernel without a signal) at the widths
-    --varifold-sigmas, each normalised by <obs, obs> and multiplied by its width^2, so
-    a small misfit d gives about d^2. Both surfaces are the fixed subsets of
-    varifold_setup, so the term is a smooth function of the fit's vertex positions.
-    Each fit triangle is weighted by its distance d to the observed triangles, held
-    fixed within the step (a mask): 1 up to --trunc-mm, then exp(-((d - trunc) / trunc)^2),
-    so the surface the observations do not cover is not pulled onto them - the
-    varifold's counterpart of the truncated chamfer.
-    """
-    n_t = z.shape[0]
-    pts = decoder(vf["verts"][None].expand(n_t, -1), z)                 # [T, U, 3]
-    cf, nf, af = triangle_geometry(pts[:, vf["local"]])                  # [T, F, ...]
-    mf = af * vf["area_scale"]
-    co, no, mo = (torch.stack(x) for x in zip(*vf["obs"]))               # [T, G, ...]
-    with torch.no_grad():
-        d = torch.cdist(cf, co).min(2).values
-        w = torch.exp(-((d - args.trunc_mm).clamp_min(0) / args.trunc_mm) ** 2)
-    mf = mf * w
-    sq_ff, sq_fo, sq_oo = torch.cdist(cf, cf) ** 2, torch.cdist(cf, co) ** 2, torch.cdist(co, co) ** 2
-    n_ff, n_fo, n_oo = (nf @ nf.transpose(1, 2)) ** 2, (nf @ no.transpose(1, 2)) ** 2, (no @ no.transpose(1, 2)) ** 2
-    total = 0.0
-    for width in args.varifold_sigmas:
-        def inner(m1, sq, nn, m2):
-            return torch.einsum("tf,tfg,tg->t", m1, torch.exp(-sq / width ** 2) * nn, m2)
-        oo = inner(mo, sq_oo, n_oo, mo)
-        total = total + (inner(mf, sq_ff, n_ff, mf) - 2 * inner(mf, sq_fo, n_fo, mo) + oo) / oo * width ** 2
-    return total / len(args.varifold_sigmas)
-
-
-def keops_varifold_one(cf, nf, mf, co, no, mo, widths):
-    """Varifold distance (mm^2, as varifold_data) between ONE fit and ONE observation, with KeOps.
-
-    No kernel matrix is stored, so both surfaces can be large (tens of thousands of
-    triangles each). Inputs: centres, unit normals [F, 3] / [G, 3] and masses [F] / [G].
-    """
-    from pykeops.torch import LazyTensor
-
-    def inner(c1, n1, m1, c2, n2, m2, width):
-        k = (-(LazyTensor(c1[:, None, :]) - LazyTensor(c2[None, :, :])).sqnorm2() / width ** 2).exp()
-        k = k * (LazyTensor(n1[:, None, :]) | LazyTensor(n2[None, :, :])) ** 2
-        return (m1[:, None] * (k * LazyTensor(m2[None, :, None])).sum(dim=1)).sum()
-
-    total = 0.0
-    for w in widths:
-        oo = inner(co, no, mo, co, no, mo, w)
-        total = total + (inner(cf, nf, mf, cf, nf, mf, w) - 2 * inner(cf, nf, mf, co, no, mo, w) + oo) / oo * w ** 2
-    return total / len(widths)
-
-
-def keops_varifold_setup(template_mm, template_faces, obs_triangles, n_faces, seed=0):
-    """Fit side: a fixed, area-proportional subset of the template's triangles; observations: all of theirs."""
-    gen = torch.Generator(device=template_mm.device).manual_seed(seed)
-    tmpl_area = triangle_geometry(template_mm[template_faces])[2]
-    fi = torch.multinomial(tmpl_area, min(n_faces, len(tmpl_area)), replacement=False, generator=gen)
-    verts, local = torch.unique(template_faces[fi], return_inverse=True)
-    return {"verts": verts, "local": local, "area_scale": tmpl_area.sum() / tmpl_area[fi].sum(),
-            "obs": [triangle_geometry(t) for t in obs_triangles]}
-
-
-def keops_varifold_step(vf, decoder, z, args, scale):
-    """Per target: varifold data term * scale[t], backpropagated at once; returns the [T] distances."""
-    from pykeops.torch import LazyTensor
-    out = []
-    for t in range(z.shape[0]):
-        pts = decoder(vf["verts"][None], z[t:t + 1])[0]
-        cf, nf, af = triangle_geometry(pts[vf["local"]])
-        co, no, mo = vf["obs"][t]
-        with torch.no_grad():
-            d = (LazyTensor(cf[:, None, :]) - LazyTensor(co[None, :, :])).sqnorm2().min(dim=1).sqrt()[:, 0]
-            w = torch.exp(-((d - args.trunc_mm).clamp_min(0) / args.trunc_mm) ** 2)
-        dist = keops_varifold_one(cf, nf, af * vf["area_scale"] * w, co, no, mo, args.varifold_sigmas)
-        (dist * scale[t]).backward()
-        out.append(dist.detach())
-    return torch.stack(out)
 
 
 def code_parametrization(kind, train_cfg, train_codes, template_norm, domain, args, device):
@@ -269,97 +155,17 @@ def code_parametrization(kind, train_cfg, train_codes, template_norm, domain, ar
 
 def fit_codes(decoder, n_template, targets, candidates, mu, s_inv, args, device, lr=None,
               template_mm=None, template_faces=None, obs_triangles=None, free=None):
-    """{variant: [T, D] codes} minimising E(z) for each target, the decoder fixed.
-
-    Args:
-        decoder: decoder(idx [T, M], z [T, D]) -> [T, M, 3] mm, the shape's template
-            vertices idx for code z (flow_decoder: a frozen flow; ssm_decoder: a linear SSM)
-        n_template: number of template vertices
-        targets: per target, its observations [N_i, 3] in mm, in the unposed model frame
-        candidates: per target, the indices into it to draw observations from (for --data
-            l2 also the template vertices they correspond to)
-        mu, s_inv: the prior's mean and inverse covariance (the training codes', or 0 and I
-            for SSM coefficients in sigma units)
-        args: --variants, --steps, --lr, --points, --data, --fit-points, --trunc-mm
-        lr: Adam step size, default args.lr (the codes' scale; SSM sigmas need a larger one)
-        template_mm: [N, 3] the template (model mean) in mm, unposed (--data varifold)
-        template_faces: [F, 3] long, the template's triangles (--data varifold)
-        obs_triangles: per target, its observed triangles [G_i, 3, 3] in mm, unposed (--data varifold)
-        free: flow parameters fitted with the codes, shared by the targets: an object with
-            .params, .lr, .reset() (at each variant's start), .penalty(z, data_weight, gen)
-            (added to the energy) and .save(variant) (at its end); see
-            code_fit_fused_targets.FreeNorms
-    """
-    if free is not None and args.data == "varifold" and args.keops:
-        raise ValueError("free flow parameters are not supported with --keops")
-    n_obs = torch.tensor([float(len(i)) for i in candidates], device=device)
-    gen = torch.Generator(device=device).manual_seed(0)
-    if args.data == "varifold":
-        vf = (keops_varifold_setup if args.keops else varifold_setup)(template_mm, template_faces, obs_triangles,
-                                                                        args.fit_faces)
-    codes = {}
-    for v in args.variants:
-        sigma, weight = parse_variant(v)
-        z = mu.expand(len(targets), -1).clone().requires_grad_(True)
-        groups = [{"params": [z]}]
-        if free is not None:
-            free.reset()
-            groups.append({"params": free.params, "lr": free.lr})
-        opt = torch.optim.Adam(groups, lr=lr or args.lr)
-        sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, args.steps) if args.lr_decay else None
-        for step in range(args.steps):
-            picks = [i[torch.randint(len(i), (args.points,), device=device, generator=gen)] for i in candidates]
-            y = torch.stack([t[p] for t, p in zip(targets, picks)])          # [T, M, 3] observations
-            if args.data == "l2":
-                # Corresponded: the template vertices the observations were taken from.
-                pred_mm = decoder(torch.stack(picks), z)
-                sq = ((pred_mm - y) ** 2).sum(-1).mean(1)
-                data = sq * n_obs / (2 * sigma ** 2)
-            elif args.data == "varifold" and args.keops:
-                # Each target's data term is backpropagated inside, one target at a time.
-                opt.zero_grad()
-                sq = keops_varifold_step(vf, decoder, z, args, n_obs / (2 * sigma ** 2))
-                data = None
-            elif args.data == "varifold":
-                sq = varifold_data(vf, decoder, z, args, gen)
-                data = sq * n_obs / (2 * sigma ** 2)
-            else:
-                # Chamfer, no correspondence: observations -> fit, plus fit -> observations
-                # truncated at --trunc-mm, so the free region is not pulled onto the partial data.
-                fit_idx = torch.randint(n_template, (args.fit_points,), device=device, generator=gen)
-                pred_mm = decoder(fit_idx[None].expand(len(targets), -1), z)
-                dist = torch.cdist(y, pred_mm)                                   # [T, M, P]
-                sq = dist.min(2).values.pow(2).mean(1)
-                back = dist.min(1).values.pow(2).clamp(max=args.trunc_mm ** 2).mean(1)
-                data = (sq + back) * n_obs / (2 * sigma ** 2)
-            d = z - mu
-            prior = weight * 0.5 * torch.einsum("ji,ik,jk->j", d, s_inv, d)
-            if data is None:                     # data gradients are already in z.grad
-                prior.sum().backward()
-            else:
-                opt.zero_grad()
-                loss = (data + prior).sum()
-                if free is not None:
-                    loss = loss + free.penalty(z, (n_obs / (2 * sigma ** 2)).mean(), gen)
-                loss.backward()
-            opt.step()
-            if sched is not None:
-                sched.step()
-            if step % 250 == 0 or step == args.steps - 1:
-                print(f"{v} step {step:5d}  rms obs -> fit (mm) " + " ".join(f"{np.sqrt(s):.2f}" for s in sq.tolist()))
-        codes[v] = z.detach()
-        if free is not None:
-            free.save(v)
-    return codes
-
-
-def parse_variant(name):
-    """'data' -> (sigma 1 mm, prior weight 0); 'gauss<sigma>' -> (sigma, 1)."""
-    if name == "data":
-        return 1.0, 0.0
-    if name.startswith("gauss"):
-        return float(name[len("gauss"):]), 1.0
-    raise ValueError(f"unknown variant {name!r}: 'data' or 'gauss<sigma_mm>'")
+    """{variant: [T, D] codes} minimising E(z) for each target, the decoder fixed: the fit of
+    src/shared/fitting/code_fit.py with this script's options (args: --variants, --steps,
+    --lr, --points, --data, --fit-points, --trunc-mm, --lr-decay, --fit-faces,
+    --varifold-sigmas, --keops). lr overrides args.lr (SSM sigmas need a larger one)."""
+    return shared_fit_codes(
+        decoder, n_template, targets, candidates, mu, s_inv, {v: parse_variant(v) for v in args.variants},
+        args.steps, lr or args.lr, args.points, device, data=args.data, fit_points=args.fit_points,
+        trunc_mm=args.trunc_mm, lr_decay=args.lr_decay, template_mm=template_mm, template_faces=template_faces,
+        obs_triangles=obs_triangles, fit_faces=getattr(args, "fit_faces", 2000),
+        varifold_sigmas=getattr(args, "varifold_sigmas", (3.0, 6.0, 12.0)), keops=getattr(args, "keops", False),
+        free=free)
 
 
 def main():

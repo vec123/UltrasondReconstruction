@@ -1,0 +1,28 @@
+# Fit the code of a frozen SSM-trained cohort flow to one fused fetal target: chamfer
+# (target -> fit quadratic, fit -> target truncated at 2 mm) plus the Gaussian prior of
+# the run's training codes, as scripts/inspection/code_fit_fused_targets.py fits it
+# (its variant gauss3). The target is in the frame of the aligned cohort template (mm),
+# which is the run's template moved there vertex for vertex.
+#
+# python scripts/run.py configs/code_fit/fused_target.yaml
+stage: code_fit
+
+# The case for a run of this file alone.
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: 16
+  WEEK: 26 semanas
+  RUN: ${PROJECT_ROOT}/outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_kin200
+
+paths:
+  target: ${OUT}/cohort/fused_targets/${CASE_KEY}.vtp
+  output_dir: ${OUT}/code_fit/sobol1000_global_l2_mlp6x256_kin200_gauss3/${SESSION}
+  frame: {aligned_template: '${OUT}/cohort/template_baby_mean_aligned.vtp'}
+
+hyperparameters:
+  model: {kind: lddmm, run: '${RUN}', code_prior: gauss}
+  data: {name: chamfer, sigma_mm: 3.0, trunc_mm: 2.0, points: 2000, fit_points: 6000}
+  prior_weight: 1.0
+  steps: 1000
+  lr: 2.0e-4
+  device: cuda
