@@ -40,8 +40,9 @@ def load_codes(run):
                        weights_only=False)["codes"]["codes.weight"].numpy()
     names = [None] * len(codes)
     for path in glob.glob(os.path.join(run, "apply", "*", "apply.json")):
-        member = json.load(open(path))["cohort_member"]
-        names[member["index"]] = member["name"]
+        member = json.load(open(path)).get("cohort_member")
+        if member:  # not so for a decoded code, e.g. apply/mean_recon
+            names[member["index"]] = member["name"]
     return names, codes
 
 
