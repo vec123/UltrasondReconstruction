@@ -1,9 +1,10 @@
 """Show every reconstruction of a cohort auto-decoder run, ordered by how far its
 code lies from the code mean in the full code space: closest first, farthest last.
 
-The first tile is the face decoded from the code mean itself, the second the face
-of the zero code (the auto-decoder's prior), unless the codes are centred and the
-two coincide. Each tile is one
+The first row holds the references: the template itself (where every flow starts),
+the face decoded from the code mean and the face of the zero code (the
+auto-decoder's prior), the last unless the codes are centred and the two coincide.
+The members start on the second row. Each member tile is one
 member: its reconstruction from the front, the left and the right, then its fused
 target from the front, all with one common camera. The titles give the rank, the
 code distance to the mean and the mean vertex distance (mm) of the reconstruction
@@ -51,6 +52,7 @@ def main():
                                          extra={"zero": lambda codes: np.zeros(codes.shape[1])})
     points = {key: to_mm(p) for key, p in points.items()}
     mean_points = points[(0, 0.0)]
+    template_points = to_mm(vtk_to_numpy(template.GetPoints().GetData()))
     names, codes = load_codes(run)
     distance = np.linalg.norm(codes - codes.mean(axis=0), axis=1)
     order = np.argsort(distance)
@@ -60,18 +62,23 @@ def main():
         os.path.join(run, "apply", names[i], "world", "deformed.vtp")).GetPoints().GetData())))
         for i in order}
     lmk = template_landmarks(run, names[0], to_mm, model=model)
-    cameras = [view_camera(lmk, list(recons.values()), view) for view in VIEWS]
+    # The template is framed too: it need not lie inside the members' extent.
+    cameras = [view_camera(lmk, list(recons.values()) + [with_points(template, template_points)], view)
+               for view in VIEWS]
     frontal = cameras[0]
 
-    tiles = [[(frontal, ("Code mean (rank 0)", with_points(template, mean_points), MESH_COLOR, []))]
-             + [(camera, (view, with_points(template, mean_points), MESH_COLOR, []))
-                for camera, view in zip(cameras[1:], VIEWS[1:])]]
+    def reference_tile(titles, reference_points):
+        return [(camera, (title, with_points(template, reference_points), MESH_COLOR, []))
+                for camera, title in zip(cameras, titles)]
+
+    tiles = [reference_tile(("Template",) + VIEWS[1:], template_points),
+             reference_tile(("Code mean (rank 0)",) + VIEWS[1:], mean_points)]
     # Skipped when the codes are centred, as the zero code is then the mean.
     if zero_distance > 1e-3 * np.median(distance):
         zero_shift = np.linalg.norm(points["zero"] - mean_points, axis=1).mean()
-        titles = ("Code 0 (zero vector)", f"left  code d={zero_distance:.2f}", f"right  {zero_shift:.2f} mm")
-        tiles.append([(camera, (title, with_points(template, points["zero"]), MESH_COLOR, []))
-                      for camera, title in zip(cameras, titles)])
+        tiles.append(reference_tile(("Code 0 (zero vector)", f"left  code d={zero_distance:.2f}",
+                                     f"right  {zero_shift:.2f} mm"), points["zero"]))
+    tiles += [[]] * (-len(tiles) % args.members_per_row)  # the members start on a new row
     for rank, i in enumerate(order, start=1):
         shift = np.linalg.norm(vtk_to_numpy(recons[i].GetPoints().GetData()) - mean_points, axis=1).mean()
         # The titles spread over the three views, as one would not fit a panel.
@@ -92,7 +99,8 @@ def main():
 
     out_path = args.output or os.path.join(run, "code_distance_ranking.png")
     write_grid(rows, per_row * 4,
-               f"{os.path.basename(run)}: recon front/left/right + target, ranked by code d = L2 distance of "
+               f"{os.path.basename(run)}: row 1 template, code mean, code 0; then recon front/left/right "
+               f"+ target, ranked by code d = L2 distance of "
                f"the {codes.shape[1]}-d code to the code mean (median {np.median(distance):.2f}); mm = mean vertex "
                f"distance to the code-mean face (rank 0)",
                out_path, args.panel_px)
