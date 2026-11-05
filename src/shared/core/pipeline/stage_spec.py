@@ -13,7 +13,7 @@ registry imports no stage and none of their dependencies (torch, vtk, ...).
 """
 
 import dataclasses
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, Tuple, Type, Union
 
 from src.shared.core.registry import LazyRegistry
 
@@ -27,19 +27,23 @@ class StageSpec:
     # system already has a stricter/richer binder that needs to run instead
     # (e.g. one with cross-field validation or nested unions).
     from_dict: Optional[Callable[[dict], object]] = None
+    # The Config field(s) of the stage's output folder, where the engine writes
+    # its manifest entry (manifest.py): a name, a dotted path, or a tuple of them.
+    output: Union[str, Tuple[str, ...]] = "output_dir"
 
     @classmethod
-    def of_module(cls, module, config="Config", run="run", from_dict=None):
+    def of_module(cls, module, config="Config", run="run", from_dict=None, output="output_dir"):
         """The stage whose Config and run() are ``module``'s ``config`` and ``run``, imported on first use."""
-        return ModuleStageSpec(module, config, run, from_dict)
+        return ModuleStageSpec(module, config, run, from_dict, output)
 
 
 class ModuleStageSpec:
     """A StageSpec that holds only the names of its Config and run(); see StageSpec.of_module."""
 
-    def __init__(self, module, config, run, from_dict=None):
+    def __init__(self, module, config, run, from_dict=None, output="output_dir"):
         self.module = module
         self.from_dict = from_dict
+        self.output = output
         # LazyRegistry imports on resolve and names a moved or renamed target in its error.
         self._targets = LazyRegistry()
         self._targets.register("stage", "config", f"{module}:{config}")

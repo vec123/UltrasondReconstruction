@@ -14,8 +14,15 @@ Each stage is a module of src/ultrasound/stages with the stage's name, its
 
 from src.shared.core.pipeline import StageSpec
 
+# The Config field(s) of the output folder, where it is not output_dir (see StageSpec.output).
+_OUTPUTS = {
+    "scan_consistency": ("output_consistency_dir", "output_denoised_dir", "output_merged_dir"),
+    "similarity_transform": "output_path",
+    "vtp_to_nrrd_overlay": "output_path",
+}
+
 STAGE_SPECS = {
-    name: StageSpec.of_module(f"src.ultrasound.stages.{name}")
+    name: StageSpec.of_module(f"src.ultrasound.stages.{name}", output=_OUTPUTS.get(name, "output_dir"))
     for name in (
         "nrrd_to_vtp",
         "echotexture",

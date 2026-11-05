@@ -26,5 +26,6 @@ STAGE_SPECS = {
         config_cls=PipelineConfig,
         run=_run_ssm_fit,
         from_dict=lambda d: ConfigClient().from_dict(d, PipelineConfig),
+        output="outputs.dir",
     ),
 }

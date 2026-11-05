@@ -6,7 +6,8 @@ may run (scripts/pipeline/registry.py joins those of every layer).
 A YAML is one stage (``stage: <name>``) or a pipeline (``stages: [...]``);
 run_main runs either. Both may define the ``${NAME}`` variables they use in a
 top-level ``variables:`` block, so the YAML alone says what a run does, and
-a ``targets:`` block runs it once per case (targets.py, batch.py).
+a ``targets:`` block runs it once per case (targets.py, batch.py). Each stage
+that finishes gets an entry in its output folder's manifest.json (manifest.py).
 
 A stage file may split its fields into ``paths:`` and ``hyperparameters:``,
 as a pipeline does. A pipeline entry can then name it (``config:``, relative
@@ -17,10 +18,11 @@ one of the same stage and hold only what differs from it.
 """
 
 import os
+import time
 
 from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
 from src.shared.core.paths import get_project_root
-from src.shared.core.pipeline import batch
+from src.shared.core.pipeline import batch, manifest
 from src.shared.core.pipeline.cases import with_case_key
 from src.shared.core.pipeline.targets import find_cases
 
@@ -213,7 +215,9 @@ def stage_main(config_path, registry, extra_vars=None):
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
 
     print(f"Running stage '{stage_name}' from '{config_path}'")
+    started = time.time()
     spec.run(cfg)
+    manifest.record(spec, cfg, stage_name, stage_name, config_path, variables, started)
     return cfg
 
 
@@ -352,7 +356,9 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
         label = stage_id if stage_id == stage_name else f"{stage_id} ({stage_name})"
         if enabled:
             print(f"\n{'=' * 60}\nRunning stage: {label}\n{'=' * 60}")
+            started = time.time()
             spec.run(cfg)
+            manifest.record(spec, cfg, stage_id, stage_name, pipeline_config_path, variables, started)
         else:
             print(f"\n{'=' * 60}\nSkipping stage: {label} (disabled)\n{'=' * 60}")
 
