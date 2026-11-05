@@ -52,7 +52,7 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import numpy as np
 import torch
 
-from src.models.lddmm.resnet_flow.apply.trained_run import load_run  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run  # noqa: E402
 from scripts.SSM.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
                                        load_cases, mm_stats, whitener)
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
@@ -87,9 +87,10 @@ class FlowDecoder:
     @torch.no_grad()
     def __call__(self, idx, z):
         """idx [C, R] long, z [C, K] -> [C, R, 3] float64."""
-        out = [self.flow(self.template[idx[i:i + self.chunk]], z[i:i + self.chunk].float()).points[-1]
+        out = [flow_points(self.flow, self.template, self.center, self.scale, z[i:i + self.chunk].float(),
+                           idx[i:i + self.chunk])
                for i in range(0, len(z), self.chunk)]
-        return (torch.cat(out) * self.scale + self.center).double()
+        return torch.cat(out).double()
 
     def jacobian(self, idx, z, eps):
         """[C, 3R, K] d phi_z(T)_idx / dz by central differences, step eps [K] per code entry."""

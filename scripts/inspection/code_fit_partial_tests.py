@@ -47,7 +47,9 @@ import torch
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from src.models.lddmm.resnet_flow.apply.trained_run import load_run, load_run_config  # noqa: E402
+from src.models.gpmm.shape_model import GpmmShapeModel  # noqa: E402
+from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run, load_run_config  # noqa: E402
+from src.models.lddmm.shape_model import build_code_prior  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
 from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from src.shared.vtk.process import sub_surface  # noqa: E402
@@ -87,20 +89,20 @@ def redraw_tests(model, seed, noise_mm, tests_dir):
 
 
 def flow_decoder(flow, template, center, scale, mm_per_unit):
-    """decoder(idx [T, M], z [T, n_z]) -> [T, M, 3] mm: template vertices idx flowed with z."""
+    """decoder(idx [T, M], z [T, n_z]) -> [T, M, 3] mm: template vertices idx flowed with z
+    (trained_run.flow_points, which the lddmm ShapeModel decodes with)."""
     def decode(idx, z):
-        return (flow(template[idx], z).points[-1] * scale + center) * mm_per_unit
+        return flow_points(flow, template, center, scale, z, idx) * mm_per_unit
     return decode
 
 
 def ssm_decoder(model, mm_per_unit, device):
-    """decoder(idx [T, M], s [T, K]) -> [T, M, 3] mm: mean + Phi sqrt(lambda) s, s in sigma units."""
-    mean = torch.as_tensor(model.mean.reshape(-1, 3), dtype=torch.float32, device=device)
-    basis = torch.as_tensor((model.eigenfunctions * np.sqrt(np.clip(model.eigenvalues, 0, None)))
-                            .reshape(-1, 3, model.n_components), dtype=torch.float32, device=device)
+    """decoder(idx [T, M], s [T, K]) -> [T, M, 3] mm: mean + Phi sqrt(lambda) s, s in sigma units
+    (the gpmm ShapeModel)."""
+    shape_model = GpmmShapeModel(model, device)
 
     def decode(idx, s):
-        return (mean[idx] + torch.einsum("tmck,tk->tmc", basis[idx], s)) * mm_per_unit
+        return shape_model.decode(s, idx) * mm_per_unit
     return decode
 
 
@@ -254,46 +256,15 @@ def code_parametrization(kind, train_cfg, train_codes, template_norm, domain, ar
         --residual-near, 1 from --residual-far on, linear in between, mapped onto
         --residual-w LOW HIGH. A low w lets the data deform that node's region beyond the
         statistical part, a high w holds it at the statistical part.
-    wrap(decoder) turns a decoder of z into a decoder of theta.
+    wrap(decoder) turns a decoder of z into a decoder of theta. The priors are built by
+    src/models/lddmm/shape_model.build_code_prior, which the lddmm ShapeModel uses too.
     """
-    z = train_codes.double().numpy()
-    mean = z.mean(0)
-    if kind == "gauss":
-        prec = np.linalg.inv(np.cov(z, rowvar=False))
-        return (lambda dec: dec), torch.as_tensor(mean, dtype=torch.float32, device=device), \
-            torch.as_tensor(prec, dtype=torch.float32, device=device), "gauss"
-    _, sv, vt = np.linalg.svd(z - mean, full_matrices=False)
-    var = sv ** 2 / (len(z) - 1)
-    k = int(np.searchsorted(np.cumsum(var) / var.sum(), args.pca_var) + 1)
-    basis = torch.as_tensor((vt[:k].T * np.sqrt(var[:k])), dtype=torch.float32, device=device)   # [D, K]
-    mean_t = torch.as_tensor(mean, dtype=torch.float32, device=device)
-    d = z.shape[1]
-    if kind == "pca":
-        def wrap(dec):
-            return lambda idx, theta: dec(idx, mean_t + theta @ basis.T)
-        return wrap, torch.zeros(k, device=device), torch.eye(k, device=device), f"pca{k}"
-    if kind != "pca_residual":
-        raise ValueError(f"unknown --code-prior {kind!r}")
-    import dataclasses
-    from src.models.lddmm.resnet_flow.conditioning.grid_regularization import grid_penalty_weights
-    from src.models.lddmm.resnet_flow.config import GridRegCfg
-    if not train_cfg.code.grid_direct:
-        raise ValueError("--code-prior pca_residual needs a direct-grid run (code.grid_direct)")
-    t = template_norm.points[0].to(device)
-    spatial = dataclasses.replace(train_cfg.code, grid_reg=GridRegCfg.from_dict(
-        {"kind": "distance", "low": 0.0, "high": 1.0, "near": args.residual_near, "far": args.residual_far}))
-    reg = grid_penalty_weights(spatial, [t], t, None, domain)[0].to(device).float()   # [D], 0..1
-    low, high = args.residual_w
-    w = low + (high - low) * reg
-    v = torch.as_tensor(z.var(0), dtype=torch.float32, device=device).clamp_min(1e-12)
-    prec = torch.zeros(k + d, k + d, device=device)
-    prec[:k, :k] = torch.eye(k, device=device)
-    prec[k:, k:] = torch.diag(w)
-    sd = v.sqrt()
+    prior = build_code_prior(kind, train_cfg, train_codes, template_norm, domain, device, args.pca_var,
+                             tuple(args.residual_w), args.residual_near, args.residual_far)
 
     def wrap(dec):
-        return lambda idx, theta: dec(idx, mean_t + theta[:, :k] @ basis.T + theta[:, k:] * sd)
-    return wrap, torch.zeros(k + d, device=device), prec, f"pca{k}_residual"
+        return lambda idx, theta: dec(idx, prior.code(theta))
+    return wrap, prior.mean, prior.precision, prior.label
 
 
 def fit_codes(decoder, n_template, targets, candidates, mu, s_inv, args, device, lr=None,

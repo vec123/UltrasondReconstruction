@@ -26,7 +26,7 @@ import dataclasses
 import numpy as np
 import torch
 
-from src.models.lddmm.resnet_flow.apply.trained_run import load_run
+from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run
 from src.models.lddmm.resnet_flow.runner import _normalization_domain
 from src.shared.shape_model import CodePrior, ShapeModel, Template
 
@@ -96,5 +96,4 @@ class FlowShapeModel(ShapeModel):
         return cls(flow, template_norm, transform, prior, train_codes, device)
 
     def decode(self, z, idx=None):
-        template = self.points.expand(len(z), -1, -1) if idx is None else self.points[idx]
-        return self.flow(template, z).points[-1] * self.scale + self.center
+        return flow_points(self.flow, self.points, self.center, self.scale, z, idx)

@@ -31,12 +31,17 @@ def load_run(run, step=None, device="cpu"):
     return cfg, flow, checkpoint["codes"]["codes.weight"].float(), cohort_norm, template_norm, transform
 
 
+def flow_points(flow, points, center, scale, z, idx=None):
+    """phi_z of the normalised template points [N, 3], at the vertices idx [T, M] (None: all of
+    them), for codes z [T, D]: [T, M, 3] in the run's world frame. Differentiable in z."""
+    template = points.expand(len(z), -1, -1) if idx is None else points[idx]
+    return flow(template, z).points[-1] * scale + center
+
+
 @torch.no_grad()
 def decode(flow, template_norm, transform, codes, device, batch):
     """Yield (start index, world points [b, N, 3] on device) of phi_z(template) for each code."""
-    template = template_norm.points.to(device)
+    template = template_norm.points[0].to(device)
     center, scale = transform.center.to(device), transform.scale.to(device)
     for i in range(0, len(codes), batch):
-        z = codes[i:i + batch].to(device)
-        q = flow(template.expand(len(z), -1, -1), z).points[-1]
-        yield i, q * scale + center
+        yield i, flow_points(flow, template, center, scale, codes[i:i + batch].to(device))
