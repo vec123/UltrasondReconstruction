@@ -77,10 +77,12 @@ def region_entries(train_cfg, transform, lmk, labels):
     return entries, nodes
 
 
-def load_run(apply_config):
-    """The run of a cohort apply .yaml: (training config, resolved apply config, frame
-    transform, [M, n_z] codes, run folder, client_at), where client_at(code) is the
-    run's DeformationClient at that one code, without pose."""
+def decode(apply_config, steps, region=None, extra=None):
+    """{(component, step): world points [N, 3]}, the template polydata, the run
+    folder, the variance ratios and, with `region` (landmark labels), its grid nodes.
+
+    `extra` ({key: function of the [M, n_z] codes -> one code}) decodes further
+    codes into the same dict under their own keys, e.g. the zero code."""
     # As run_stage.py reads a stage config: drop the stage name, fill ${PROJECT_ROOT} etc.
     raw = load_yaml(apply_config)
     raw.pop("stage", None)
@@ -95,23 +97,6 @@ def load_run(apply_config):
     checkpoint = load_checkpoint(ref, map_location=cfg.device)
     codes = checkpoint["codes"]["codes.weight"].detach().cpu().numpy()
     run = os.path.dirname(os.path.normpath(apply_cfg.train_config))
-
-    def client_at(code):
-        return DeformationClient.from_checkpoint(
-            train_cfg, checkpoint, transform,
-            code=torch.as_tensor(code, dtype=torch.get_default_dtype(), device=cfg.device)[None],
-            pose=(None, None), device=cfg.device, chunk_size=cfg.chunk_size,
-        )
-    return train_cfg, cfg, transform, codes, run, client_at
-
-
-def decode(apply_config, steps, region=None, extra=None):
-    """{(component, step): world points [N, 3]}, the template polydata, the run
-    folder, the variance ratios and, with `region` (landmark labels), its grid nodes.
-
-    `extra` ({key: function of the [M, n_z] codes -> one code}) decodes further
-    codes into the same dict under their own keys, e.g. the zero code."""
-    train_cfg, cfg, transform, codes, run, client_at = load_run(apply_config)
     entries = nodes = None
     if region:
         names = sorted(n for n in os.listdir(os.path.join(run, "apply")) if os.path.isdir(os.path.join(run, "apply", n)))
@@ -122,7 +107,12 @@ def decode(apply_config, steps, region=None, extra=None):
     template = load_shape(cfg.template)
     points = {}
     for key, code in synthetic.items():
-        deformation = client_at(code).deform(template)
+        client = DeformationClient.from_checkpoint(
+            train_cfg, checkpoint, transform,
+            code=torch.as_tensor(code, dtype=torch.get_default_dtype(), device=cfg.device)[None],
+            pose=(None, None), device=cfg.device, chunk_size=cfg.chunk_size,
+        )
+        deformation = client.deform(template)
         points[key] = transform.invert(deformation.points.to(transform.center.device)).detach().cpu().numpy()
     return points, load_vtp(cfg.template), run, ratio, nodes
 
