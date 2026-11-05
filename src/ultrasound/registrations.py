@@ -7,41 +7,30 @@ Config binding) is generic across every pipeline in this repo and lives in
 `src/shared/core/pipeline/`; this module only holds the preprocess-specific
 list of what exists. scripts/pipeline/registry.py joins it with the lists of
 the other layers.
+
+Each stage is a module of src/ultrasound/stages with the stage's name, its
+``Config`` and ``run`` imported when a run first uses it (StageSpec.of_module).
 """
 
 from src.shared.core.pipeline import StageSpec
-from src.ultrasound.stages import (
-    align_to_reference,
-    align_to_template,
-    echotexture,
-    landmark_bbox_cut,
-    landmark_distance_cut,
-    landmark_geodesics,
-    nrrd_to_vtp,
-    nrrd_to_world_vtp,
-    point_classify,
-    roughness_filter,
-    scan_consistency,
-    scan_fusion,
-    similarity_transform,
-    smoothing_filter,
-    vtp_to_nrrd_overlay,
-)
 
 STAGE_SPECS = {
-    "nrrd_to_vtp": StageSpec(nrrd_to_vtp.Config, nrrd_to_vtp.run),
-    "echotexture": StageSpec(echotexture.Config, echotexture.run),
-    "point_classify": StageSpec(point_classify.Config, point_classify.run),
-    "nrrd_to_world_vtp": StageSpec(nrrd_to_world_vtp.Config, nrrd_to_world_vtp.run),
-    "roughness_filter": StageSpec(roughness_filter.Config, roughness_filter.run),
-    "smoothing_filter": StageSpec(smoothing_filter.Config, smoothing_filter.run),
-    "align_to_reference": StageSpec(align_to_reference.Config, align_to_reference.run),
-    "align_to_template": StageSpec(align_to_template.Config, align_to_template.run),
-    "landmark_bbox_cut": StageSpec(landmark_bbox_cut.Config, landmark_bbox_cut.run),
-    "landmark_distance_cut": StageSpec(landmark_distance_cut.Config, landmark_distance_cut.run),
-    "scan_consistency": StageSpec(scan_consistency.Config, scan_consistency.run),
-    "scan_fusion": StageSpec(scan_fusion.Config, scan_fusion.run),
-    "landmark_geodesics": StageSpec(landmark_geodesics.Config, landmark_geodesics.run),
-    "similarity_transform": StageSpec(similarity_transform.Config, similarity_transform.run),
-    "vtp_to_nrrd_overlay": StageSpec(vtp_to_nrrd_overlay.Config, vtp_to_nrrd_overlay.run),
+    name: StageSpec.of_module(f"src.ultrasound.stages.{name}")
+    for name in (
+        "nrrd_to_vtp",
+        "echotexture",
+        "point_classify",
+        "nrrd_to_world_vtp",
+        "roughness_filter",
+        "smoothing_filter",
+        "align_to_reference",
+        "align_to_template",
+        "landmark_bbox_cut",
+        "landmark_distance_cut",
+        "scan_consistency",
+        "scan_fusion",
+        "landmark_geodesics",
+        "similarity_transform",
+        "vtp_to_nrrd_overlay",
+    )
 }

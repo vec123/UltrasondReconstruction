@@ -1,15 +1,17 @@
 import vtk
 from vtk.util import numpy_support
 import numpy as np
-import torch
+
+
+def _numpy(x):
+    """``x``, a torch tensor moved to a numpy array; without importing torch here, which this module needs for nothing else."""
+    return x.detach().cpu().numpy() if hasattr(x, "detach") else x
+
 
 def create_polydata(points, faces=None):
     """Creates a VTK PolyData object from points and optional faces."""
 
-    if isinstance(points, torch.Tensor):
-        points = points.detach().cpu().numpy()
-    if isinstance(faces, torch.Tensor):
-        faces = faces.detach().cpu().numpy()
+    points, faces = _numpy(points), _numpy(faces)
 
     polydata = vtk.vtkPolyData()
     
@@ -50,12 +52,12 @@ def create_polydata_w_lines(points, lines, verbose = False):
     """
     if verbose:
         print(f"creating poly with {points.shape} positions and {lines.shape} lines")
-    if isinstance(points, torch.Tensor):
-        points = points.detach().cpu().numpy()
+    if hasattr(points, "detach"):
+        points = _numpy(points)
         if verbose:
             print(f"convert to {points.shape}")
-    if isinstance(lines, torch.Tensor):
-        lines = lines.detach().cpu().numpy()
+    if hasattr(lines, "detach"):
+        lines = _numpy(lines)
         if verbose:
             print(f"convert to {lines.shape}")
 

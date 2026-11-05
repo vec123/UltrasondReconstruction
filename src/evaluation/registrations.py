@@ -1,14 +1,15 @@
 """The evaluation stages, by the name YAML `stage:` fields use (joined into one
-registry by scripts/pipeline/registry.py)."""
+registry by scripts/pipeline/registry.py). Each stage module is imported when a
+run first uses it (StageSpec.of_module)."""
 
-from src.evaluation.stages import correspondence_views, distance_distribution_overlay, recon_target_distance
 from src.shared.core.pipeline import StageSpec
 
+_STAGES = "src.evaluation.stages"
+
 STAGE_SPECS = {
-    "correspondence_views": StageSpec(correspondence_views.Config, correspondence_views.run),
-    "correspondence_overview": StageSpec(correspondence_views.OverviewConfig, correspondence_views.run_overview),
-    "recon_target_distance": StageSpec(recon_target_distance.Config, recon_target_distance.run),
-    "distance_distribution_overlay": StageSpec(
-        distance_distribution_overlay.Config, distance_distribution_overlay.run
-    ),
+    "correspondence_views": StageSpec.of_module(f"{_STAGES}.correspondence_views"),
+    "correspondence_overview": StageSpec.of_module(f"{_STAGES}.correspondence_views",
+                                                   config="OverviewConfig", run="run_overview"),
+    "recon_target_distance": StageSpec.of_module(f"{_STAGES}.recon_target_distance"),
+    "distance_distribution_overlay": StageSpec.of_module(f"{_STAGES}.distance_distribution_overlay"),
 }
