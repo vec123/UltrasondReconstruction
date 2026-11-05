@@ -10,6 +10,10 @@
 #     sigma 15.0 (local, 15% of the diagonal), scale 1.0.
 #   The outer gaussian is a summand, so its scale is a variance:
 #     sigma 25.0 (smooth, 25% of the diagonal), scale 1.449 = 1x PCA variance.
+
+# python scripts/run.py configs/gpmm/build/fetus/pca_times_gaussian_sum_gaussian.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

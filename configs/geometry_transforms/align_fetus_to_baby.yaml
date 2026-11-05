@@ -16,6 +16,9 @@
 # the shape difference between a fetal and a neonatal face, and no similarity
 # transform can reduce it - that is the job of the nonrigid step this feeds.
 
+# python scripts/run.py configs/geometry_transforms/align_fetus_to_baby.yaml
+stage: align_meshes
+
 source:
   # The Deformetrica template, which is also the atlas mean (identical to
   # DeterministicAtlas__EstimatedParameters__Template_face.vtk to 0.0 mm).

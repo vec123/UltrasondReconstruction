@@ -211,13 +211,17 @@ def stage_main(config_path, registry, extra_vars=None):
         raw.pop("extends", None)
         raw = _join_sections({**raw, "hyperparameters": hyperparameters}, config_path)
 
-    raw = interpolate_paths(raw, variables, resolve_ref=no_pipeline_context)
+    # Alone, a stage has no other stages to reference: a dotted string such as
+    # "baby_pca.npz" is plain text.
+    raw = interpolate_paths(raw, variables)
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
 
     print(f"Running stage '{stage_name}' from '{config_path}'")
     started = time.time()
     spec.run(cfg)
-    manifest.record(spec, cfg, stage_name, stage_name, config_path, variables, started)
+    # Keyed by the file too: stage files of one stage can share an output folder (15 models in one).
+    stage_key = f"{stage_name}:{os.path.splitext(os.path.basename(config_path))[0]}"
+    manifest.record(spec, cfg, stage_key, stage_name, config_path, variables, started)
     return cfg
 
 
@@ -287,8 +291,14 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     resolved_stages = {}  # stage id -> its bound Config, for cross-stage field references
     resolved_stage_fields = {}  # stage id -> set of field names its own 'paths:'/'hyperparameters:' explicitly set
 
+    # A dotted string is a reference only when it starts with a stage id of this
+    # pipeline; any other, such as a file name "baby_pca.npz", is plain text.
+    stage_ids = {entry.get("id", entry.get("name")) for entry in stages}
+
     def resolve_ref(reference):
         stage_id, *attr_path = reference.split(".")
+        if stage_id not in stage_ids:
+            return reference
         if stage_id not in resolved_stages:
             raise ValueError(
                 f"'{reference}' (in '{pipeline_config_path}') references stage '{stage_id}', "

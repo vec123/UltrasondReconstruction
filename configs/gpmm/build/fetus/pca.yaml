@@ -7,6 +7,10 @@
 #   The atlas's own deformation width is a floor on any length scale here:
 #   params.json says kwd 7.0, i.e. 7/sqrt(2) = 4.95 in this codebase's
 #   exp(-d^2/2 sigma^2) convention.
+
+# python scripts/run.py configs/gpmm/build/fetus/pca.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

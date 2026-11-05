@@ -9,6 +9,10 @@
 #   gaussian(sigma=0.003) at correlation 0.05.
 #   scale 1.0 is the neutral value for a product child: it modulates
 #   correlation and leaves the per-vertex PCA variance untouched.
+
+# python scripts/run.py configs/gpmm/build/baby/pca_times_matern52.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   metric: euclidean

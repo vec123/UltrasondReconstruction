@@ -7,6 +7,10 @@
 #     sigma 0.003 (local, 15% of the diagonal), scale 1.0.
 #   The outer gaussian is a summand, so its scale is a variance:
 #     sigma 0.005 (smooth, 25% of the diagonal), scale 4.160e-08 = 1x PCA variance.
+
+# python scripts/run.py configs/gpmm/build/baby/pca_times_gaussian_sum_gaussian.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   metric: euclidean

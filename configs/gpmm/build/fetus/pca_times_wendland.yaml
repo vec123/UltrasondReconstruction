@@ -12,6 +12,10 @@
 #   gaussian(sigma=15.0) at correlation 0.05.
 #   scale 1.0 is the neutral value for a product child: it modulates
 #   correlation and leaves the per-vertex PCA variance untouched.
+
+# python scripts/run.py configs/gpmm/build/fetus/pca_times_wendland.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

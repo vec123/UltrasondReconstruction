@@ -19,6 +19,9 @@
 #     .mat model spans ~0.013, so any length below is ~4000x larger than its
 #     counterpart there.
 
+# python scripts/run.py configs/gpmm/sample/mean_shape_fetus.yaml
+stage: ssm_mean_shape
+
 shape_model_mat: ${PROJECT_ROOT}/src/FetusModel
 
 outputs:

@@ -18,6 +18,10 @@
 #
 # Domain: FetusModel_x4, bounding-box diagonal 101.1 mm, 5743 vertices,
 # 183 PCA modes, mean per-coordinate PCA variance 1.449.
+
+# python scripts/run.py configs/gpmm/build/fetus/pca_sum_localized_gaussian.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

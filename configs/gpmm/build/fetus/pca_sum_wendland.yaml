@@ -13,6 +13,10 @@
 #   pca_sum_* models comparable.
 #   scale 1.449 = 1x the mean per-coordinate PCA variance. In a sum the term
 #   is lifted isotropically and its scale IS a per-coordinate variance.
+
+# python scripts/run.py configs/gpmm/build/fetus/pca_sum_wendland.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

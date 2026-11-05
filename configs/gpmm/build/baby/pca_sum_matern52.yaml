@@ -10,6 +10,10 @@
 #   pca_sum_* models comparable.
 #   scale 4.160e-08 = 1x the mean per-coordinate PCA variance. In a sum the term
 #   is lifted isotropically and its scale IS a per-coordinate variance.
+
+# python scripts/run.py configs/gpmm/build/baby/pca_sum_matern52.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   metric: euclidean

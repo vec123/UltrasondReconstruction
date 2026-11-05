@@ -9,6 +9,10 @@
 #   sigma 25.0 = the smooth length scale (25% of the diagonal).
 #   scale 1.449 = 1x the mean per-coordinate PCA variance, so the prior
 #   carries as much deformation as the population it replaces.
+
+# python scripts/run.py configs/gpmm/build/fetus/gaussian.yaml
+stage: ssm_build
+
 domain:
   source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
   metric: euclidean

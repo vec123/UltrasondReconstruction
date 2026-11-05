@@ -31,6 +31,9 @@
 #   * normal_equations only solves matched_l2 with a quadratic prior; everything
 #     else needs the gradient solver
 
+# python scripts/run.py configs/gpmm/fit/nicp/nicp.yaml
+stage: ssm_nicp
+
 inputs:
   shape_model_mat: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   mesh_vtp: ${PROJECT_ROOT}/data/processed_ultrasound/merged_high_confidence_scan.vtp   # the scan to fit

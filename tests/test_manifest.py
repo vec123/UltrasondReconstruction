@@ -73,7 +73,8 @@ def test_stage_and_pipeline_entries():
         stage.write_text(yaml.safe_dump({"stage": "s", "variables": {"SUBJECT_ID": 1, "WEEK": "20 semanas"},
                                          "output_dir": f"{root}/out/${{CASE_KEY}}", "value": 3}))
         engine.run_main(stage, registry)
-        entry = _manifest(f"{root}/out/1_20_semanas")["s"]
+        entry = _manifest(f"{root}/out/1_20_semanas")["s:stage"]  # a stage file alone: <stage>:<file name>
+        assert entry["config"]["output_dir"] == f"{root}/out/1_20_semanas"
         assert entry["stage"] == "s" and entry["config"]["value"] == 3
         assert entry["variables"]["CASE_KEY"] == "1_20_semanas"
         assert set(entry) == {"stage", "config_file", "variables", "config", "git", "started", "minutes"}

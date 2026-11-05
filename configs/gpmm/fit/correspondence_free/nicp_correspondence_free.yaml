@@ -25,17 +25,24 @@
 # On a partial scan those two disagree, and the gap is the whole reason to try a
 # bidirectional or correspondence-free objective.
 
+# python scripts/run.py configs/gpmm/fit/correspondence_free/nicp_correspondence_free.yaml
+stage: ssm_nicp
+
+# The case for a run of this file alone.
+variables:
+  SUBJECT_ID: 2
+
 inputs:
   shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
-  mesh_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/rigid_alignment.vtp
-  init_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/end_to_end/refined_vertices.vtp
+  mesh_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/rigid_alignment.vtp
+  init_vtp: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/end_to_end/refined_vertices.vtp
   # already in model space - nothing to solve or replay
   to_model_space:
     template_vtp: null
     transform_npz: null
 
 outputs:
-  dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID:-2}/correspondence_free
+  dir: ${PROJECT_ROOT}/outputs/fetus_ssm/${SUBJECT_ID}/correspondence_free
   run_dir: "{run}"
   save_alpha: true
   save_matching_field: true   # skipped automatically by the correspondence-free runs

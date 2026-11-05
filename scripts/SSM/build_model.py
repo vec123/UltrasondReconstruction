@@ -1,5 +1,8 @@
 """Build and save a GPMM from a typed YAML configuration.
 
+The same as ``python scripts/run.py <model config>.yaml`` (the ssm_build stage,
+src/models/gpmm/stages/build.py), which this script calls.
+
 Usage:
     python -m scripts.SSM.build_model <model config>.yaml
 """
@@ -7,54 +10,18 @@ Usage:
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
 from pathlib import Path
 
-from src.models.gpmm.model.builder import BuildContext, ModelSource, build_model, resolve_kernel_spec
-from src.models.gpmm.model.model_memory_io import ModelCacheSpec, save_model
-from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import GpmmModelConfig
+from src.models.gpmm.stages import build
+from src.shared.core.config import ConfigClient
 
 
 def build_and_save(config_path, *, verbose: bool = True):
     """Build the configured model and save its content-addressed NPZ archive."""
-    config_path = Path(config_path)
     project_root = Path(__file__).resolve().parents[2]
-    client = ConfigClient(project_root=project_root)
-    config = client.load(config_path, GpmmModelConfig)
-    raw_config = asdict(config)
-
-    model = build_model(raw_config, verbose=verbose)
-
-    domain_spec = raw_config.get("domain", {})
-    source_path = domain_spec.get("source") or raw_config.get("source")
-    if source_path is None:
-        raise ValueError("GPMM config must define domain.source")
-    source = ModelSource.load(
-        source_path,
-        normalize=config.normalize,
-        atlas_options=raw_config.get("atlas"),
-        verbose=verbose,
-    )
-    resolved_kernel = resolve_kernel_spec(
-        raw_config.get("kernel", {"name": "pca"}),
-        BuildContext(model.domain, source, verbose=verbose),
-    )
-
-    cache_spec = ModelCacheSpec(
-        kernel_spec=resolved_kernel,
-        approximation=config.approximation,
-        truncation=config.truncation,
-        inference=config.inference,
-    )
-    output = config.output
-    if hasattr(output, "path"):
-        output_path = output.path
-    else:
-        output_path = Path(output["dir"]) / output["filename"]
-    save_model(output_path, model, cache_spec)
-    print(f"Saved model to {output_path}")
-    return output_path
+    config = ConfigClient(project_root=project_root).load(Path(config_path), GpmmModelConfig)
+    return build.build_and_save(config, verbose=verbose)
 
 
 def main(argv=None) -> int:
