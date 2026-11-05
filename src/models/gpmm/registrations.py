@@ -17,6 +17,9 @@ def _run_ssm_fit(cfg):
     return PipelineRunner(cfg).run()
 
 
+# The GPMM as a ShapeModel kind (src/shared/shape_model.py), imported when a model is loaded.
+MODEL_KINDS = {"gpmm": "src.models.gpmm.shape_model:GpmmShapeModel"}
+
 STAGE_SPECS = {
     "ssm_posterior": StageSpec.of_module("src.models.gpmm.stages.ssm_posterior"),
     "ssm_fit": StageSpec(

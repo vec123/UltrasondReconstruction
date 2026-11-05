@@ -23,6 +23,9 @@ def _run_resnet_lddmm_apply(cfg):
     return run(cfg)
 
 
+# A trained cohort run as a ShapeModel kind (src/shared/shape_model.py), imported when a model is loaded.
+MODEL_KINDS = {"lddmm": "src.models.lddmm.shape_model:FlowShapeModel"}
+
 STAGE_SPECS = {
     "resnet_lddmm_train": StageSpec(
         config_cls=ExperimentCfg,
