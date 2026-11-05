@@ -54,9 +54,39 @@ from src.models.lddmm.resnet_flow.runner import (
     set_default_dtype,
 )
 from src.models.lddmm.outputs import ApplyOutputFiles
+from src.shared.results import Result, write_results
 
 _FILES = ApplyOutputFiles()
 MEAN_RECON = "mean_recon"
+SIMILARITY_FILE = "similarity.json"  # a cohort's frame: x_mm = s R x + t, next to its train/ and test/ folders
+
+
+def write_member_result(out_dir, member_path, manifest):
+    """The result.json (src/shared/results.py) of a cohort member folder.
+
+    recon      world/deformed.vtp.
+    target     the cohort member file, with its own ``normal`` array.
+    frame      the cohort's similarity.json, one folder above the member's train/ or
+               test/ folder; none if it is absent.
+    landmarks  the ``landmarks`` entry of the training config, when it has one.
+    model      the run, at the applied step when the apply pinned one.
+    """
+    similarity = os.path.join(os.path.dirname(os.path.dirname(member_path)), SIMILARITY_FILE)
+    recon_to_scan = None
+    if os.path.isfile(similarity):
+        with open(similarity) as f:
+            frame = json.load(f)
+        recon_to_scan = {key: frame[key] for key in ("scale", "rotation", "translation")}
+    train_config = manifest["train_config"]
+    landmarks = None
+    if train_config and os.path.isfile(train_config):
+        with open(train_config) as f:
+            landmarks = json.load(f).get("landmarks")
+    step = manifest["checkpoint_step"] if manifest["checkpoint_pinned"] else None
+    write_results(out_dir, {"member": Result(
+        recon=os.path.join(out_dir, "world", _FILES.deformed), target=member_path, target_normals="normal",
+        recon_to_scan=recon_to_scan, landmarks=landmarks or None,
+        model={"kind": "lddmm", "run": os.path.dirname(train_config), "step": step})})
 
 
 def run(apply_cfg: ApplyCfg):
@@ -171,6 +201,7 @@ def run_cohort(cfg: ApplyCfg, train_cfg: ExperimentCfg, ref: CheckpointRef):
         manifest["cohort_member"] = {"name": name, "index": i, "path": paths[i]}
         with open(os.path.join(member_cfg.output_dir, _FILES.manifest), "w") as f:
             json.dump(manifest, f, indent=2)
+        write_member_result(member_cfg.output_dir, paths[i], manifest)
         results[name] = (deformation, manifest)
         print(f"[apply] {name} (code {i}) -> {member_cfg.output_dir}")
 

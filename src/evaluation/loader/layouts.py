@@ -1,5 +1,10 @@
 """The output-folder layouts that a reconstruction/target pair can be read from.
 
+``result`` reads the result.json that a model stage writes (src/shared/results.py),
+so it reads any model's output. The other layouts read the folders of run
+families written before result.json existed; a folder that has one is read
+by ``result`` only.
+
 To add a layout: subclass PairLayout, set ``marker``, write ``load``, and
 register the class under a name. Nothing else changes.
 """
@@ -21,10 +26,48 @@ from src.evaluation.loader.pair_loader import (
 )
 from src.models.gpmm.outputs import PipelineOutputFiles
 from src.models.lddmm.outputs import ApplyOutputFiles
+from src.shared.results import RESULT_FILE, read_results
 from src.shared.transforms.similarity import SimilarityTransform
 
 _SSM_FILES = PipelineOutputFiles()
 _FLOW_FILES = ApplyOutputFiles()
+
+
+@register_layout("result")
+@dataclass(frozen=True)
+class ResultLayout(PairLayout):
+    """A folder with a result.json (src/shared/results.py): the output of any model stage.
+
+    ``result`` names the record when the folder holds more than one (a GPMM
+    run writes one per fit, e.g. "map_1x" or "refined").
+    """
+
+    result: Optional[str] = None
+
+    marker: ClassVar[str] = RESULT_FILE
+
+    def load(self, case_dir: Path, case_id: str) -> CorrespondencePair:
+        results = read_results(case_dir)
+        if self.result is None and len(results) != 1:
+            raise ValueError(f"{case_dir / self.marker} holds {sorted(results)}; name one with result:")
+        if self.result is not None and self.result not in results:
+            raise ValueError(f"{case_dir / self.marker} has no {self.result!r}; it holds {sorted(results)}")
+        record = results[self.result] if self.result is not None else next(iter(results.values()))
+        return CorrespondencePair(
+            case_id=case_id,
+            layout=self.name,
+            case_dir=case_dir,
+            recon=PointCloud.from_vtp(record.recon),
+            target=PointCloud.from_vtp(record.target, normals_field=record.target_normals),
+            recon_path=Path(record.recon),
+            target_path=Path(record.target),
+            recon_to_surface=record.transform(),
+            landmarks_path=Path(record.landmarks) if record.landmarks else None,
+        )
+
+
+def _has_result(case_dir) -> bool:
+    return (Path(case_dir) / RESULT_FILE).is_file()
 
 
 @register_layout("direct_ssm_fit")
@@ -46,6 +89,10 @@ class DirectSSMFitLayout(PairLayout):
 
     marker: ClassVar[str] = _SSM_FILES.rigid_alignment
     refined_key: ClassVar[str] = "refined"     # REFINED_KEY in src/models/gpmm/runners/pipeline.py
+
+    @classmethod
+    def is_case(cls, case_dir: Path) -> bool:
+        return super().is_case(case_dir) and not _has_result(case_dir)
 
     def _recon_file(self) -> str:
         if self.fit == self.refined_key:
@@ -102,6 +149,10 @@ class DirectFlowApplyLayout(PairLayout):
     recon_file: ClassVar[str] = f"world/{_FLOW_FILES.deformed}"
     similarity_file: ClassVar[str] = "similarity.json"
     target_normals_field: ClassVar[str] = "normal"
+
+    @classmethod
+    def is_case(cls, case_dir: Path) -> bool:
+        return super().is_case(case_dir) and not _has_result(case_dir)
 
     def load(self, case_dir: Path, case_id: str) -> CorrespondencePair:
         with open(case_dir / self.marker) as f:
@@ -164,7 +215,8 @@ class DirectFlowEvalLayout(PairLayout):
     @classmethod
     def is_case(cls, case_dir: Path) -> bool:
         case_dir = Path(case_dir)
-        return (case_dir / cls.marker).is_file() and DirectFlowApplyLayout.is_case(case_dir.parent)
+        # The parent is an apply member, written before or after result.json existed.
+        return (case_dir / cls.marker).is_file() and (case_dir.parent / DirectFlowApplyLayout.marker).is_file()
 
     def load(self, case_dir: Path, case_id: str) -> CorrespondencePair:
         world = DirectFlowApplyLayout().load(case_dir.parent, case_id)

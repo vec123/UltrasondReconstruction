@@ -55,9 +55,44 @@ from src.models.gpmm.nicp import Correspondences, PointCloud
 from src.models.gpmm.nicp.problem import build_problem
 from src.models.gpmm.nicp.shape import ShapeSpace
 from src.models.gpmm.nicp.solvers import build_solver
+from src.models.gpmm.outputs import PipelineOutputFiles
+from src.shared.correspondence.cloud import PointCloud as LandmarkCloud
+from src.shared.results import Result, similarity_record, write_results
 
 #: registry key for the step 1 result
 REFINED_KEY = "refined"
+_FILES = PipelineOutputFiles()
+
+
+def write_fit_results(out_dir, keys, shape_model_path):
+    """The result.json (src/shared/results.py) of a run's folder: one record per fit key whose file exists.
+
+    recon      nicp_refined_vertices_<key>.vtp, or refined_vertices.vtp for "refined".
+    target     rigid_alignment.vtp: surface.vtp moved into the model frame.
+    frame      the similarity fitted from new_target_landmarks.vtp (model frame) onto
+               orig_langmarks.vtp (scan mm). The run moved both with one transform, so the fit is exact.
+    landmarks  orig_langmarks.vtp.
+    """
+    folder = Path(out_dir)
+    target = folder / _FILES.rigid_alignment
+    if not target.is_file():
+        return
+    surface_landmarks = folder / _FILES.original_landmarks
+    recon_landmarks = folder / _FILES.transformed_landmarks
+    transform = None
+    if surface_landmarks.is_file() and recon_landmarks.is_file():
+        transform = SimilarityTransform.from_correspondences(
+            LandmarkCloud.from_vtp(recon_landmarks).points, LandmarkCloud.from_vtp(surface_landmarks).points,
+            stage="landmarks recon->surface")
+    results = {}
+    for key in keys:
+        recon = folder / (_FILES.refined_vertices if key == REFINED_KEY else _FILES.nicp_fit.format(name=key))
+        if recon.is_file():
+            results[key] = Result(str(recon), str(target), recon_to_scan=similarity_record(transform),
+                                  landmarks=str(surface_landmarks) if surface_landmarks.is_file() else None,
+                                  model={"kind": "gpmm", "path": str(shape_model_path)})
+    if results:
+        write_results(folder, results)
 
 
 @dataclass
@@ -113,6 +148,7 @@ class PipelineRunner:
         self.align_and_fit_landmarks()
         self.fit_to_surface()
         self.deform_region()
+        write_fit_results(self.config.outputs.dir, self.planned_keys(), self.config.inputs.shape_model_mat)
 
         return PipelineResult(
             shape=self.shape,
