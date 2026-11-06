@@ -8,6 +8,8 @@ and only the shapes.
 
 import numpy as np
 
+from src.shared.sampling.draws import standard_draws
+
 
 def draw_cohort(model, n, n_modes=None, clip=None, seed=0, sampling="random"):
     """(alpha [n, K], sigmas [n, K], vertices [n, N, 3]) drawn from the model's prior.
@@ -25,16 +27,7 @@ def draw_cohort(model, n, n_modes=None, clip=None, seed=0, sampling="random"):
     k = model.n_components if n_modes is None else int(n_modes)
     if not 0 < k <= model.n_components:
         raise ValueError(f"n_modes must be in 1..{model.n_components}, got {k}")
-    if sampling == "random":
-        sigmas = np.random.default_rng(seed).standard_normal((n, k))
-    elif sampling == "sobol":
-        from scipy.stats import norm, qmc
-        u = qmc.Sobol(d=k, scramble=True, seed=seed).random(n)
-        sigmas = norm.ppf(np.clip(u, 1e-12, 1 - 1e-12))
-    else:
-        raise ValueError(f"sampling must be 'random' or 'sobol', got {sampling!r}")
-    if clip is not None:
-        sigmas = np.clip(sigmas, -clip, clip)
+    sigmas = standard_draws(n, k, sampling, seed, clip)
     alpha = sigmas * np.sqrt(model.eigenvalues[:k])
     vertices = model.mean[None, :] + alpha @ model.eigenfunctions[:, :k].T  # [n, 3N]
     return alpha, sigmas, vertices.reshape(n, -1, 3)

@@ -1,0 +1,24 @@
+# python scripts/run.py configs/lddmm/cohort/sample/timevarying_kin200_det10_pca_modes.yaml
+#
+# The first two principal components of a cohort run's training codes, each at
+# -2 .. +2 standard deviations (src/shared/sampling/stage.py, source: modes):
+# the shapes that scripts/inspection/code_pca_modes.py decodes before it
+# renders them. members/ holds component 1 at the 5 steps, then component 2.
+stage: sample
+
+variables:
+  RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+
+model:
+  kind: lddmm
+  run: ${RUN}
+  code_prior: pca
+
+codes:
+  source: modes
+  parameters: 2
+  steps: [-2, -1, 0, 1, 2]
+
+batch: 5
+device: cpu
+output_dir: ${RUN}/sample/pca_modes_2_steps_-2_to_2

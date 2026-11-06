@@ -22,6 +22,7 @@ from src.models.lddmm.registrations import STAGE_SPECS as _LDDMM_STAGE_SPECS
 from src.shared.core.registry import TypedRegistry
 from src.shared.fitting.registrations import STAGE_SPECS as _FITTING_STAGE_SPECS
 from src.shared.point_fields.registrations import STAGE_SPECS as _POINT_FIELD_STAGE_SPECS
+from src.shared.sampling.registrations import STAGE_SPECS as _SAMPLING_STAGE_SPECS
 from src.shared.shape_model import CATEGORY as _MODEL, MODEL_KINDS
 from src.ultrasound.registrations import STAGE_SPECS as _US_STAGE_SPECS
 
@@ -33,6 +34,7 @@ for _name, _spec in {
     **_LDDMM_STAGE_SPECS,
     **_FITTING_STAGE_SPECS,
     **_POINT_FIELD_STAGE_SPECS,
+    **_SAMPLING_STAGE_SPECS,
 }.items():
     STAGE_REGISTRY.register(_name)(_spec)
 
