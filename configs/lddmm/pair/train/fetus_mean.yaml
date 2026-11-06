@@ -45,4 +45,4 @@ hyperparameters:
     save_full: false
     direction: forward
   train: {mode: pair, steps: 2000, batch: 4, lr: 0.0001, seed: 42, log_every: 10, save_every: 100, val_every: 0, export_shapes: 2,
-    export_strategy: sequential}
+    export_strategy: sequential, device: cuda}
