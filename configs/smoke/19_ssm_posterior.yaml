@@ -1,0 +1,23 @@
+# python scripts/run.py configs/smoke/19_ssm_posterior.yaml   (after 17_recon_target_distance.yaml)
+#
+# Smoke run of ssm_posterior with the settings of ssm_posterior_baby_mean_lddmm
+# in configs/pipelines/end_to_end_casos_mar.yaml (it has no stage file, so
+# copied), but 2 posterior draws instead of 5: the baby PCA + Matern32 GPMM
+# conditioned on the pair apply of 11 and its distances of 17.
+stage: ssm_posterior
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca_sum_matern32.npz
+template_vtp: ${SMOKE}/lddmm_pair/apply/world/template_points.vtp
+observed_vtp: ${SMOKE}/lddmm_pair/apply/world/deformed.vtp
+error_vtp: ${SMOKE}/lddmm_pair/apply/eval/recon_w_distance.vtp
+output_dir: ${SMOKE}/lddmm_pair/apply/posterior
+error_array: recon_dist_2_target
+noise:
+  name: logistic
+  kwargs: {sigma: 0.5, sigma_max: 100.0, threshold: 2.0, width: 0.5}
+include_model_noise: true
+n_samples: 2
+seed: 0

@@ -1,0 +1,22 @@
+# python scripts/run.py configs/smoke/24_correspondence_views.yaml   (after 22_correspondence_field.yaml)
+#
+# Smoke run of correspondence_views over a targets: block with the settings of
+# configs/evaluation/fields/correspondence_views.yaml: the correspondence field
+# of every member of 22 on its fused scan and on its recon, panels of 200 px.
+stage: correspondence_views
+extends: evaluation/fields/correspondence_views.yaml
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+
+targets:
+  match: ${SMOKE}/correspondence/${CASE_KEY}/correspondence_summary.json
+
+paths:
+  correspondence_dir: ${SMOKE}/correspondence/${CASE_KEY}
+  original_scans_path: ${COHORT}/original_scans.json
+  similarity_path: ${COHORT}/similarity.json
+
+hyperparameters:
+  panel_px: 200

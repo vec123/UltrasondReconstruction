@@ -1,0 +1,32 @@
+# python scripts/run.py configs/smoke/26_vtp_to_nrrd_overlay.yaml   (after 01, 11)
+#
+# Smoke run of vtp_to_nrrd_overlay with the settings of
+# configs/ultrasound/stages/vtp_to_nrrd_overlay.yaml: the LDDMM pair
+# reconstruction of 11 drawn into the reference scan's volume, moved back from
+# the template frame by the transforms of 01.
+stage: vtp_to_nrrd_overlay
+extends: ultrasound/stages/vtp_to_nrrd_overlay.yaml
+
+variables:
+  DATASET: Casos_Mar
+  CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/${DATASET}
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  REFERENCE_SCAN: 1-20s-01
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+paths:
+  nrrd_path: ${SCANS_DIR}/${REFERENCE_SCAN}.nrrd
+  output_path: ${SMOKE}/overlay/recon_overlay.nrrd
+  label_maps_dir: ${SMOKE}/overlay/recon_overlay_labels
+  layers:
+  - vtp_path: ${SMOKE}/lddmm_pair/apply/world/deformed.vtp
+    name: Reconstruction (LDDMM pair)
+    line_color: [255, 165, 0]
+    transform:
+      manifest_dir: ${US}/aligned_to_template/transforms
+      subject_id: ${REFERENCE_SCAN}
+      apply_inverse: true
+
+hyperparameters: {}

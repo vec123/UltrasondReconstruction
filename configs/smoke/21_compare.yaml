@@ -1,0 +1,15 @@
+# python scripts/run.py configs/smoke/21_compare.yaml   (after 18_recon_target_distance_cohort.yaml)
+#
+# Smoke run of the compare stage (src/evaluation/stages/compare.py): on the 4
+# members of 18, the 30-step smoke cohort run against the code fit of the real
+# kin5000 run. CASE_KEY has no value, so the stage finds the cases on the disk.
+stage: compare
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+models:
+  smoke_cohort_30_steps: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}/eval_reference_frame
+  kin5000_test31_code_fit: ${SMOKE}/test31_code_fit/${CASE_KEY}/eval_reference_frame
+
+output_dir: ${SMOKE}/compare

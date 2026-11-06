@@ -1,0 +1,43 @@
+# python scripts/run.py configs/smoke/17_recon_target_distance.yaml   (after 01, 05, 11)
+#
+# Smoke run of recon_target_distance with the settings of
+# configs/evaluation/fields/recon_target_distance.yaml, in the landmark frame of
+# the reference scan, two ways:
+#   lddmm_pair    recon and target given as files, as the pipelines give them:
+#                 the pair apply of 11 against the fused scan of 01.
+#   gpmm_result   result_dir: the fit 'map_1x' of 05 read from its result.json
+#                 (layout result).
+# 19 to 21 and 25 read these evaluation folders.
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  REFERENCE_SCAN: 1-20s-01
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+stage_configs:
+  recon_target_distance: evaluation/fields/recon_target_distance.yaml
+
+stages:
+  - name: recon_target_distance
+    id: recon_target_distance_lddmm_pair
+  - name: recon_target_distance
+    id: recon_target_distance_gpmm_result
+
+paths:
+  recon_target_distance_lddmm_pair:
+    target_path: ${US}/fused_scan_ssm/fused_scan.vtp
+    recon_path: ${SMOKE}/lddmm_pair/apply/world/deformed.vtp
+    landmarks_path: ${US}/aligned/aligned_landmarks/${REFERENCE_SCAN}_landmarks.csv
+    lddmm_train_config: ${SMOKE}/lddmm_pair/config.json
+    output_dir: ${SMOKE}/lddmm_pair/apply/eval
+  recon_target_distance_gpmm_result:
+    result_dir: ${SMOKE}/gpmm_fit/baby_pca
+    landmarks_path: ${US}/aligned/aligned_landmarks/${REFERENCE_SCAN}_landmarks.csv
+    output_dir: ${SMOKE}/gpmm_fit/baby_pca/eval_map
+
+hyperparameters:
+  recon_target_distance_gpmm_result:
+    layout: result
+    layout_kwargs: {result: map_1x}

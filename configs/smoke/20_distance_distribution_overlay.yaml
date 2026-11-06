@@ -1,0 +1,19 @@
+# python scripts/run.py configs/smoke/20_distance_distribution_overlay.yaml   (after 17_recon_target_distance.yaml)
+#
+# Smoke run of distance_distribution_overlay with the settings of
+# configs/evaluation/compare/distance_distribution_overlay.yaml: the distance
+# distributions of the two evaluation folders of 17 in one plot.
+stage: distance_distribution_overlay
+extends: evaluation/compare/distance_distribution_overlay.yaml
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+paths:
+  sources:
+  - {label: LDDMM pair, eval_dir: '${SMOKE}/lddmm_pair/apply/eval'}
+  - {label: Baby PCA (MAP), eval_dir: '${SMOKE}/gpmm_fit/baby_pca/eval_map'}
+  output_dir: ${SMOKE}/distance_distribution_overlay
+  log_y: true
+
+hyperparameters: {}

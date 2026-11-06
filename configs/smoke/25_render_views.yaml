@@ -1,0 +1,38 @@
+# python scripts/run.py configs/smoke/25_render_views.yaml   (after 01, 17)
+#
+# Smoke run of render_views with the settings of
+# configs/evaluation/viz/views_casos_mar.yaml, but its own columns: the
+# reference scan's aligned scans, the fused scan, and the GPMM and LDDMM pair
+# reconstructions of 17; frontal, left and right rows of 200 px panels for the
+# one case.
+stage: render_views
+extends: evaluation/viz/views_casos_mar.yaml
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+paths:
+  output_dir: ${SMOKE}/views
+
+hyperparameters:
+  case_name: ${CASE_KEY}
+  landmarks: ${SMOKE}/lddmm_pair/apply/eval/reference_landmarks.vtp
+  scans:
+    mesh: ${US}/aligned/aligned_shapes_vtp/${SCAN}.vtp
+    landmarks: ${US}/aligned/aligned_landmarks/${SCAN}_landmarks.csv
+  panel_px: 200
+  columns:
+  - title: Fused scan
+    mesh: ${SMOKE}/lddmm_pair/apply/eval/target_w_distance.vtp
+    views: [frontal]
+    camera: false
+    tint: scan
+    landmarks: true
+  - title: Baby PCA (MAP)
+    mesh: ${SMOKE}/gpmm_fit/baby_pca/eval_map/recon_w_distance.vtp
+  - title: LDDMM pair
+    mesh: ${SMOKE}/lddmm_pair/apply/eval/recon_w_distance.vtp

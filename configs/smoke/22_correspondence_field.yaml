@@ -1,0 +1,20 @@
+# python scripts/run.py configs/smoke/22_correspondence_field.yaml   (after 14_lddmm_cohort_apply.yaml)
+#
+# Smoke run of correspondence_field over a targets: block with the settings of
+# configs/evaluation/fields/correspondence_field.yaml: every member of the
+# cohort apply of 14. Each member's field goes into ${SMOKE}/correspondence/<member>,
+# the folder of cases that 23 and 24 read.
+stage: correspondence_field
+extends: evaluation/fields/correspondence_field.yaml
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+targets:
+  match: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}/apply.json
+
+paths:
+  case_dir: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}
+  output_dir: ${SMOKE}/correspondence/${CASE_KEY}
+
+hyperparameters: {}

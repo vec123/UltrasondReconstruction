@@ -1,0 +1,28 @@
+# python scripts/run.py configs/smoke/23_correspondence_overview.yaml   (after 22_correspondence_field.yaml)
+#
+# Smoke run of correspondence_overview with the settings of
+# configs/evaluation/fields/correspondence_overview.yaml: one tile per member of
+# 22, each fused scan coloured by its correspondence_id. The mean recon is the
+# template of the smoke cohort run (13).
+stage: correspondence_overview
+extends: evaluation/fields/correspondence_overview.yaml
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+  FIRST_RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+
+paths:
+  cases_dir: ${SMOKE}/correspondence
+  original_scans_path: ${COHORT}/original_scans.json
+  similarity_path: ${COHORT}/similarity.json
+  reference_path: ${COHORT}/template.vtp
+  mean_recon_path: ${FIRST_RUN}/apply/mean_recon/world/deformed.vtp
+  landmark_path: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
+  landmark_field: lm72_heatmap_landmarks
+  field: correspondence_id
+  output_path: ${SMOKE}/correspondence/correspondence_overview.png
+
+hyperparameters:
+  columns: 4
+  tile_px: 150

@@ -1,0 +1,35 @@
+# python scripts/run.py configs/smoke/18_recon_target_distance_cohort.yaml   (after 14_lddmm_cohort_apply.yaml)
+#
+# Smoke run of recon_target_distance over a targets: block with the settings of
+# configs/evaluation/fields/recon_target_distance_cohort.yaml: each member of
+# the cohort apply of 14 against its fused target, in the reference landmark
+# frame of assets/eval_frame, and the same member of the real code fit of the
+# 31 test members (read only), so that 21_compare.yaml compares two models.
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+  CODE_FIT_RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin5000_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281_test31_code_fit
+
+targets:
+  match: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}/world/deformed.vtp
+
+stage_configs:
+  recon_target_distance: evaluation/fields/recon_target_distance_cohort.yaml
+
+stages:
+  - name: recon_target_distance
+    id: recon_target_distance_smoke_cohort
+  - name: recon_target_distance
+    id: recon_target_distance_test31_code_fit
+
+paths:
+  recon_target_distance_smoke_cohort:
+    target_path: ${COHORT}/test/${CASE_KEY}.vtp
+    recon_path: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}/world/deformed.vtp
+    landmarks_path: ${PROJECT_ROOT}/assets/eval_frame/reference_frame.csv
+    output_dir: ${SMOKE}/lddmm_cohort/apply/${CASE_KEY}/eval_reference_frame
+  recon_target_distance_test31_code_fit:
+    target_path: ${COHORT}/test/${CASE_KEY}.vtp
+    recon_path: ${CODE_FIT_RUN}/apply/${CASE_KEY}/world/deformed.vtp
+    landmarks_path: ${PROJECT_ROOT}/assets/eval_frame/reference_frame.csv
+    output_dir: ${SMOKE}/test31_code_fit/${CASE_KEY}/eval_reference_frame

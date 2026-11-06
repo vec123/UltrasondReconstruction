@@ -1,9 +1,9 @@
 # python scripts/run.py configs/smoke/14_lddmm_cohort_apply.yaml   (after 13_lddmm_cohort_train.yaml)
 #
 # Smoke run of resnet_lddmm_apply on a cohort run with the settings of
-# configs/lddmm/cohort/apply/cohort_apply.yaml (a flat file, so copied): every
-# member of the run of 13_lddmm_cohort_train.yaml, on the GPU. Each member gets
-# its result.json, which the evaluation smoke files read.
+# configs/lddmm/cohort/apply/cohort_apply.yaml (a flat file, so copied): 4 of
+# the 31 members of the run of 13_lddmm_cohort_train.yaml (shapes:), on the
+# GPU. Each member gets its result.json, which the evaluation smoke files read.
 stage: resnet_lddmm_apply
 
 variables:
@@ -12,7 +12,7 @@ variables:
 train_config: ${SMOKE}/lddmm_cohort/config.json
 checkpoint: ${SMOKE}/lddmm_cohort/checkpoints
 device: cuda
-shapes: null
+shapes: [10_20_semanas, 18_26_semanas, 20_20_semanas, 23_20_semanas]
 export:
   deformed: true
   trajectory: false

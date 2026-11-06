@@ -3,8 +3,8 @@
 # Smoke run of point_fields over a targets: block, as
 # configs/surface/target/edge_fields.yaml runs it: 4 fused targets of the
 # full313 training set, copied into ${SMOKE}/cohort_members with their edge
-# fields written again (the same settings). That folder is the cohort of
-# 13_lddmm_cohort_train.yaml, whose source: must be a folder.
+# fields written again (the same settings). Not the cohort of 13: a cohort's
+# frame (similarity.json) must be one folder above its members' folder.
 stage: point_fields
 
 variables:

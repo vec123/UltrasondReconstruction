@@ -3,15 +3,17 @@
 # Smoke run of resnet_lddmm_train in cohort mode (auto-decoder) with the settings of
 # configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_meancode_template.yaml
 # (a flat file, so copied): the mean-code template of that run's first run onto
-# the 4 members of 12_cohort_members.yaml, 30 steps instead of 3000 (Fourier
-# bands open from step 10 to 20), batch 4, on the GPU. 14 to 16 read this run.
+# the 31 test members of the full313 cohort (the smallest folder with the
+# cohort's similarity.json above it), 30 steps instead of 3000 (Fourier bands
+# open from step 10 to 20), batch 8, on the GPU. 14 to 16 read this run.
 stage: resnet_lddmm_train
 
 variables:
   SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  COHORT: ${DATA_ROOT}/fused_targets_full313
   FIRST_RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
 
-source: ${SMOKE}/cohort_members
+source: ${COHORT}/test
 target: ${FIRST_RUN}/apply/mean_recon/world/deformed.vtp
 output_dir: ${SMOKE}/lddmm_cohort
 field:
@@ -51,7 +53,7 @@ loss:
 train:
   mode: cohort
   steps: 30
-  batch: 4
+  batch: 8
   lr: 0.0001
   seed: 42
   log_every: 10
