@@ -5,7 +5,7 @@
 # Each model entry is the pattern of its evaluation folder of one case (the
 # output_dir of recon_target_distance). SESSION and CASE_KEY hold the case
 # variables SUBJECT_ID and WEEK; the stage finds their values on the disk.
-# --set SUBJECT_ID=1 compares the cases of subject 1 only.
+# --case '{"SUBJECT_ID": "1"}' compares the cases of subject 1 only.
 stage: compare
 
 variables:

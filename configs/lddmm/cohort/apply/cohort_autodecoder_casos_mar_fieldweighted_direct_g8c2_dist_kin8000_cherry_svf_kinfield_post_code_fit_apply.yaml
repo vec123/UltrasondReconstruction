@@ -4,7 +4,7 @@
 # <output_dir>/<member>/{world,normalized}/deformed.vtp.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf_kinfield_post_code_fit_apply.yaml
+#    python scripts/run.py configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf_kinfield_post_code_fit_apply.yaml
 
 stage: resnet_lddmm_apply
 

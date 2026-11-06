@@ -1,4 +1,4 @@
-# Eval/QC tool, not part of the pipeline.yaml chain (uses run_pipeline.py
+# Eval/QC tool, not part of the pipeline.yaml chain (uses run.py
 # only to chain these two independent stages together, one feeding the
 # other's output - it isn't a step of the actual processing pipeline):
 #  1. recon_target_distance - nearest-neighbor L2 distance fields between the
@@ -9,7 +9,7 @@
 #     own output_dir, so it reads the distance-augmented recon .vtp, not the
 #     original.
 #
-# Usage: python scripts/run_pipeline.py --config configs/old_tmp/eval/recon_target_nrrd.yaml
+# Usage: python scripts/run.py configs/old_tmp/eval/recon_target_nrrd.yaml
 
 stages:
   - name: recon_target_distance

@@ -3,7 +3,7 @@
 # learned code, into <output_dir>/<member>/{world,normalized}/deformed.vtp.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_apply.yaml
+#    python scripts/run.py configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_apply.yaml
 
 stage: resnet_lddmm_apply
 

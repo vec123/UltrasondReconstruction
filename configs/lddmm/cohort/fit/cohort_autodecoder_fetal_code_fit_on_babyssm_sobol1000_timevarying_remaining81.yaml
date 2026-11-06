@@ -4,7 +4,7 @@
 # trained. code_reg_weight 0.62 = 0.05 x 1000 / 81, the training's prior per member.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/fit/cohort_autodecoder_fetal_code_fit_on_babyssm_sobol1000_timevarying_remaining81.yaml
+#    python scripts/run.py configs/lddmm/cohort/fit/cohort_autodecoder_fetal_code_fit_on_babyssm_sobol1000_timevarying_remaining81.yaml
 
 stage: resnet_lddmm_train
 

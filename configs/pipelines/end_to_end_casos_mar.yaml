@@ -7,8 +7,8 @@
 #    python scripts/run.py configs/pipelines/end_to_end_casos_mar.yaml
 # It runs every session of the subjects under targets: only, one after the other,
 # each in its own process with a log (batch: below). One session alone still runs with
-#    python scripts/run_pipeline.py --config configs/pipelines/end_to_end_casos_mar.yaml \
-#        --set SUBJECT_ID=14 --set "WEEK=20 semanas" --set REFERENCE_SCAN=14-20s-01
+#    python scripts/run.py configs/pipelines/end_to_end_casos_mar.yaml \
+#        --case '{"SUBJECT_ID": "14", "WEEK": "20 semanas", "REFERENCE_SCAN": "14-20s-01"}'
 # The predictor writes 1mm isotropic volumes with origin 0 and identity
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
 # Keep stages and hyperparameters in sync with end_to_end.yaml.

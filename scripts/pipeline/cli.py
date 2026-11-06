@@ -1,5 +1,5 @@
-"""Entry points of run.py, run_stage.py and run_pipeline.py: the engine of
-src.shared.core.pipeline, with every registered stage."""
+"""The entry point of run.py: the engine of src.shared.core.pipeline, with every
+registered stage."""
 
 import json
 import sys
@@ -25,10 +25,3 @@ def run_main(config_path, extra_vars=None):
 def run_case(config_path, case):
     return engine.run_case(config_path, STAGE_REGISTRY, case)
 
-
-def stage_main(config_path, extra_vars=None):
-    return engine.stage_main(config_path, STAGE_REGISTRY, extra_vars)
-
-
-def pipeline_main(pipeline_config_path, extra_vars=None):
-    return engine.pipeline_main(pipeline_config_path, STAGE_REGISTRY, extra_vars)

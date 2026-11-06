@@ -8,7 +8,7 @@
 # pretrained weights need to be met in BabySSM's frame.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_direct_full313_train281.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_direct_full313_train281.yaml
 
 stage: resnet_lddmm_train
 

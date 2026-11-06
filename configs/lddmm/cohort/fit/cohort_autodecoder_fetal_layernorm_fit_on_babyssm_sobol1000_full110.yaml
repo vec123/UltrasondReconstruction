@@ -23,7 +23,7 @@
 # outputs/Casos_Mar/cohort/fused_targets_4096_fields_cherry_tree to ../targets (BabySSM frame).
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/fit/cohort_autodecoder_fetal_layernorm_fit_on_babyssm_sobol1000_full110.yaml
+#    python scripts/run.py configs/lddmm/cohort/fit/cohort_autodecoder_fetal_layernorm_fit_on_babyssm_sobol1000_full110.yaml
 
 stage: resnet_lddmm_train
 

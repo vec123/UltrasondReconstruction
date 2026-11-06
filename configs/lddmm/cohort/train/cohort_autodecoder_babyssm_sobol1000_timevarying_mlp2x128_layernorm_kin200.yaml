@@ -14,7 +14,7 @@
 # on THIS pretrained flow is not queued yet - only the pretrain.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_timevarying_mlp2x128_layernorm_kin200.yaml
 
 stage: resnet_lddmm_train
 

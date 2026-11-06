@@ -30,7 +30,7 @@
 #     plus repeats. Their point arrays (normal, support, ...) are kept, row for row.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_casos_mar_fieldweighted_direct_g4c8_dist.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_casos_mar_fieldweighted_direct_g4c8_dist.yaml
 
 stage: resnet_lddmm_train
 

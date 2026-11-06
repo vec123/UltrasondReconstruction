@@ -14,7 +14,7 @@
 # continues from 3000 (init.continue_step_count), so they stay open.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_fetal_residual_split_on_babyssm_sobol1000_code_em.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_fetal_residual_split_on_babyssm_sobol1000_code_em.yaml
 
 stage: resnet_lddmm_train
 

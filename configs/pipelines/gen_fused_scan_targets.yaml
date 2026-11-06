@@ -17,8 +17,8 @@
 # It runs every session of DATASET whose fused target does not exist yet (targets:
 # and batch: below), 4 at a time, each in its own process with a log. For another
 # dataset, change DATASET. One session alone still runs with
-#    python scripts/run_pipeline.py --config configs/pipelines/gen_fused_scan_targets.yaml \
-#        --set SUBJECT_ID=Dex-76 --set "WEEK=26 semanas" --set REFERENCE_SCAN=Dex-76-26s-01
+#    python scripts/run.py configs/pipelines/gen_fused_scan_targets.yaml \
+#        --case '{"SUBJECT_ID": "Dex-76", "WEEK": "26 semanas", "REFERENCE_SCAN": "Dex-76-26s-01"}'
 # The predictor writes 1mm isotropic volumes with origin 0 and identity
 # direction, and its landmarks in voxel indices, so LANDMARKS_FRAME is LPS.
 

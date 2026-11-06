@@ -2,7 +2,7 @@
 # planned 3000 steps (it stopped early, mid Fourier anneal).
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_resume.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_resume.yaml
 
 stage: resnet_lddmm_train
 

@@ -84,7 +84,7 @@ def decode(apply_config, steps, region=None, extra=None):
 
     `extra` ({key: function of the [M, n_z] codes -> one code}) decodes further
     codes into the same dict under their own keys, e.g. the zero code."""
-    # As run_stage.py reads a stage config: drop the stage name, fill the variables as the engine does.
+    # As run.py reads a stage config: drop the stage name, fill the variables as the engine does.
     raw = load_yaml(apply_config)
     raw.pop("stage", None)
     variables = run_variables(raw.pop("variables", None), None, apply_config)

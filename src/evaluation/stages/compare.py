@@ -11,7 +11,7 @@ The variables without a value (SUBJECT_ID and WEEK, inside SESSION and
 CASE_KEY) are the case variables. The engine leaves them in this field
 (StageSpec.patterns), and find_paths finds their values on the disk, as for
 `targets: match:`. Only the cases that every model has are compared; the
-others are listed. A variable with a value selects: `--set SUBJECT_ID=1`
+others are listed. A variable with a value selects: `--case '{"SUBJECT_ID": "1"}'`
 compares the cases of subject 1 only.
 
 Writes into output_dir:

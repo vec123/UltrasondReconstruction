@@ -4,7 +4,7 @@
 # to keep the code space well-conditioned without constraining the fit much.
 #
 # Run with:
-#    python scripts/run_stage.py --config configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_codereg.yaml
+#    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_codereg.yaml
 
 stage: resnet_lddmm_train
 

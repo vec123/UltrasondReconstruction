@@ -212,9 +212,9 @@ def run_case(config_path, registry, case):
 
 def no_pipeline_context(reference):
     raise ValueError(
-        f"'{reference}' looks like a cross-stage reference, but a standalone stage run "
-        f"(run_stage.py) has no other stages to reference. Use a literal path, or run this "
-        f"stage as part of a pipeline (run_pipeline.py) instead."
+        f"'{reference}' looks like a cross-stage reference, but a stage file run alone "
+        f"has no other stages to reference. Use a literal path, or run this stage as part "
+        f"of a pipeline instead."
     )
 
 

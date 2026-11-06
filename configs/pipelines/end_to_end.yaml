@@ -4,9 +4,9 @@
 # so later stages can still reference its fields - see src/shared/core/pipeline/engine.py).
 #
 # Run with:
-#    python scripts/run_pipeline.py --config configs/pipelines/end_to_end.yaml --set SUBJECT_ID=9992 --set REFERENCE_SCAN=SdeFrankterHaar-01 --set LANDMARKS_FRAME=LPS
-#    python scripts/run_pipeline.py --config configs/pipelines/end_to_end.yaml --set SUBJECT_ID=9999 --set "REFERENCE_SCAN=Cleft lip HMar CESO1830724001-12s-03" --set LANDMARKS_FRAME=RAS
-#    python scripts/run_pipeline.py --config configs/pipelines/end_to_end.yaml --set SUBJECT_ID=14 --set REFERENCE_SCAN=14-20s-01 --set LANDMARKS_FRAME=RAS
+#    python scripts/run.py configs/pipelines/end_to_end.yaml --case '{"SUBJECT_ID": "9992", "REFERENCE_SCAN": "SdeFrankterHaar-01", "LANDMARKS_FRAME": "LPS"}'
+#    python scripts/run.py configs/pipelines/end_to_end.yaml --case '{"SUBJECT_ID": "9999", "REFERENCE_SCAN": "Cleft lip HMar CESO1830724001-12s-03", "LANDMARKS_FRAME": "RAS"}'
+#    python scripts/run.py configs/pipelines/end_to_end.yaml --case '{"SUBJECT_ID": "14", "REFERENCE_SCAN": "14-20s-01", "LANDMARKS_FRAME": "RAS"}'
 # REFERENCE_SCAN is the scan (file name without extension) every other scan is
 # aligned onto, e.g. SdeFrankterHaar-01 for SUBJECT_ID=9992. It must have a
 # landmark CSV, else align_to_reference silently picks another scan and the

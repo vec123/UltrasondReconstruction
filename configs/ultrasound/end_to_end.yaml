@@ -2,7 +2,7 @@
 # fusion -> final filters -> geodesics. The stages with `config:` take their
 # settings from configs/ultrasound/stages/.
 # It needs the variables LANDMARKS_FRAME, REFERENCE_SCAN, SUBJECT_ID: set them under `variables:`
-# here, or pass them with --set (the batch runner does).
+# here, or pass them with run.py --case (the batch does).
 #    python scripts/run.py configs/ultrasound/end_to_end.yaml
 
 stages:
