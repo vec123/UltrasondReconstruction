@@ -1,0 +1,28 @@
+# python scripts/run.py configs/evaluation/fields/correspondence_field.yaml
+#
+# The correspondence field of every member of two cohort apply runs
+# (src/evaluation/stages/correspondence_field.py): each recon vertex is
+# matched to a target point. Each member gets the folder
+# <member>/correspondence_<method>_<every setting>, which
+# correspondence_views.yaml draws.
+stage: correspondence_field
+
+variables:
+  RUNS_DIR: ${PROJECT_ROOT}/outputs/direct_flow
+
+targets:
+  match: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/apply.json
+  only:
+  - {RUN: timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+  - {RUN: timevarying-mlp2x128-kin5000_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+  exclude:
+  - {SUBJECT_ID: mean_recon}
+
+paths:
+  case_dir: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}
+
+hyperparameters:
+  layout: auto
+  method: constrained
+  kwargs: {max_dist: 2.0, normal_thresh_deg: 60.0, one_to_one: true}
+  distance_frame: surface

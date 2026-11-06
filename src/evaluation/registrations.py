@@ -7,6 +7,7 @@ from src.shared.core.pipeline import StageSpec
 _STAGES = "src.evaluation.stages"
 
 STAGE_SPECS = {
+    "correspondence_field": StageSpec.of_module(f"{_STAGES}.correspondence_field"),
     "correspondence_views": StageSpec.of_module(f"{_STAGES}.correspondence_views", output="output_path"),
     "correspondence_overview": StageSpec.of_module(f"{_STAGES}.correspondence_views", config="OverviewConfig",
                                                    run="run_overview", output="output_path"),

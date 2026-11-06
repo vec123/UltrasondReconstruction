@@ -70,6 +70,31 @@ class ReconTargetDistanceConfig:
 
 
 @dataclasses.dataclass
+class CorrespondenceFieldConfig:
+    # A model stage's output folder of one case, read through a pair layout
+    # (src/evaluation/loader/layouts.py): "auto" finds the layout from the
+    # folder's marker file. layout_kwargs selects in the folder, e.g.
+    # {fit: map_1x} for direct_ssm_fit.
+    case_dir: str = ""
+    layout: str = "auto"
+    layout_kwargs: Dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    # The correspondence method (src/shared/correspondence) and its settings.
+    method: str = "constrained"
+    kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=lambda: {"max_dist": 2.0, "normal_thresh_deg": 60.0, "one_to_one": True}
+    )
+
+    # The frame of the distance settings: "surface" (the scan, in mm) or
+    # "recon" (the reconstruction's own frame).
+    distance_frame: str = "surface"
+
+    # Left unset, <case_dir>/<a name that spells out the method and every one
+    # of its settings>, e.g. correspondence_constrained_k-5_max_dist-2surface_...
+    output_dir: str = ""
+
+
+@dataclasses.dataclass
 class CorrespondenceViewsConfig:
     # The folder scripts/SSM/correspondence_field.py wrote: the two
     # *_w_correspondence.vtp files and correspondence_summary.json.
