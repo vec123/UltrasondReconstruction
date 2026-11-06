@@ -454,7 +454,7 @@ class SampleShapesRunner:
         # on with 'c' does not have to construct one mid-session.
         if view.show_scalar_bar:
             self.scalar_bar = self._scalar_bar()
-            self.renderer.AddActor2D(self.scalar_bar)
+            self.renderer.AddViewProp(self.scalar_bar)
 
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.SetSize(*view.window_size)
@@ -771,8 +771,8 @@ class SampleShapesRunner:
         """Track and thumb beside the panel: how far down the modes you are."""
         self.scroll_track, self._track_points = self._quad()
         self.scroll_thumb, self._thumb_points = self._quad()
-        self.renderer.AddActor2D(self.scroll_track)
-        self.renderer.AddActor2D(self.scroll_thumb)
+        self.renderer.AddViewProp(self.scroll_track)
+        self.renderer.AddViewProp(self.scroll_thumb)
 
         top, bottom = _PANEL_Y
         self._set_quad(self._track_points, _SCROLLBAR_X, (bottom - 0.03, top + 0.03))
@@ -846,7 +846,7 @@ class SampleShapesRunner:
             prop.SetVerticalJustificationToCentered()
             prop.BoldOn()
             prop.ShadowOff()
-            self.renderer.AddActor2D(label)
+            self.renderer.AddViewProp(label)
             self.buttons.append((widget, label))
 
         # Named handles for the two whose text changes or is read elsewhere.
@@ -898,7 +898,7 @@ class SampleShapesRunner:
         prop.SetBold(bold)
         prop.ShadowOff()
         prop.ItalicOff()
-        self.renderer.AddActor2D(actor)
+        self.renderer.AddViewProp(actor)
         return actor
 
     def _build_labels(self):
@@ -954,7 +954,7 @@ class SampleShapesRunner:
         of the two is a pixel quantity to begin with.
         """
         self.dropdown_bar, self._bar_points = self._quad(display=True)
-        self.renderer.AddActor2D(self.dropdown_bar)
+        self.renderer.AddViewProp(self.dropdown_bar)
 
         self.dropdown_label = self._text_actor(13, bold=True)
         self.dropdown_label.GetTextProperty().SetVerticalJustificationToCentered()
@@ -963,7 +963,7 @@ class SampleShapesRunner:
         for _ in range(rows):
             actor, points = self._quad(display=True)
             actor.VisibilityOff()
-            self.renderer.AddActor2D(actor)
+            self.renderer.AddViewProp(actor)
             text = self._text_actor(12)
             text.GetTextProperty().SetVerticalJustificationToCentered()
             text.VisibilityOff()
