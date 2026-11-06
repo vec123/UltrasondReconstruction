@@ -1,4 +1,4 @@
-"""The landmark picker behind ``scripts/SSM/place_landmarks.py``.
+"""The landmark picker behind ``scripts/GUIs/place_landmarks.py``.
 
     app.py          SetLandmarksApp - the window, composed from src.GUIs.core
     checklist.py    LandmarkChecklist - names, placements, cursor, pending pick (no VTK)

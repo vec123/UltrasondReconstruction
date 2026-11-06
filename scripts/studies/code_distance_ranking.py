@@ -11,7 +11,7 @@ code distance to the mean and the mean vertex distance (mm) of the reconstructio
 to the mean code's face.
 
 Run with:
-    python scripts/inspection/code_distance_ranking.py \
+    python scripts/studies/code_distance_ranking.py \
         --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
 """
 
@@ -22,8 +22,8 @@ import numpy as np
 import torch
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.inspection.code_pca_modes import decode, with_points  # noqa: E402
-from scripts.inspection.code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
+from scripts.studies.code_pca_modes import decode, with_points  # noqa: E402
+from scripts.studies.code_pca_views import load_codes, similarity_map, target_path, template_landmarks  # noqa: E402
 from src.shared.vtk.render import MESH_COLOR, SCAN_COLOR, view_camera, write_grid  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
@@ -39,7 +39,7 @@ def main():
     parser.add_argument("--panel-px", type=int, default=200, help="Width and height of each panel in pixels.")
     parser.add_argument("--similarity", default=None,
                         help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
-                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
+                             "see scripts/tools/target_to_ssm_frame.py); default: world is mm already.")
     parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz",
                         help="landmark fallback for members with no eval (see template_landmarks)")
     args = parser.parse_args()

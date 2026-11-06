@@ -9,10 +9,10 @@ fits_comparison.png with all fits in the folder above it. Every PNG has a fronta
 row (target and fits) and left and right rows of the fits only, in the same columns.
 
 Usage:
-    python scripts/inspection/render_gamma_sweep_comparison.py \
+    python scripts/studies/render_gamma_sweep_comparison.py \
         --root outputs/direct_SSM_fit \
         --model assets/shape_models/baby/baby_pca.npz
-    python scripts/inspection/render_gamma_sweep_comparison.py \
+    python scripts/studies/render_gamma_sweep_comparison.py \
         --root outputs/BabyFM_test --per-case
 """
 

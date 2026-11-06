@@ -1,6 +1,6 @@
 """DecompositionExporter: at the end of training, the run split into network and modes as .vtp files.
 
-The same files as scripts/LDDMM/decompose_modes.py writes for a finished run
+The same files as scripts/tools/decompose_modes.py writes for a finished run
 (export.py), made from the weights still in memory instead of a checkpoint
 read back. Switched on by field.modes.decompose.
 """

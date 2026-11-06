@@ -196,7 +196,7 @@ class DirectFlowEvalLayout(PairLayout):
                landmark frame (mm) by a similarity fitted on the heatmap
                landmarks.
     target     eval/target_w_distance.vtp, moved by the same similarity. Two kinds:
-               a mesh (the fused scan, as scripts/inspection/eval_cohort_apply.py
+               a mesh (the fused scan, as scripts/studies/eval_cohort_apply.py
                scores it) uses its own face normals; a point cloud must be the
                cohort member, whose ``normal`` array an eval written before
                transform_polydata_matrix did not rotate (or scaled by s), so

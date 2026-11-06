@@ -19,7 +19,7 @@ compactness, specificity and triangle area ratios, in mm.
 Writes <run>/atlas_centrality.png and <run>/atlas_centrality.json.
 
 Run with:
-    python scripts/inspection/atlas_centrality.py --run <run folder> \\
+    python scripts/studies/atlas_centrality.py --run <run folder> \\
         --similarity /home/victor/Escritorio/Data/fused_targets_full313/similarity.json
 """
 
@@ -36,7 +36,7 @@ import torch  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap, LogNorm  # noqa: E402
 from vtk.util.numpy_support import vtk_to_numpy  # noqa: E402
 
-from scripts.inspection.code_pca_views import load_codes, similarity_map  # noqa: E402
+from scripts.studies.code_pca_views import load_codes, similarity_map  # noqa: E402
 from src.evaluation.atlas import metrics  # noqa: E402
 from src.models.lddmm.resnet_flow.apply.trained_run import load_run  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402

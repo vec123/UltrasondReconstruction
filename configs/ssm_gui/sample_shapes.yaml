@@ -1,8 +1,8 @@
-# Configuration for scripts/SSM/sample_shapes.py  ->  src.models.gpmm.runners.SampleShapesRunner
+# Configuration for scripts/GUIs/sample_shapes.py  ->  src.models.gpmm.runners.SampleShapesRunner
 #
-#   python scripts/SSM/sample_shapes.py --config configs/ssm_gui/sample_shapes.yaml
-#   python scripts/SSM/sample_shapes.py --model fetus/pca     # override 'model' below
-#   python scripts/SSM/sample_shapes.py --no-window --screenshot outputs/shape_space.png
+#   python scripts/GUIs/sample_shapes.py --config configs/ssm_gui/sample_shapes.yaml
+#   python scripts/GUIs/sample_shapes.py --model fetus/pca     # override 'model' below
+#   python scripts/GUIs/sample_shapes.py --no-window --screenshot outputs/shape_space.png
 #
 # Opens the shape space with one slider per mode. Dragging slider k sets
 #

@@ -1,7 +1,7 @@
 # Apply of cohort_autodecoder_fetal_layernorm_fit_on_babyssm_sobol1000_full110.yaml (the LayerNorm
 # BabySSM flow, its LayerNorm affines and the codes fitted to all 110 fused targets): every training
 # member's code decoded on the full template, into <run>/apply/<case>/world/deformed.vtp.
-# "world" is the run's frame, the BabySSM frame (not mm); scripts/inspection/eval_cohort_apply.py
+# "world" is the run's frame, the BabySSM frame (not mm); scripts/studies/eval_cohort_apply.py
 # carries the results into the scans' mm frame for recon_target_distance.
 #
 # Run with:

@@ -1,4 +1,4 @@
-"""Render PNGs of a model updated by scripts/SSM/update_ssm_em.py or update_code_em.py: draws, and fits.
+"""Render PNGs of a model updated by scripts/studies/update_ssm_em.py or update_code_em.py: draws, and fits.
 
 generations.png   the base model and the updated model: mean, then --n-samples
                   random draws of each; frontal, then the patient's left and right
@@ -26,7 +26,7 @@ For an update_code_em.py output (a code prior of a frozen flow, no model.npz),
 the draws and fits are the ones it wrote (generations/, fits/), drawn the same way.
 
 Usage:
-    python scripts/inspection/render_updated_ssm_views.py \
+    python scripts/studies/render_updated_ssm_views.py \
         --model-dir outputs/UpdatedSSM/<run>/<variant>
 """
 
@@ -38,7 +38,7 @@ import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
-from scripts.SSM.update_ssm_em import load_cases  # noqa: E402
+from scripts.studies.update_ssm_em import load_cases  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.models.gpmm.model.inference.posterior import posterior, posterior_with_pose  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402

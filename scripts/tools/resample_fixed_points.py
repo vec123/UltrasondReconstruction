@@ -15,12 +15,12 @@ fewer keeps every point and fills the rest by sampling with replacement (repeats
 
 Also writes <output-dir>/original_scans.json ({name: source .vtp path}), so inspection
 scripts can still show a member's ORIGINAL, face-complete surface - see
-scripts/inspection/code_pca_views.py's target_path, which reads it (from here or from
+scripts/studies/code_pca_views.py's target_path, which reads it (from here or from
 its parent, since a frame conversion and a train/test split often sit between this
 script's output and the training source a run's config.json records).
 
 Usage:
-    python scripts/SSM/resample_fixed_points.py \\
+    python scripts/tools/resample_fixed_points.py \\
         --scan outputs/Casos_Mar/cohort/fused_targets/*.vtp \\
         --points 4096 \\
         --output-dir outputs/Casos_Mar/cohort/fused_targets_4096_fields

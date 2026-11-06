@@ -29,7 +29,7 @@ class AtlasConfig:
     # takes ~90 s, reading it back takes under a second.
     cache: bool = True
     # name -> vertex-index JSON annotating the atlas's mean shape, written by
-    # scripts/place_landmarks.py (see src/model/landmarks.py). null leaves the
+    # scripts/GUIs/place_landmarks.py (see src/model/landmarks.py). null leaves the
     # atlas with no landmarks, as before - every landmark-driven field then
     # stays off, same as documented in configs/mean_shape_fetus.yaml.
     landmarks: Optional[Path] = None

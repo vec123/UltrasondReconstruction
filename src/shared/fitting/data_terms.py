@@ -7,7 +7,7 @@
               triangles weighted down beyond trunc_mm from the observations; also with KeOps
 
 All in mm^2, in the unposed model frame scaled to mm. Moved from
-scripts/inspection/code_fit_partial_tests.py.
+scripts/studies/code_fit_partial_tests.py.
 """
 
 import torch

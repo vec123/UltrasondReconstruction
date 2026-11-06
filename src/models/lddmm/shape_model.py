@@ -5,7 +5,7 @@
 as the flow decoders of the inspection scripts did (without their mm factor).
 The code is the flow's code z; code_prior says how a fit parametrises it, from
 the run's training codes (as code_parametrization of
-scripts/inspection/code_fit_partial_tests.py did):
+scripts/studies/code_fit_partial_tests.py did):
 
     gauss         theta = z, prior N(mean, covariance) of the training codes; needs
                   more training codes than code entries, else the covariance is singular.

@@ -26,7 +26,7 @@ the posterior's numbers next to them) and <output>/<test>.png: ground truth | ob
 a frontal row of error maps.
 
 Run with:
-    python scripts/inspection/code_fit_partial_tests.py \\
+    python scripts/studies/code_fit_partial_tests.py \\
         --run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_kin200
 """
 
@@ -52,7 +52,7 @@ from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run
 from src.models.lddmm.shape_model import build_code_prior  # noqa: E402
 from src.shared.fitting.code_fit import fit_codes as shared_fit_codes, parse_variant  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402
-from scripts.inspection.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
+from scripts.studies.posterior_ssm_tests import MM_PER_UNIT, TESTS, random_pose, region  # noqa: E402
 from src.shared.vtk.process import sub_surface  # noqa: E402
 from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402

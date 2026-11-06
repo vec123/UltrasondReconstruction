@@ -1,4 +1,4 @@
-"""Config for scripts/sample_shapes.py: the shape model library, sliders, view and export."""
+"""Config for scripts/GUIs/sample_shapes.py: the shape model library, sliders, view and export."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .model import AtlasConfig
 
 
 # --------------------------------------------------------------------------
-# scripts/sample_shapes.py
+# scripts/GUIs/sample_shapes.py
 # --------------------------------------------------------------------------
 
 @dataclass

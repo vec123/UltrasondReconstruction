@@ -4,7 +4,7 @@ The BabyFM .mat carries its landmarks inline (``landmark_verts`` /
 ``landmark_names``); a Deformetrica atlas carries none at all - see the module
 docstring of :mod:`src.model.deformetrica`. This is the file format that fills
 that gap: a small JSON object mapping landmark name to a 0-based index into the
-model's mean shape, written interactively by ``scripts/place_landmarks.py`` and
+model's mean shape, written interactively by ``scripts/GUIs/place_landmarks.py`` and
 read back by :func:`src.model.deformetrica.load_atlas_ssm`, so an atlas model
 attaches to every landmark-driven field - ``mean_shape.py``'s
 ``landmark_distance`` / ``landmark_heatmaps``, ``align_landmarks.py``, the NICP

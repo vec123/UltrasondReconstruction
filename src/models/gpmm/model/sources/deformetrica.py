@@ -38,7 +38,7 @@ deformation from the template.
 
 The atlas itself carries no landmark annotation. ``load_atlas_ssm``'s
 ``landmarks`` argument optionally points at the name -> vertex-index JSON
-written by ``scripts/place_landmarks.py`` (see :mod:`src.model.landmarks`),
+written by ``scripts/GUIs/place_landmarks.py`` (see :mod:`src.model.landmarks`),
 which fills the landmark dict the same way the .mat's fields do - so once a
 landmark file exists, an atlas model can drive every landmark-dependent stage
 just like the .mat one.
@@ -381,7 +381,7 @@ def load_atlas_ssm(
     """Same 4-tuple as :func:`src.model.load.load_mat_ssm`, from an atlas.
 
     ``landmarks`` optionally names the JSON written by
-    ``scripts/place_landmarks.py`` (name -> vertex index into the mean shape).
+    ``scripts/GUIs/place_landmarks.py`` (name -> vertex index into the mean shape).
     Left unset - or pointing at a file that does not exist yet - the landmark
     dictionary comes back empty, carrying the keys the .mat loader uses so
     callers can ask for landmarks uniformly and simply find none.

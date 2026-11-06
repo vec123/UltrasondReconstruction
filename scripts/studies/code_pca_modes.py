@@ -12,9 +12,9 @@ code entries of the grid nodes around the named landmarks, e.g. the nose, and th
 other entries stay at their mean, so the modes are that region's own.
 
 Run with:
-    python scripts/inspection/code_pca_modes.py \
+    python scripts/studies/code_pca_modes.py \
         --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_nopos_apply.yaml
-    python scripts/inspection/code_pca_modes.py --region n,prn,sn,aL,aR,acL,acR \
+    python scripts/studies/code_pca_modes.py --region n,prn,sn,aL,aR,acL,acR \
         --apply-config configs/lddmm/cohort/apply/cohort_autodecoder_casos_mar_fieldweighted_direct_g4c8_apply.yaml
 """
 
@@ -27,7 +27,7 @@ import vtk
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.code_pca_views import similarity_map, template_landmarks  # noqa: E402
+from scripts.studies.code_pca_views import similarity_map, template_landmarks  # noqa: E402
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.models.lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from src.shared.core.pipeline import no_pipeline_context  # noqa: E402
@@ -173,7 +173,7 @@ def main():
                         help="Short name of the region for the file name and header (default: the labels).")
     parser.add_argument("--similarity", default=None,
                         help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
-                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
+                             "see scripts/tools/target_to_ssm_frame.py); default: world is mm already.")
     args = parser.parse_args()
 
     region = args.region.split(",") if args.region else None

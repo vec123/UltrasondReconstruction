@@ -1,6 +1,6 @@
 # Fit the code of a frozen SSM-trained cohort flow to one fused fetal target: chamfer
 # (target -> fit quadratic, fit -> target truncated at 2 mm) plus the Gaussian prior of
-# the run's training codes, as scripts/inspection/code_fit_fused_targets.py fits it
+# the run's training codes, as scripts/studies/code_fit_fused_targets.py fits it
 # (its variant gauss3). The target is in the frame of the aligned cohort template (mm),
 # which is the run's template moved there vertex for vertex.
 #

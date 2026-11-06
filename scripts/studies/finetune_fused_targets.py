@@ -49,7 +49,7 @@ the stage-1 fit (creases and folds). Writes <output>/summary.json and <output>/<
 distances; a row of the normal turn against the stage-1 fit, w_i in the first panel).
 
 Run with:
-    python scripts/inspection/finetune_fused_targets.py \\
+    python scripts/studies/finetune_fused_targets.py \\
         --run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_g8c2_l2_mlp6x256_kin200
 """
 
@@ -67,8 +67,8 @@ from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.code_fit_fused_targets import CASOS, references  # noqa: E402
-from scripts.inspection.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization  # noqa: E402
+from scripts.studies.code_fit_fused_targets import CASOS, references  # noqa: E402
+from scripts.studies.code_fit_partial_tests import ERROR_MAX_MM, code_parametrization  # noqa: E402
 from src.models.lddmm.resnet_flow.apply.trained_run import load_run, load_run_config  # noqa: E402
 from src.shared.vtk.extract import get_vtp_faces  # noqa: E402
 from src.shared.vtk.render import ramp_colors, with_colors  # noqa: E402

@@ -7,7 +7,7 @@ as its deformed template (apply/<member>/world/deformed.vtp), seen from the fron
 and from both sides with one common camera, so size and pose differences stay visible.
 
 Run with:
-    python scripts/inspection/code_pca_views.py --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos
+    python scripts/studies/code_pca_views.py --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos
 """
 
 import argparse
@@ -79,7 +79,7 @@ def similarity_map(path):
     """points [N, 3] -> the same points under a similarity.json's x' = s R x + t, or as they are.
 
     For runs whose world frame is not mm, e.g. a shape model's frame: the similarity.json
-    scripts/SSM/target_to_ssm_frame.py writes maps that frame back to the scans' mm frame,
+    scripts/tools/target_to_ssm_frame.py writes maps that frame back to the scans' mm frame,
     where the cameras and the mm colour scales of these views are meant to work.
 
     Args:
@@ -119,7 +119,7 @@ def target_path(run, member, to_mm=None):
     """The member's fused scan mesh, in mm, with its original faces where available: the one
     its eval scored (eval/distance_summary.json, already mm), else the Casos_Mar layout beside
     the run (members named <case>_<week>_semanas, also already mm), else, for a training source
-    built by scripts/SSM/resample_fixed_points.py (whose resampling drops the faces for
+    built by scripts/tools/resample_fixed_points.py (whose resampling drops the faces for
     CohortBatchLoader's equal-count stacking - see its TODO), the manifest resample_fixed_points
     writes next to the run's own training config's source dir (``original_scans.json``:
     member name -> its pre-resample fused_scan.vtp, with faces, already mm), else that
@@ -259,7 +259,7 @@ def main():
     parser.add_argument("--panel-px", type=int, default=260, help="Width and height of each view in pixels.")
     parser.add_argument("--similarity", default=None,
                         help="similarity.json mapping the run's world frame to mm (a shape-model-frame run, "
-                             "see scripts/SSM/target_to_ssm_frame.py); default: world is mm already.")
+                             "see scripts/tools/target_to_ssm_frame.py); default: world is mm already.")
     args = parser.parse_args()
 
     names, codes = load_codes(args.run)

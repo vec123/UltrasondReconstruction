@@ -22,7 +22,7 @@ template (the model mean). That makes four comparisons with the PCA model possib
 Errors are in model units and as % of the bounding-box diagonal of the mean shape.
 
 Run with:
-    python scripts/inspection/eval_ssm_cohort.py \\
+    python scripts/studies/eval_ssm_cohort.py \\
         --run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_cont20k \\
         --step 38000 \\
         --fit-run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_test200_code_fit \\

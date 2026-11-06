@@ -2,7 +2,7 @@
 
 For each <run>/apply/<case>/world/deformed.vtp:
   * with --similarity (a run in a shape model's frame, not mm): carried into the scans' mm
-    frame, x' = s R x + t (the similarity.json of scripts/SSM/target_to_ssm_frame.py), and
+    frame, x' = s R x + t (the similarity.json of scripts/tools/target_to_ssm_frame.py), and
     written to <case>/world_mm/deformed.vtp;
   * scored by the recon_target_distance stage into <case>/eval/ (distance fields, coverage and
     distribution plots, landmark distances), against the SAME target scan and reference
@@ -14,7 +14,7 @@ recon distance (mean, median, share within 1/2/3 mm), the recon -> scan mean and
 landmark distance mean, each next to --reference-run's value for the same case.
 
 Run with:
-    python scripts/inspection/eval_cohort_apply.py \\
+    python scripts/studies/eval_cohort_apply.py \\
         --run outputs/stage2_flow/<run> \\
         --similarity /home/victor/Escritorio/Data/fused_targets/similarity.json
 """
@@ -27,7 +27,7 @@ import numpy as np
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from scripts.inspection.code_pca_views import similarity_map  # noqa: E402
+from scripts.studies.code_pca_views import similarity_map  # noqa: E402
 from src.evaluation.config import ReconTargetDistanceConfig  # noqa: E402
 from src.evaluation.stages import recon_target_distance  # noqa: E402
 from src.shared.vtk.io import load_vtp, save_vtp  # noqa: E402

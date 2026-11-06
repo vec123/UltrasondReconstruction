@@ -1,6 +1,6 @@
-# Configuration for scripts/SSM/place_landmarks.py  ->  src.GUIs.set_landmarks.SetLandmarksApp
+# Configuration for scripts/GUIs/place_landmarks.py  ->  src.GUIs.set_landmarks.SetLandmarksApp
 #
-#   python scripts/place_landmarks.py --config configs/ssm_gui/place_landmarks.yaml
+#   python scripts/GUIs/place_landmarks.py --config configs/ssm_gui/place_landmarks.yaml
 #
 # Opens the fetus atlas's mean shape and lets you click vertices to build the
 # landmark set it doesn't ship with (see the module docstring of

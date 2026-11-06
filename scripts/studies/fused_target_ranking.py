@@ -12,7 +12,7 @@ heatmap_{label} point fields as the SSM templates), so no external landmarks
 file is needed.
 
 Run with:
-    python scripts/inspection/fused_target_ranking.py \
+    python scripts/studies/fused_target_ranking.py \
         --root /home/victor/Escritorio/Data/fused_scan_processing \
         --output /home/victor/Escritorio/Data/fused_scan_processing/fused_target_ranking.png
 """

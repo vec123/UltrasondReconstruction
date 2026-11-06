@@ -18,7 +18,7 @@ Writes:
   <output-dir>/similarity.json           s, R, t
 
 Usage:
-    python scripts/SSM/target_to_ssm_frame.py \\
+    python scripts/tools/target_to_ssm_frame.py \\
         --model-template /home/victor/Escritorio/Data/BabySSMData/template.vtp \\
         --aligned-template outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp \\
         --scan outputs/Casos_Mar/cohort/fused_targets_4096_fields/16_26_semanas.vtp \\

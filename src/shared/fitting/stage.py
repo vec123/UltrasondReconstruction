@@ -7,7 +7,7 @@ mesh or point cloud in scan mm. ``frame`` gives the similarity x_scan = s R x_mo
 from the model frame into the scan: ``aligned_template`` is the model's template moved
 into the scan frame, vertex for vertex (the similarity is fitted on the two), and
 ``similarity`` is a {scale, rotation, translation} JSON. The fit runs in the unposed
-model frame scaled to mm, as scripts/inspection/code_fit_fused_targets.py fits, so
+model frame scaled to mm, as scripts/studies/code_fit_fused_targets.py fits, so
 the data term's sigma_mm and trunc_mm are in mm.
 
 Writes into output_dir:

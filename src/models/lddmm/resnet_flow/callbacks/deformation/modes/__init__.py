@@ -6,7 +6,7 @@
     export.py          a trained flow -> .vtp files in <run>/mode_decomposition/ (end shapes
                        and full trajectories) and a summary: write_decomposition for a flow
                        in memory, export_decomposition for a finished run on disk
-                       (scripts/LDDMM/decompose_modes.py is its CLI)
+                       (scripts/tools/decompose_modes.py is its CLI)
     decomposition.py   DecompositionExporter: write_decomposition at the end of training
                        (field.modes.decompose)
 """

@@ -14,7 +14,7 @@ by the same similarity, fitted from world/deformed.vtp onto the eval's
 recon_w_distance.vtp. One camera per view, shared by every panel.
 
 Usage:
-    python scripts/inspection/render_ssm_posterior_views.py \
+    python scripts/studies/render_ssm_posterior_views.py \
         --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos_kin8000 \
         --cases 14_26_semanas 11_36_semanas
 """

@@ -25,7 +25,7 @@ coloured by its distance to the truth. output/summary.json
 has the numbers.
 
 Run with:
-    python scripts/inspection/posterior_ssm_tests.py
+    python scripts/studies/posterior_ssm_tests.py
 """
 
 import argparse

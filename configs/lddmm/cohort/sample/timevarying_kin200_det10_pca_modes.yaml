@@ -2,7 +2,7 @@
 #
 # The first two principal components of a cohort run's training codes, each at
 # -2 .. +2 standard deviations (src/shared/sampling/stage.py, source: modes):
-# the shapes that scripts/inspection/code_pca_modes.py decodes before it
+# the shapes that scripts/studies/code_pca_modes.py decodes before it
 # renders them. members/ holds component 1 at the 5 steps, then component 2.
 stage: sample
 

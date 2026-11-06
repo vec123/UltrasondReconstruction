@@ -1,4 +1,4 @@
-"""The GPMM config classes, one tree per script under ``scripts/SSM/``.
+"""The GPMM config classes, one tree per stage (src/models/gpmm/registrations.py) or GUI (scripts/GUIs/).
 
 Fields without a default are required in the YAML file; everything else may be
 omitted and falls back to the value declared here.

@@ -6,7 +6,7 @@ import json
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 from src.shared.core.config import ConfigClient
 from src.models.gpmm.config import PipelineConfig

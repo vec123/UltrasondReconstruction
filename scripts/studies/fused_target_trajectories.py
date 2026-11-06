@@ -9,7 +9,7 @@ one of its sessions' meshes), so a subject's own growth across weeks stays
 visually comparable; cameras differ between rows/subjects.
 
 Run with:
-    python scripts/inspection/fused_target_trajectories.py \
+    python scripts/studies/fused_target_trajectories.py \
         --root /home/victor/Escritorio/Data/fused_scan_processing \
         --output /home/victor/Escritorio/Data/fused_scan_processing/fused_target_trajectories.png
 """
@@ -21,7 +21,7 @@ from collections import defaultdict
 import numpy as np
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
-from scripts.inspection.fused_target_ranking import (  # noqa: E402
+from scripts.studies.fused_target_ranking import (  # noqa: E402
     find_targets, reference_landmarks, session_scale, session_scan_count,
 )
 from src.shared.vtk.render import SCAN_COLOR, view_camera, write_grid  # noqa: E402

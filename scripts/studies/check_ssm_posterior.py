@@ -19,8 +19,8 @@ known noise, conditions the model on that side and reports:
 All in model units, reported in mm through the model-to-template scale.
 
 Run with:
-    python scripts/inspection/check_ssm_posterior.py
-    python scripts/inspection/check_ssm_posterior.py --model assets/shape_models/baby/baby_pca.npz
+    python scripts/studies/check_ssm_posterior.py
+    python scripts/studies/check_ssm_posterior.py --model assets/shape_models/baby/baby_pca.npz
 """
 
 import argparse

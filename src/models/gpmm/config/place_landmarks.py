@@ -1,4 +1,4 @@
-"""Config for scripts/place_landmarks.py."""
+"""Config for scripts/GUIs/place_landmarks.py."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .sample_shapes import SlidersConfig
 
 
 # --------------------------------------------------------------------------
-# scripts/place_landmarks.py
+# scripts/GUIs/place_landmarks.py
 # --------------------------------------------------------------------------
 
 # The BabyFM's own 23 anatomical landmarks (outputs/mean_shape/landmark_coordinates.csv),

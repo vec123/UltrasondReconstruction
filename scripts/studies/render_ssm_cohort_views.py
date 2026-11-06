@@ -19,7 +19,7 @@ The SSM lives in units of about 0.02 (bbox diagonal); the points are scaled by
 RENDER_SCALE for rendering, because the camera of src/shared/vtk/render.py works in millimetres.
 
 Run with:
-    python scripts/inspection/render_ssm_cohort_views.py \\
+    python scripts/studies/render_ssm_cohort_views.py \\
         --run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_cont20k \\
         --step 38000 \\
         --fit-run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_test200_code_fit \\

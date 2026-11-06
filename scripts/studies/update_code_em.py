@@ -35,7 +35,7 @@ Output, in ``<output-root>/<run name>/<variant_name>``:
     fits/fits.json     per fit case: run, status, log-likelihood (mm) under each prior
 
 Usage:
-    python scripts/SSM/update_code_em.py \\
+    python scripts/studies/update_code_em.py \\
         --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry \\
         --flow-run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_kin200
 """
@@ -53,7 +53,7 @@ import numpy as np
 import torch
 
 from src.models.lddmm.resnet_flow.apply.trained_run import flow_points, load_run  # noqa: E402
-from scripts.SSM.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
+from scripts.studies.update_ssm_em import (DIRECTION_TOKENS, POSE_TOKENS, case_weights,  # noqa: E402
                                        load_cases, mm_stats, whitener)
 from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.models.gpmm.model.inference.posterior import condition_whitened  # noqa: E402

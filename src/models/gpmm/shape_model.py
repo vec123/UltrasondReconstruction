@@ -3,7 +3,7 @@
     decode(s) = mean + Phi sqrt(lambda) s,    prior N(0, I)
 
 in the model's own frame (the frame of its mean), as ssm_decoder of
-scripts/inspection/code_fit_partial_tests.py did without its mm factor.
+scripts/studies/code_fit_partial_tests.py did without its mm factor.
 """
 
 import numpy as np

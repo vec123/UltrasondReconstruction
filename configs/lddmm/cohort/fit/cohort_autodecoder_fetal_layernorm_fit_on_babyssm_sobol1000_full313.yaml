@@ -1,5 +1,5 @@
 # cohort_autodecoder_fetal_layernorm_fit_on_babyssm_sobol1000_full110.yaml on the rebuilt
-# 312-target snapshot (fused_targets_full313, see scripts/SSM/resample_fixed_points.py and the
+# 312-target snapshot (fused_targets_full313, see scripts/tools/resample_fixed_points.py and the
 # 2026-10-31 session): all 3 datasets (Casos_Mar, Casos_Maternitat, Estudio_Dexeus), not only
 # Casos_Mar's first 110. train/ is a random 281 of the 312 (seed 42, 10% held out to test/,
 # both symlink dirs into fused_targets_full313/targets).

@@ -18,7 +18,7 @@ and the reference fits of the same case (pair LDDMM, cohort svf over all 110 tar
 from the front, left and right.
 
 Run with:
-    python scripts/inspection/code_fit_fused_targets.py \\
+    python scripts/studies/code_fit_fused_targets.py \\
         --run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_sobol1000_global_l2_mlp6x256_kin200 \\
         --cases 16_26 13_26 11_36
 """
@@ -34,7 +34,7 @@ from scipy.spatial import cKDTree
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.shared.vtk import render as views  # noqa: E402
-from scripts.inspection.code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
+from scripts.studies.code_fit_partial_tests import (ERROR_MAX_MM, code_parametrization, fit_codes, flow_decoder,  # noqa: E402
                                                        ssm_decoder)
 from src.models.lddmm.resnet_flow.losses.fine_tune import FieldChangeKinetic  # noqa: E402
 from src.models.lddmm.resnet_flow.runner import _normalization_domain  # noqa: E402

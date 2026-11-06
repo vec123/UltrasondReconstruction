@@ -1,7 +1,7 @@
 """Compare code fits of one real scan into an SSM-trained flow (e.g. a regularisation ablation).
 
 Each fit is a freeze_flow run (one member: the scan in the SSM frame, written by
-scripts/SSM/target_to_ssm_frame.py). For each fit, the fitted code is decoded on the full
+scripts/tools/target_to_ssm_frame.py). For each fit, the fitted code is decoded on the full
 template, carried back to the scan's frame (mm) with the similarity of
 target_to_ssm_frame.py, and compared with the scan:
 
@@ -19,7 +19,7 @@ and <fit-root>/views/comparison.png: the scan, the mean code and each fit as col
 frontal, left and right rows.
 
 Run with:
-    python scripts/inspection/compare_ssm_code_fits.py \\
+    python scripts/studies/compare_ssm_code_fits.py \\
         --fit-root outputs/baby_ssm_cohort/fit_16_26 \\
         --train-run outputs/baby_ssm_cohort/resnet_lddmm_cohort_autodecoder_n5000_global_l2_cont20k --train-step 38000 \\
         --scan-mesh outputs/Casos_Mar/cohort/fused_targets/16_26_semanas.vtp

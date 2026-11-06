@@ -7,7 +7,7 @@ For each target the energy is
 
 with n_obs the target's number of observation points, so sigma (mm) weighs the data
 against the prior, and w switches the prior on (1) or off (0). The data terms are in
-data_terms.py. Moved from scripts/inspection/code_fit_partial_tests.py, whose
+data_terms.py. Moved from scripts/studies/code_fit_partial_tests.py, whose
 fit_codes now calls this one; the code_fit stage (stage.py) fits one target per run.
 """
 
@@ -61,7 +61,7 @@ def fit_codes(decoder, n_template, targets, candidates, mu, s_inv, variants, ste
         free: parameters fitted with the codes, shared by the targets: an object with
             .params, .lr, .reset() (at each variant's start), .penalty(z, data_weight, gen)
             (added to the energy) and .save(variant) (at its end); see
-            scripts/inspection/code_fit_fused_targets.FreeNorms
+            scripts/studies/code_fit_fused_targets.FreeNorms
         seed: of the draws of observations and template vertices
         log_every: steps between two printed rms distances
     """

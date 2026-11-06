@@ -142,7 +142,7 @@ def _parse_modes(modes) -> dict:
                write it to <output_dir>/mode_decomposition/ (DecompositionExporter):
                trajectories = end shapes and every Euler step (~150 MB),
                ends = end shapes only, none = nothing (default; the
-               scripts/LDDMM/decompose_modes.py CLI does it for a finished run).
+               scripts/tools/decompose_modes.py CLI does it for a finished run).
     """
     if not isinstance(modes, dict):
         raise ValueError(f"field.modes must be a mapping {{spec, template, names, ...}}, got {modes!r}")

@@ -5,8 +5,8 @@ CLI for ``src/models/lddmm/resnet_flow/callbacks/deformation/modes`` (see export
 there for the files written to ``<run>/mode_decomposition/``). Nothing is trained.
 
 Usage:
-    python scripts/LDDMM/decompose_modes.py outputs/resnet_lddmm_baby_mean/9992
-    python scripts/LDDMM/decompose_modes.py <run> --checkpoint <run>/checkpoints/step_500.pt
+    python scripts/tools/decompose_modes.py outputs/resnet_lddmm_baby_mean/9992
+    python scripts/tools/decompose_modes.py <run> --checkpoint <run>/checkpoints/step_500.pt
 """
 
 import argparse

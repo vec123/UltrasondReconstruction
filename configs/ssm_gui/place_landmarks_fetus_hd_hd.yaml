@@ -1,6 +1,6 @@
-# Configuration for scripts/SSM/place_landmarks.py  ->  src.GUIs.set_landmarks.SetLandmarksApp
+# Configuration for scripts/GUIs/place_landmarks.py  ->  src.GUIs.set_landmarks.SetLandmarksApp
 #
-#   python scripts/place_landmarks.py --config configs/ssm_gui/place_landmarks_fetus_hd_hd.yaml
+#   python scripts/GUIs/place_landmarks.py --config configs/ssm_gui/place_landmarks_fetus_hd_hd.yaml
 #
 # Same tool again, pointed at src/FetusModel_x4 - the ~4x-vertex resampling
 # (configs/upsample_fetus_hd_hd.yaml, chained off FetusModel_x2).

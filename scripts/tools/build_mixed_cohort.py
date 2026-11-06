@@ -20,7 +20,7 @@ Output (--output-dir):
   coefficients.npz  baby_sigmas, fetus_sigmas, the similarity (scale, rotation, translation)
 
 Usage:
-    python scripts/SSM/build_mixed_cohort.py \\
+    python scripts/tools/build_mixed_cohort.py \\
         --baby-data /home/victor/Escritorio/Data/BabySSMData_sobol1000 \\
         --template outputs/baby_ssm_cohort/fit_16_26/template.vtp \\
         --output-dir /home/victor/Escritorio/Data/BabyFetusSSMData_sobol1000

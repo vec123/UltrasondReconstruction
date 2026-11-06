@@ -2,7 +2,7 @@
 
 For a run trained with ``field.modes``. Two ways in, same files:
 ``export_decomposition`` reads a finished run's config.json and a checkpoint
-(nothing is trained; scripts/LDDMM/decompose_modes.py), and
+(nothing is trained; scripts/tools/decompose_modes.py), and
 ``write_decomposition`` takes a flow already in memory (DecompositionExporter,
 at the end of training). Both write to ``<run>/mode_decomposition/``:
 

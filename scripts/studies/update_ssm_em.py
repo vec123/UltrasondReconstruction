@@ -42,7 +42,7 @@ outputs/UpdatedSSM) unless ``--output-dir`` is given:
     em_summary.json    settings, EM history, spectra (mm), per-case statistics
 
 Usage:
-    python scripts/SSM/update_ssm_em.py \\
+    python scripts/studies/update_ssm_em.py \\
         --run outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry \\
         --model assets/shape_models/baby/baby_pca_sum_matern32.npz
 """

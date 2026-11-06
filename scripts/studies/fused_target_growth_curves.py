@@ -22,7 +22,7 @@ is too many to colour individually - see dataviz anti-patterns on categorical
 series count).
 
 Run with:
-    python scripts/inspection/fused_target_growth_curves.py \
+    python scripts/studies/fused_target_growth_curves.py \
         --root /home/victor/Escritorio/Data/fused_scan_processing \
         --output /home/victor/Escritorio/Data/fused_scan_processing/fused_target_growth_curves.png
 """
@@ -35,8 +35,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from scripts.inspection.fused_target_ranking import find_targets, session_scale  # noqa: E402
-from scripts.inspection.fused_target_trajectories import parse_week  # noqa: E402
+from scripts.studies.fused_target_ranking import find_targets, session_scale  # noqa: E402
+from scripts.studies.fused_target_trajectories import parse_week  # noqa: E402
 
 # dataviz skill reference palette, categorical slots 1 and 2 (fixed order, not cycled).
 DATASET_COLOR = {"Casos_Mar": "#2a78d6", "Estudio_Dexeus": "#eb6834"}
