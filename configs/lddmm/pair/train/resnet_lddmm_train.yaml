@@ -128,3 +128,4 @@ hyperparameters:
     val_every: 0
     export_shapes: 2
     export_strategy: sequential
+    device: cuda

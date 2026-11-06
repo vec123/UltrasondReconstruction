@@ -4,8 +4,8 @@
 # configs/lddmm/pair/train/resnet_lddmm_train.yaml: the aligned baby mean of
 # 03_similarity_transform.yaml onto the fused scan of 01_ultrasound.yaml, as
 # resnet_lddmm_train_baby_mean of configs/pipelines/end_to_end_casos_mar.yaml does,
-# but 50 steps instead of 1000 (Fourier bands open from step 20 to 40) and on the
-# GPU. The train block is a mapping, so only the changed keys are here.
+# but 50 steps instead of 1000 (Fourier bands open from step 20 to 40). The
+# train block is a mapping, so only the changed keys are here.
 stage: resnet_lddmm_train
 extends: lddmm/pair/train/resnet_lddmm_train.yaml
 
@@ -28,4 +28,3 @@ hyperparameters:
   train:
     steps: 50
     save_every: 50
-    device: cuda
