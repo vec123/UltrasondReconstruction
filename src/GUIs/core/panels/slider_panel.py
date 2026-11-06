@@ -103,7 +103,7 @@ class ModeSliderPanel:
         self._build_rows(float(sigma_range))
         self._build_scrollbar()
         self.header = make_text_actor(12)
-        viewer.renderer.AddActor2D(self.header)
+        viewer.renderer.AddViewProp(self.header)
 
         self._wheel_tags = {
             event: viewer.interactor.AddObserver(event, self._on_wheel, priority)
@@ -149,8 +149,8 @@ class ModeSliderPanel:
     def _build_scrollbar(self) -> None:
         self.scroll_track, self._track_points = _quad()
         self.scroll_thumb, self._thumb_points = _quad()
-        self.viewer.renderer.AddActor2D(self.scroll_track)
-        self.viewer.renderer.AddActor2D(self.scroll_thumb)
+        self.viewer.renderer.AddViewProp(self.scroll_track)
+        self.viewer.renderer.AddViewProp(self.scroll_thumb)
         _set_quad(self._track_points, self.geometry.scrollbar_x, self._track_range())
 
     def _track_range(self) -> Tuple[float, float]:

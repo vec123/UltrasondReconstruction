@@ -32,7 +32,7 @@ Must run BEFORE any alignment stage (align_to_reference / align_to_template):
 those rescale/rotate/translate the mesh, after which vertex world coordinates
 no longer line up with the source nrrd's voxel grid. Point downstream stages
 at THIS stage's output_dir instead of nrrd_to_vtp's directly to carry the
-echotexture fields forward (vtkTransformPolyDataFilter, used by every
+echotexture fields forward (vtkTransformFilter, used by every
 alignment stage, passes point data through unchanged).
 
 `crop` / `crop_threshold` / `crop_margin` MUST equal the values passed to

@@ -132,7 +132,7 @@ class SurfaceColoring:
         self.mesh = mesh
         self.theme = theme
         self.scalar_bar = make_scalar_bar()
-        renderer.AddActor2D(self.scalar_bar)
+        renderer.AddViewProp(self.scalar_bar)
         self._active = ""
         self.set_active(active)
 

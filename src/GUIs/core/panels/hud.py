@@ -59,7 +59,7 @@ class Hud:
                 # Hang multi-line text down from its anchor; VTK's default
                 # bottom anchoring would grow it upward, off the window.
                 actor.GetTextProperty().SetVerticalJustificationToTop()
-            renderer.AddActor2D(actor)
+            renderer.AddViewProp(actor)
             self._slots[slot.name] = slot
             self._actors[slot.name] = actor
 

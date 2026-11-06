@@ -197,7 +197,7 @@ class SelectionOverlay:
         points.SetData(numpy_support.numpy_to_vtk(
             np.ascontiguousarray(self.mesh.vertices[indices], dtype=np.float32), deep=True))
         verts = vtk.vtkCellArray()
-        verts.SetCells(len(indices), numpy_support.numpy_to_vtk(
+        verts.ImportLegacyFormat(numpy_support.numpy_to_vtk(
             np.column_stack([np.ones(len(indices), np.int64), np.arange(len(indices), dtype=np.int64)])
             .reshape(-1), deep=True, array_type=vtk.VTK_ID_TYPE))
         self.polydata.SetPoints(points)

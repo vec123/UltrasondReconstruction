@@ -30,9 +30,8 @@ def create_polydata(points, faces=None):
         
         # Convert to vtkIdTypeArray
         cell_array = vtk.vtkCellArray()
-        # Newer VTK versions prefer SetCells with an offset array, 
-        # but this conversion is the standard way to feed legacy-style data:
-        cell_array.SetCells(n_faces, numpy_support.numpy_to_vtk(cells_flat.flatten(), deep=True, array_type=vtk.VTK_ID_TYPE))
+        # The legacy layout above, read in as offsets + connectivity (SetCells is deprecated since VTK 9.6).
+        cell_array.ImportLegacyFormat(numpy_support.numpy_to_vtk(cells_flat.flatten(), deep=True, array_type=vtk.VTK_ID_TYPE))
         
         polydata.SetPolys(cell_array)
     else:
@@ -84,7 +83,7 @@ def create_polydata_w_lines(points, lines, verbose = False):
     lines_flat = np.hstack([np.ones((n_lines, 1), dtype=np.int64) * 2, lines.astype(np.int64)])
     
     cell_array = vtk.vtkCellArray()
-    cell_array.SetCells(n_lines, numpy_support.numpy_to_vtk(lines_flat.flatten(), deep=True, array_type=vtk.VTK_ID_TYPE))
+    cell_array.ImportLegacyFormat(numpy_support.numpy_to_vtk(lines_flat.flatten(), deep=True, array_type=vtk.VTK_ID_TYPE))
     
     polydata.SetLines(cell_array)
     return polydata

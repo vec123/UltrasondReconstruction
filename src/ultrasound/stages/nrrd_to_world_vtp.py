@@ -59,12 +59,12 @@ def transform_vtp_to_physical_ras(polydata, sitk_img):
     transform = vtk.vtkTransform()
     transform.SetMatrix(vtk_mat)
 
-    tf_filter = vtk.vtkTransformPolyDataFilter()
+    tf_filter = vtk.vtkTransformFilter()
     tf_filter.SetInputData(polydata)
     tf_filter.SetTransform(transform)
     tf_filter.Update()
 
-    return tf_filter.GetOutput()
+    return tf_filter.GetPolyDataOutput()
 
 
 def extract_and_clean_surface(sitk_img, contour_value, decimation):

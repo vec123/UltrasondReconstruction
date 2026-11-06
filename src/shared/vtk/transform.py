@@ -34,7 +34,7 @@ def transform_polydata_matrix(polydata, matrix):
     """Applies a 4x4 similarity matrix (s * R, t) to a whole mesh, returning a new vtkPolyData.
 
     Unlike create_polydata(points), this keeps the topology and every data
-    array. vtkTransformPolyDataFilter moves the points, the active normals and
+    array. vtkTransformFilter moves the points, the active normals and
     the active vectors (by s * R, right for a displacement), but it copies any
     other array as it is. So every NORMAL_ARRAYS array gets R n from the input,
     whatever its attribute: not rotated as a plain array, and not scaled to
@@ -49,11 +49,11 @@ def transform_polydata_matrix(polydata, matrix):
     transform = vtk.vtkTransform()
     transform.SetMatrix(vtk_matrix)
 
-    filt = vtk.vtkTransformPolyDataFilter()
+    filt = vtk.vtkTransformFilter()  # vtkTransformPolyDataFilter is deprecated since VTK 9.7
     filt.SetTransform(transform)
     filt.SetInputData(polydata)
     filt.Update()
-    output = filt.GetOutput()
+    output = filt.GetPolyDataOutput()
 
     _, R, _ = decompose_similarity_transform(matrix)
     source_data, output_data = polydata.GetPointData(), output.GetPointData()
