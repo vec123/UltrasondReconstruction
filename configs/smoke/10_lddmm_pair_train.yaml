@@ -1,0 +1,31 @@
+# python scripts/run.py configs/smoke/10_lddmm_pair_train.yaml   (after 01_ultrasound.yaml, 03_similarity_transform.yaml)
+#
+# Smoke run of resnet_lddmm_train in pair mode with the settings of
+# configs/lddmm/pair/train/resnet_lddmm_train.yaml: the aligned baby mean of
+# 03_similarity_transform.yaml onto the fused scan of 01_ultrasound.yaml, as
+# resnet_lddmm_train_baby_mean of configs/pipelines/end_to_end_casos_mar.yaml does,
+# but 50 steps instead of 1000 (Fourier bands open from step 20 to 40) and on the
+# GPU. The train block is a mapping, so only the changed keys are here.
+stage: resnet_lddmm_train
+extends: lddmm/pair/train/resnet_lddmm_train.yaml
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+paths:
+  source: ${SMOKE}/similarity_transform/baby_mean_aligned.vtp
+  target: ${US}/fused_scan_ssm/fused_scan.vtp
+  landmarks: ${US}/aligned_to_template/landmarks_csv
+  output_dir: ${SMOKE}/lddmm_pair
+
+hyperparameters:
+  field:
+    fourier_anneal: {start: 20, end: 40}
+  train:
+    steps: 50
+    save_every: 50
+    device: cuda

@@ -1,0 +1,19 @@
+# python scripts/run.py configs/smoke/11_lddmm_pair_apply.yaml   (after 10_lddmm_pair_train.yaml)
+#
+# Smoke run of resnet_lddmm_apply with the settings of
+# configs/lddmm/pair/apply/resnet_lddmm_apply.yaml on the pair run of
+# 10_lddmm_pair_train.yaml, on the GPU. The evaluation smoke files read its
+# world/deformed.vtp.
+stage: resnet_lddmm_apply
+extends: lddmm/pair/apply/resnet_lddmm_apply.yaml
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+paths:
+  train_config: ${SMOKE}/lddmm_pair/config.json
+  checkpoint: ${SMOKE}/lddmm_pair/checkpoints
+  output_dir: ${SMOKE}/lddmm_pair/apply
+
+hyperparameters:
+  device: cuda

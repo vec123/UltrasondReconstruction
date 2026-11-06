@@ -1,0 +1,29 @@
+# python scripts/run.py configs/smoke/12_cohort_members.yaml   (or all smoke files: python tests/smoke.py)
+#
+# Smoke run of point_fields over a targets: block, as
+# configs/surface/target/edge_fields.yaml runs it: 4 fused targets of the
+# full313 training set, copied into ${SMOKE}/cohort_members with their edge
+# fields written again (the same settings). That folder is the cohort of
+# 13_lddmm_cohort_train.yaml, whose source: must be a folder.
+stage: point_fields
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  TARGETS_DIR: /home/victor/Escritorio/Data/fused_targets_full313/train
+
+targets:
+  match: ${TARGETS_DIR}/${TARGET}.vtp
+  only:
+  - {TARGET: 10_30_semanas}
+  - {TARGET: 11_20_semanas}
+  - {TARGET: 11_26_semanas}
+  - {TARGET: 11_36_semanas}
+
+input: ${TARGETS_DIR}/${TARGET}.vtp
+output: ${SMOKE}/cohort_members/${TARGET}.vtp
+fields:
+  - kind: edge
+    k: 16
+    gap_deg: 120.0
+    ramp_spacings: 3.0
+    combine: [support]

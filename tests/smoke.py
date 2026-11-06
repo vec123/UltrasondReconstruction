@@ -1,7 +1,8 @@
 """The smoke suite: every configs/smoke/*.yaml runs once, in name order, each in its own process.
 
 Each file runs one function (a stage, or in 01 the ultrasound chain) on one
-small real input, on the CPU, and writes only into outputs/smoke/ (${SMOKE}
+small real input, on the device its YAML sets (the CPU, the GPU for the LDDMM
+training and decoding), and writes only into outputs/smoke/ (${SMOKE}
 of the smoke files). Later files read the outputs of earlier ones, so the
 suite also checks that the stages fit together. Each file also runs alone:
 python scripts/run.py configs/smoke/<file>.yaml
@@ -15,7 +16,6 @@ its log) and exits with 1 when a file fails. The logs are in outputs/smoke/logs/
 """
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
@@ -34,14 +34,13 @@ def last_line(log_path):
 
 
 def run_file(config, log_dir, timeout):
-    """(seconds, ok, note) of one smoke file, run by scripts/run.py with no GPU visible."""
+    """(seconds, ok, note) of one smoke file, run by scripts/run.py."""
     log_path = log_dir / f"{config.stem}.log"
-    env = {**os.environ, "CUDA_VISIBLE_DEVICES": ""}  # CPU only: a forgotten 'device: cuda' fails
     started = time.time()
     with open(log_path, "w") as log:
         try:
             code = subprocess.run([sys.executable, str(ROOT / "scripts" / "run.py"), str(config)], cwd=ROOT,
-                                  env=env, stdout=log, stderr=subprocess.STDOUT, timeout=timeout).returncode
+                                  stdout=log, stderr=subprocess.STDOUT, timeout=timeout).returncode
         except subprocess.TimeoutExpired:
             code = None
     note = f"timeout after {timeout:g} s" if code is None else last_line(log_path)
