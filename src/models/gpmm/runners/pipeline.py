@@ -272,7 +272,7 @@ class PipelineRunner:
 
         # One loader for every model format this project has: the BabyFM .mat,
         # a Deformetrica atlas directory, and a .npz GPMM built by
-        # scripts.SSM.build_model (assets/shape_models/<domain>/). Which one
+        # the ssm_build stage (assets/shape_models/<domain>/). Which one
         # inputs.shape_model_mat names changes nothing below - a model is
         # (mean, Phi, Lambda, landmarks) plus a triangulation either way.
         self.shape_model = load_model_file(

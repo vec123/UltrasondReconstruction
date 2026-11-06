@@ -251,7 +251,7 @@ class AlignMeshesRunner:
                 raise ValueError(
                     f"{source.mesh_vtp.name} and the mean of {source.shape_model.name} differ "
                     f"by up to {offset:.6g} ({offset / scale:.2%} of the shape). They are meant "
-                    f"to be the same mesh - regenerate it with scripts/mean_shape.py, whose "
+                    f"to be the same mesh - regenerate it with the ssm_mean_shape stage, whose "
                     f"output is stale whenever the model changes."
                 )
             return

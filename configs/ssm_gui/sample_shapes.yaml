@@ -23,7 +23,7 @@
 # Where the built models live. Every archive under here is offered in the
 # dropdown, named by its path without the redundant folder prefix:
 # assets/shape_models/fetus/fetus_pca_times_matern52.npz -> 'fetus/pca_times_matern52'.
-# This is exactly what scripts/SSM/build_model.py writes from
+# This is exactly what the ssm_build stage writes from
 # configs/gpmm/build/, so building a new kernel puts it in the window
 # with no edit here.
 library:

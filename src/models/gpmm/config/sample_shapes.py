@@ -172,7 +172,7 @@ class ModelLibraryConfig:
     """A folder of built models, offered in the window's model dropdown.
 
     The alternative to declaring every model by hand under 'models': point this
-    at what ``scripts/SSM/build_model.py`` wrote and every archive under it
+    at what the ssm_build stage wrote and every archive under it
     becomes selectable without editing any YAML. The two sources merge, with a
     hand-written 'models' entry winning on a name collision, so a model that
     needs its own camera or an LDDMM parametrisation can still be spelled out
@@ -181,7 +181,7 @@ class ModelLibraryConfig:
 
     # Folder to scan. Searched recursively; null disables discovery.
     root: Optional[Path] = None
-    # Which archives to offer. The default matches build_model.py's output.
+    # Which archives to offer. The default matches the ssm_build stage's output.
     pattern: str = "*.npz"
     # Entry names come from the path relative to 'root', without the suffix:
     # ``baby/baby_pca.npz`` -> ``baby/pca``. The redundant ``<folder>_`` prefix

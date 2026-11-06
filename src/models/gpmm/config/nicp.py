@@ -251,7 +251,7 @@ def resolve_fit_specs(defaults: Mapping, entries: Sequence[Mapping], client,
 
 
 # --------------------------------------------------------------------------
-# scripts/nicp.py - the NICP step on its own
+# the ssm_nicp stage - the NICP step on its own
 # --------------------------------------------------------------------------
 
 @dataclass

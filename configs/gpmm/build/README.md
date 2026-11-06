@@ -5,7 +5,7 @@ same thirteen kernels, and only the source and the hyperparameters differ. Build
 any of them with
 
 ```
-python -m scripts.SSM.build_model configs/gpmm/build/fetus/pca_times_matern52.yaml
+python scripts/run.py configs/gpmm/build/fetus/pca_times_matern52.yaml
 ```
 
 Models land in `assets/shape_models/<domain>/<domain>_<name>.npz`.

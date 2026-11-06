@@ -34,7 +34,7 @@ mean/eigenfunctions/eigenvalues triple.
 The info line under the dropdown reports the two numbers that decide whether a
 model is worth looking at: how many modes it has, and how much of its own
 covariance those modes carry. The second is below 100% for every GPMM built by
-``build_model.py``, because the decomposition is truncated and the remainder is
+the ssm_build stage, because the decomposition is truncated and the remainder is
 booked as ``noise`` - see :meth:`SampleShapesRunner._set_variance_explained`.
 """
 
@@ -345,7 +345,7 @@ class SampleShapesRunner:
     def _set_variance_explained(self, eigenvalues, noise, inner_product: str):
         """What fraction of the model's covariance its modes actually carry.
 
-        A GPMM built by ``scripts/SSM/build_model.py`` is a *truncated*
+        A GPMM built by the ssm_build stage is a *truncated*
         decomposition: the builder keeps modes until the approximation's
         tolerance or the truncation's cap stops it, and records the per-
         coordinate variance it gave up as ``noise``. The kept fraction is

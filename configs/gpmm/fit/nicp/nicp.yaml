@@ -1,8 +1,6 @@
-# Configuration for scripts/nicp.py  ->  src.runners.NicpRunner
+# Configuration for the ssm_nicp stage  ->  src.models.gpmm.runners.NicpRunner
 #
-#   python scripts/nicp.py --config configs/nicp.yaml
-#   python scripts/nicp.py --list                     # resolve + validate, no fitting
-#   python scripts/nicp.py --run symmetric_i10        # one run only (repeatable)
+#   python scripts/run.py configs/gpmm/fit/nicp/nicp.yaml
 #
 # ${VAR} is looked up in the environment (.env is loaded first).
 # ${PROJECT_ROOT} defaults to the repository root; relative paths resolve against it.

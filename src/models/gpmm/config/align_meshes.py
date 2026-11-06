@@ -1,4 +1,4 @@
-"""Config for scripts/align_meshes.py."""
+"""Config for the align_meshes stage."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Optional
 
 
 # --------------------------------------------------------------------------
-# scripts/align_meshes.py
+# the align_meshes stage
 # --------------------------------------------------------------------------
 
 @dataclass
@@ -18,7 +18,7 @@ class MeshSource:
     The two are complementary rather than alternatives:
 
     * ``mesh_vtp`` supplies the geometry *and everything attached to it* - the
-      per-vertex fields written by scripts/mean_shape.py travel through the
+      per-vertex fields written by the ssm_mean_shape stage travel through the
       transform with the points, so the aligned pair keeps its heatmaps.
     * ``shape_model`` supplies the landmarks, which are what the alignment is
       sanity-checked against, and the mean shape when no mesh is given.

@@ -1,6 +1,6 @@
-# Configuration for scripts/mean_shape.py  ->  src.runners.MeanShapeRunner
+# Configuration for the ssm_mean_shape stage  ->  src.models.gpmm.runners.MeanShapeRunner
 #
-#   python scripts/mean_shape.py --config configs/mean_shape.yaml
+#   python scripts/run.py configs/gpmm/sample/mean_shape.yaml
 #
 # Exports the mean shape as a surface with per-vertex heatmaps, plus the
 # landmark coordinates as a CSV. Everything written is a property of the shape

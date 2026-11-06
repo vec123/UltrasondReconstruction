@@ -1,8 +1,8 @@
-# Configuration for scripts/mean_shape.py  ->  src.runners.MeanShapeRunner
+# Configuration for the ssm_mean_shape stage  ->  src.models.gpmm.runners.MeanShapeRunner
 #
-#   python scripts/mean_shape.py --config configs/mean_shape_fetus.yaml
+#   python scripts/run.py configs/gpmm/sample/mean_shape_fetus.yaml
 #
-# The same export as configs/mean_shape.yaml, run against the fetus model
+# The same export as configs/gpmm/sample/mean_shape.yaml, run against the fetus model
 # instead of BabyFM. That model is not a .mat: it is a Deformetrica
 # deterministic atlas (template mesh + control points + one momentum per
 # subject), so shape_model_mat points at the *directory* and the loader shoots

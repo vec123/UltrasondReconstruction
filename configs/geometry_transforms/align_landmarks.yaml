@@ -1,6 +1,6 @@
-# Configuration for scripts/align_landmarks.py  ->  src.runners.AlignLandmarksRunner
+# Configuration for the align_landmarks stage  ->  src.models.gpmm.runners.AlignLandmarksRunner
 #
-#   python scripts/align_landmarks.py --config configs/align_landmarks.yaml
+#   python scripts/run.py configs/geometry_transforms/align_landmarks.yaml
 #
 # Aligns the mean shape of the .mat model onto a set of target landmarks and
 # writes the similarity transform plus the original and aligned meshes.

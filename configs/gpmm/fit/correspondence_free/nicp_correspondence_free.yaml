@@ -1,8 +1,6 @@
 # Does a correspondence-free objective beat matched least squares on our data?
 #
-#   python scripts/SSM/nicp.py -c configs/gpmm/fit/correspondence_free/nicp_correspondence_free.yaml --list
-#   python scripts/SSM/nicp.py -c configs/gpmm/fit/correspondence_free/nicp_correspondence_free.yaml
-#   python scripts/SSM/nicp.py -c configs/gpmm/fit/correspondence_free/nicp_correspondence_free.yaml -r symmetric
+#   python scripts/run.py configs/gpmm/fit/correspondence_free/nicp_correspondence_free.yaml
 #
 # This answers the question *before* any refactor, by feeding the standalone
 # NICP runner the pipeline's own intermediates:

@@ -1,4 +1,4 @@
-"""Config for scripts/mean_shape.py."""
+"""Config for the ssm_mean_shape stage."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .model import ModelConfig
 
 
 # --------------------------------------------------------------------------
-# scripts/mean_shape.py
+# the ssm_mean_shape stage
 # --------------------------------------------------------------------------
 
 @dataclass

@@ -1,6 +1,6 @@
-# Configuration for scripts/align_meshes.py  ->  src.runners.AlignMeshesRunner
+# Configuration for the align_meshes stage  ->  src.models.gpmm.runners.AlignMeshesRunner
 #
-#   python scripts/align_meshes.py --config configs/align_fetus_to_baby.yaml
+#   python scripts/run.py configs/geometry_transforms/align_fetus_to_baby.yaml
 #
 # Puts the fetus template into the baby model's frame with a similarity
 # transform, as the initial guess for an LDDMM registration between the two.
@@ -49,7 +49,7 @@ target:
   # Regenerate the uncropped mean first if the model ever changes - mean_shape
   # output goes stale silently:
   #
-  #   python scripts/mean_shape.py --config configs/mean_shape.yaml
+  #   python scripts/run.py configs/gpmm/sample/mean_shape.yaml
   mesh_vtp: ${PROJECT_ROOT}/outputs/align_fetus_to_baby/baby_mean_cropped.vtp
   shape_model: ${PROJECT_ROOT}/third_party/BabyFM/BabyFaceModel.mat
   normalize: false

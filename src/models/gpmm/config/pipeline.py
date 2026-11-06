@@ -1,4 +1,4 @@
-"""Config for scripts/pipeline.py: the whole SSM build, from GMM template to the Laplacian."""
+"""Config for the ssm_fit stage: the whole SSM build, from GMM template to the Laplacian."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from src.models.gpmm.outputs import PipelineOutputFiles  # noqa: F401  (part of 
 
 
 # --------------------------------------------------------------------------
-# scripts/pipeline.py
+# the ssm_fit stage
 # --------------------------------------------------------------------------
 
 @dataclass

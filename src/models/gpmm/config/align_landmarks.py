@@ -1,4 +1,4 @@
-"""Config for scripts/align_landmarks.py."""
+"""Config for the align_landmarks stage."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 
 # --------------------------------------------------------------------------
-# scripts/align_landmarks.py
+# the align_landmarks stage
 # --------------------------------------------------------------------------
 
 @dataclass
