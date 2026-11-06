@@ -30,20 +30,25 @@ class StageSpec:
     # The Config field(s) of the stage's output folder, where the engine writes
     # its manifest entry (manifest.py): a name, a dotted path, or a tuple of them.
     output: Union[str, Tuple[str, ...]] = "output_dir"
+    # The Config fields that are path patterns over many cases (patterns.find_paths):
+    # the engine fills in only the variables with a value, and the stage finds the
+    # values of the others (e.g. SUBJECT_ID, WEEK) on the disk.
+    patterns: Tuple[str, ...] = ()
 
     @classmethod
-    def of_module(cls, module, config="Config", run="run", from_dict=None, output="output_dir"):
+    def of_module(cls, module, config="Config", run="run", from_dict=None, output="output_dir", patterns=()):
         """The stage whose Config and run() are ``module``'s ``config`` and ``run``, imported on first use."""
-        return ModuleStageSpec(module, config, run, from_dict, output)
+        return ModuleStageSpec(module, config, run, from_dict, output, patterns)
 
 
 class ModuleStageSpec:
     """A StageSpec that holds only the names of its Config and run(); see StageSpec.of_module."""
 
-    def __init__(self, module, config, run, from_dict=None, output="output_dir"):
+    def __init__(self, module, config, run, from_dict=None, output="output_dir", patterns=()):
         self.module = module
         self.from_dict = from_dict
         self.output = output
+        self.patterns = tuple(patterns)
         # LazyRegistry imports on resolve and names a moved or renamed target in its error.
         self._targets = LazyRegistry()
         self._targets.register("stage", "config", f"{module}:{config}")

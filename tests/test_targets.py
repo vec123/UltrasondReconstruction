@@ -105,6 +105,29 @@ def test_run_main_in_process():
         assert runs == [{"subject": "7", "out": "/out/7"}]
 
 
+def test_pattern_fields():
+    """A pattern field (StageSpec.patterns) keeps the variables without a value; other fields may not."""
+    runs = []
+    spec = _Spec(runs)
+    spec.patterns = ("sources",)
+    with tempfile.TemporaryDirectory() as root:
+        config = _yaml(root, {"stage": "s", "variables": {"ROOT": "/data", "SESSION": "${SUBJECT_ID}/${WEEK}"},
+                              "subject": "1", "sources": {"a": "${ROOT}/${SESSION}/eval", "b": ["${ROOT}/x"]}})
+        engine.run_case(config, _Registry(spec), {})
+        assert runs == [{"subject": "1", "sources": {"a": "/data/${SUBJECT_ID}/${WEEK}/eval", "b": ["/data/x"]}}]
+        runs.clear()
+        engine.run_case(config, _Registry(spec), {"SUBJECT_ID": "3"})
+        assert runs[0]["sources"]["a"] == "/data/3/${WEEK}/eval"
+
+        config = _yaml(root, {"stage": "s", "subject": "${SUBJECT_ID}", "sources": {}})
+        try:
+            engine.run_case(config, _Registry(spec), {})
+        except ValueError as error:
+            assert "Unresolved" in str(error), error
+        else:
+            raise AssertionError("an unknown variable outside a pattern field did not raise")
+
+
 def test_run_main_in_processes():
     with tempfile.TemporaryDirectory() as root:
         _tree(root, ["done/3.txt"])

@@ -20,7 +20,7 @@ one of the same stage and hold only what differs from it.
 import os
 import time
 
-from src.shared.core.config import from_dict, interpolate_paths, load_yaml, path_variables
+from src.shared.core.config import expand_known, from_dict, interpolate_paths, load_yaml, path_variables
 from src.shared.core.paths import get_project_root
 from src.shared.core.pipeline import batch, manifest
 from src.shared.core.pipeline.cases import with_case_key
@@ -43,6 +43,27 @@ def _bind_stage_config(registry, stage_name, raw, source):
     spec = registry.get(stage_name)
     binder = spec.from_dict or (lambda d: from_dict(spec.config_cls, d, source=source))
     return spec, binder(raw)
+
+
+def _expand_known_leaves(value, variables):
+    """``value`` with the variables that have a value filled in, in every string leaf; others stay."""
+    if isinstance(value, str):
+        expanded = expand_known(value, variables)
+        return os.path.normpath(expanded) if expanded != value else value
+    if isinstance(value, dict):
+        return {key: _expand_known_leaves(item, variables) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_expand_known_leaves(item, variables) for item in value]
+    return value
+
+
+def _interpolate_stage(registry, stage_name, raw, variables, resolve_ref=None):
+    """interpolate_paths of a stage's raw fields. In its pattern fields (StageSpec.patterns)
+    only the variables with a value are filled in; the stage finds the others (find_paths)."""
+    patterns = getattr(registry.get(stage_name), "patterns", ())
+    rest = {key: value for key, value in raw.items() if key not in patterns}
+    kept = {key: _expand_known_leaves(value, variables) for key, value in raw.items() if key in patterns}
+    return {**interpolate_paths(rest, variables, resolve_ref=resolve_ref), **kept}
 
 
 def _own_variables(yaml_variables, base, source):
@@ -213,7 +234,7 @@ def stage_main(config_path, registry, extra_vars=None):
 
     # Alone, a stage has no other stages to reference: a dotted string such as
     # "baby_pca.npz" is plain text.
-    raw = interpolate_paths(raw, variables)
+    raw = _interpolate_stage(registry, stage_name, raw, variables)
     spec, cfg = _bind_stage_config(registry, stage_name, raw, config_path)
 
     print(f"Running stage '{stage_name}' from '{config_path}'")
@@ -357,7 +378,7 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
             )
         raw = {**stage_paths, **stage_hyperparameters}
 
-        raw = interpolate_paths(raw, variables, resolve_ref=resolve_ref)
+        raw = _interpolate_stage(registry, stage_name, raw, variables, resolve_ref=resolve_ref)
         spec, cfg = _bind_stage_config(registry, stage_name, raw, f"{pipeline_config_path} ({stage_id})")
 
         # Bind and resolve the config either way, so later stages can still
