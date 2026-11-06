@@ -1,5 +1,5 @@
 # Draws the correspondence field of a case (written by
-# scripts/SSM/correspondence_field.py) on the fused scan and on the recon,
+# configs/evaluation/fields/correspondence_field.yaml) on the fused scan and on the recon,
 # for every case of the two runs below that has the field folder.
 # Both are in mm, so one camera set serves both panels. The fused scan of a
 # case is read from the cohort's original_scans.json by its case id.

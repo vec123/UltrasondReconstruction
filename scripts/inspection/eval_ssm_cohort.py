@@ -1,6 +1,6 @@
 """Evaluate a cohort auto-decoder trained on samples of a linear shape model (SSM).
 
-The training members were drawn by scripts/SSM/sample_cohort.py, so every member has
+The training members were drawn by the sample stage, so every member has
 known PCA coefficients s (in sigma units) and is in vertex correspondence with the
 template (the model mean). That makes four comparisons with the PCA model possible:
 
@@ -108,8 +108,8 @@ def main():
     parser.add_argument("--run", required=True, help="the training run folder")
     parser.add_argument("--step", type=int, default=None, help="checkpoint step (default: final.pt)")
     parser.add_argument("--fit-run", required=True, help="the freeze_flow code-fit run on new samples")
-    parser.add_argument("--train-data", required=True, help="sample_cohort.py output of the training set")
-    parser.add_argument("--test-data", required=True, help="sample_cohort.py output of the new samples")
+    parser.add_argument("--train-data", required=True, help="sample stage output of the training set")
+    parser.add_argument("--test-data", required=True, help="sample stage output of the new samples")
     parser.add_argument("--model", default="assets/shape_models/baby/baby_pca.npz")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--n-generate", type=int, default=1000)

@@ -1,8 +1,8 @@
 # python scripts/run.py configs/gpmm/sample/baby_pca_sobol1000.yaml
 #
 # 1000 shapes of the baby GPMM from a scrambled Sobol sequence over all its
-# modes (src/shared/sampling/stage.py): the cohort in BabySSMData_sobol1000,
-# which scripts/SSM/sample_cohort.py --sampling sobol --n 1000 --seed 0 wrote.
+# modes (src/shared/sampling/stage.py): the cohort in BabySSMData_sobol1000.
+# The stage draws the same sigmas as that folder.
 # A cohort run reads members/ as its source: and template.vtp as its target:.
 # The stage does not write into a folder whose members/ holds shapes already.
 stage: sample

@@ -19,7 +19,7 @@ with s standard normal per parameter, from one of three sources:
 
 For a GPMM, s = theta = z: the mode coefficients in standard deviations.
 
-Output layout (`output_dir`), as scripts/SSM/sample_cohort.py wrote it before:
+Output layout (`output_dir`), the same as in the cohort folders written before this stage:
 
   members/sample_00000.vtp ...   the shapes; file order = code index
   template.vtp                   the shape of the prior mean (a GPMM: its mean)

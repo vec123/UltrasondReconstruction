@@ -5,7 +5,7 @@ The two shape models do not share a topology (baby: a whole head, 31027 vertices
 a frontal face mask, 5743 vertices), so the members are point clouds compared by chamfer,
 not by vertex correspondence:
 
-  * baby members: the shapes of an existing sample_cohort.py folder (--baby-data), rebuilt
+  * baby members: the shapes of an existing sample stage folder (--baby-data), rebuilt
     from its coefficients;
   * fetus members: --n-fetus new samples of --fetus-model (src/models/gpmm/model/sampling.py, same
     --sampling), carried into the baby frame by ONE similarity (with scale), fitted between
@@ -44,7 +44,7 @@ from src.shared.vtk.transform import decompose_similarity_transform
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--baby-model", default="assets/shape_models/baby/baby_pca.npz")
-    parser.add_argument("--baby-data", required=True, help="sample_cohort.py output of the baby samples")
+    parser.add_argument("--baby-data", required=True, help="sample stage output of the baby samples")
     parser.add_argument("--fetus-model", default="assets/shape_models/fetus/fetus_pca.npz")
     parser.add_argument("--fetus-landmarks", default="assets/atlases/FetusModel_x4/landmarks.json",
                         help="fetus landmark name -> vertex index")

@@ -3,7 +3,7 @@
 # (final): the same 200 new samples and settings; only the code (position-aware grid, as that
 # training) and code_reg_weight (grid/distance regularisation, not scaled by cohort size) differ.
 #
-# Code fit of 200 NEW BabySSM samples (seed 1, scripts/SSM/sample_cohort.py) into the trained
+# Code fit of 200 NEW BabySSM samples (seed 1, configs/gpmm/sample/baby_pca_test200.yaml) into the trained
 # flow: the flow is frozen, only the 200 codes are optimised, each starting at the mean of the
 # 1000 training codes.
 #

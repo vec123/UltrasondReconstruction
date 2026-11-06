@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Carry a scan from an aligned-template frame (mm) into a shape model's own frame.
 
-The model's mean (``--model-template``, e.g. a sample_cohort.py template.vtp) and the
+The model's mean (``--model-template``, e.g. the template.vtp of a sample stage folder) and the
 aligned template (``--aligned-template``, e.g. outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp)
 are the same mesh, vertex for vertex, in two frames. The similarity between them
 (B = s R A + t, Umeyama / Procrustes with scale) is exact, and its inverse carries any

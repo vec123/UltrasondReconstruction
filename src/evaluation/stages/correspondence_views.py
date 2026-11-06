@@ -1,6 +1,6 @@
 """Stage: draw a correspondence field on the surfaces, in one PNG.
 
-scripts/SSM/correspondence_field.py writes 'correspondence_id' onto a recon and
+The correspondence_field stage writes 'correspondence_id' onto a recon and
 a target point cloud. This stage draws it as a surface field: the fused scan
 (a mesh, in mm), the recon and the full identity field of the recon (every
 vertex coloured by its own index), side by side, with frontal, left and right

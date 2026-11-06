@@ -20,8 +20,7 @@
 # batch x subsample_M: 256 x 1000 needs more than 16 GB, 128 x 500 about a quarter of that.
 #
 # Inputs, written by:
-#    python scripts/SSM/sample_cohort.py --model assets/shape_models/baby/baby_pca.npz \
-#        --output-dir /home/victor/Escritorio/Data/BabySSMData --n 5000 --seed 0
+#    python scripts/run.py configs/gpmm/sample/baby_pca_n5000.yaml
 #
 # Run with:
 #    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_babyssm_n50_global_l2_capacity.yaml

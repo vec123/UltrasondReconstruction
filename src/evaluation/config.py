@@ -96,7 +96,7 @@ class CorrespondenceFieldConfig:
 
 @dataclasses.dataclass
 class CorrespondenceViewsConfig:
-    # The folder scripts/SSM/correspondence_field.py wrote: the two
+    # The folder the correspondence_field stage wrote: the two
     # *_w_correspondence.vtp files and correspondence_summary.json.
     correspondence_dir: str = ""
 

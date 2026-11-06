@@ -10,8 +10,7 @@
 #    of GPU memory with the 6x256 field).
 #
 # Inputs, written by:
-#    python scripts/SSM/sample_cohort.py --model assets/shape_models/baby/baby_pca.npz \
-#        --output-dir /home/victor/Escritorio/Data/BabySSMData_sobol1000 --n 1000 --seed 0 --sampling sobol
+#    python scripts/run.py configs/gpmm/sample/baby_pca_sobol1000.yaml
 #
 # Cohort ResNet-LDDMM on a SYNTHETIC cohort: 5000 shapes drawn from the BabySSM prior
 # (assets/shape_models/baby/baby_pca.npz, all 163 modes), one flow from the model mean
@@ -28,8 +27,7 @@
 # batch x subsample_M: 256 x 1000 needs more than 16 GB, 128 x 500 about a quarter of that.
 #
 # Inputs, written by:
-#    python scripts/SSM/sample_cohort.py --model assets/shape_models/baby/baby_pca.npz \
-#        --output-dir /home/victor/Escritorio/Data/BabySSMData --n 5000 --seed 0
+#    python scripts/run.py configs/gpmm/sample/baby_pca_n5000.yaml
 #
 # Run with:
 #    python scripts/run.py configs/lddmm/cohort/train/cohort_autodecoder_babyssm_sobol1000_global_l2_mlp6x256_kin200.yaml

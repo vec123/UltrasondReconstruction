@@ -1,0 +1,20 @@
+# python scripts/run.py configs/gpmm/sample/baby_pca_n5000.yaml
+#
+# 5000 shapes of the baby GPMM from independent normal draws over all its
+# modes (src/shared/sampling/stage.py): the cohort in BabySSMData, the training
+# set of the babyssm cohort runs. The stage draws the same sigmas as that folder.
+# A cohort run reads members/ as its source: and template.vtp as its target:.
+# The stage does not write into a folder whose members/ holds shapes already.
+stage: sample
+
+model:
+  kind: gpmm
+  path: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
+
+codes:
+  source: prior
+  n: 5000
+  sampling: random
+  seed: 0
+
+output_dir: ${DATA_ROOT}/BabySSMData

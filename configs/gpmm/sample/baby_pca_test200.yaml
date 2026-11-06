@@ -1,0 +1,20 @@
+# python scripts/run.py configs/gpmm/sample/baby_pca_test200.yaml
+#
+# 200 new shapes of the baby GPMM from independent normal draws over all its
+# modes (src/shared/sampling/stage.py), with seed 1 so they are not training
+# members: the cohort in BabySSMData_test200, which the babyssm code fits
+# read. The stage draws the same sigmas as that folder.
+# The stage does not write into a folder whose members/ holds shapes already.
+stage: sample
+
+model:
+  kind: gpmm
+  path: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
+
+codes:
+  source: prior
+  n: 200
+  sampling: random
+  seed: 1
+
+output_dir: ${DATA_ROOT}/BabySSMData_test200
