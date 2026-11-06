@@ -1,0 +1,27 @@
+# python scripts/run.py configs/smoke/09b_align_landmarks.yaml   (after 01_ultrasound.yaml)
+#
+# Smoke run of align_landmarks (src/models/gpmm/runners/align_landmarks.py) with
+# the settings of configs/geometry_transforms/align_landmarks.yaml: the mean of
+# the baby PCA GPMM (an .npz, read by load_model_file like every GPMM stage)
+# put onto 5 landmarks of the reference scan of 01_ultrasound.yaml, with scale.
+# The targets are inline, copied from that scan's landmarks_csv/1-20s-01.csv:
+# target_landmarks_json reads a landmark JSON, not that CSV.
+stage: align_landmarks
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
+output:
+  dir: ${SMOKE}/align_landmarks
+  transform: rigid_transform.npz
+  original_mesh: original_mean_mesh.vtp
+  aligned_mesh: aligned_mean_mesh.vtp
+target_landmarks:
+  prn: [40.9169, 30.4980, 22.6465]
+  enL: [31.8234, 39.4046, 29.8847]
+  enR: [45.9590, 36.7009, 31.2838]
+  n: [39.5943, 38.7876, 29.1835]
+  sn: [39.2130, 24.4188, 24.3066]
+allow_scale: true
+verbose: true

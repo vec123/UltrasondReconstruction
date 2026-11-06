@@ -178,15 +178,14 @@ class AlignMeshesRunner:
         """
         model_vertices = None
         if source.shape_model is not None:
-            from src.models.gpmm.model.sources.load import load_shape_model, load_shape_model_triangulation
+            from src.models.gpmm.model.model_memory_io import load_model_file
 
             if not source.shape_model.exists():
                 raise FileNotFoundError(f"shape_model does not exist: {source.shape_model}")
-            mean, _, _, landmarks = load_shape_model(
-                source.shape_model, normalize=source.normalize, verbose=False
-            )
-            model_vertices = np.asarray(mean, dtype=np.float64).reshape(-1, 3)
-            model_faces = load_shape_model_triangulation(source.shape_model)
+            model = load_model_file(source.shape_model, normalize=source.normalize)
+            landmarks = model.landmarks
+            model_vertices = np.asarray(model.mean, dtype=np.float64).reshape(-1, 3)
+            model_faces = model.faces
 
             # Kept as positions, not vertex indices: a cropped mesh has its own
             # numbering, and the landmarks have to survive that.

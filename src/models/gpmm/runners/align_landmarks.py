@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-import scipy.io as sio
 import vtk
 from vtk.util import numpy_support
 
 from src.models.gpmm.config import AlignLandmarksConfig
+from src.models.gpmm.model.model_memory_io import load_model_file
 from src.shared.landmarks.load_landmarks import load_landmarks
 from src.shared.vtk.io import save_vtp as write_vtp
 
@@ -65,7 +65,7 @@ class AlignLandmarksResult:
 
 
 class AlignLandmarksRunner:
-    """Aligns the mean shape of the .mat model onto a handful of target landmarks."""
+    """Aligns the mean shape of a shape model onto a handful of target landmarks."""
 
     def __init__(self, config: AlignLandmarksConfig):
         self.config = config
@@ -102,22 +102,17 @@ class AlignLandmarksRunner:
 
     def load_model(self):
         path = self.config.shape_model_mat
-        if not path.is_file():
+        if not path.exists():
             raise FileNotFoundError(f"shape_model_mat does not exist: {path}")
 
-        mat_data = sio.loadmat(str(path), squeeze_me=True)
-        FaceModel = mat_data["BabyFaceModel"]
-
-        refShape = FaceModel["refShape"].item()
-        meanDeformation = FaceModel["meanDeformation"].item()
-        triang = FaceModel["triang"].item()
-        lmks_vertsIND = FaceModel["landmark_verts"].item() - 1
-        landmark_names = FaceModel["landmark_names"].item()
-
-        trilist = (triang - 1).astype(np.int64, order="C")
-        mean_vertices = (
-            meanDeformation + refShape.flatten(order="F")
-        ).reshape((3, -1), order="F").T
+        # Any model file: the BabyFM .mat, an atlas folder or a GPMM .npz built
+        # from them; the landmarks are 0-based vertex indices with their names.
+        model = load_model_file(path)
+        landmarks = model.landmarks
+        lmks_vertsIND = np.asarray(landmarks.get("verts ", []), dtype=np.int64).reshape(-1)
+        landmark_names = list(landmarks.get("names ", []))
+        mean_vertices = np.asarray(model.mean, dtype=np.float64).reshape(-1, 3)
+        trilist = np.asarray(model.faces, dtype=np.int64, order="C")
 
         return mean_vertices, trilist, lmks_vertsIND, landmark_names
 

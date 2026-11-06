@@ -34,7 +34,7 @@ from src.shared.vtk.extract import (
 from src.shared.vtk.create import (
     create_polydata
 )
-from src.models.gpmm.model.sources.load import load_shape_model, load_shape_model_triangulation
+from src.models.gpmm.model.model_memory_io import load_model_file
 from src.shared.correspondence.cloud import PointCloud
 from src.shared.correspondence.base import build_correspondence
 from src.models.gpmm.nicp.losses import build_loss
@@ -112,11 +112,12 @@ class NicpRunner:
 
         cfg.outputs.dir.mkdir(parents=True, exist_ok=True)
 
-        mean, eigenfunctions, eigenvalues, _ = load_shape_model(
+        model = load_model_file(
             cfg.inputs.shape_model_mat, normalize=cfg.model.normalize,
             atlas_options=cfg.model.atlas.to_options(), verbose=cfg.verbose,
         )
-        faces = load_shape_model_triangulation(cfg.inputs.shape_model_mat)
+        mean, eigenfunctions, eigenvalues = model.mean, model.eigenfunctions, model.eigenvalues
+        faces = model.faces
         if not cfg.compute.use_model_faces:
             faces = None
         self.space = ShapeSpace(

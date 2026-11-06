@@ -29,7 +29,7 @@ from src.shared.vtk.io import save_vtp
 from src.shared.vtk.create import create_polydata
 from src.shared.vtk.fields import add_point_field
 from src.shared.geometry.heatmap import landmark_heatmaps
-from src.models.gpmm.model.sources.load import load_shape_model, load_shape_model_triangulation
+from src.models.gpmm.model.model_memory_io import load_model_file
 
 
 @dataclass
@@ -75,19 +75,21 @@ class MeanShapeRunner:
         if not cfg.shape_model_mat.exists():
             raise FileNotFoundError(f"shape_model_mat does not exist: {cfg.shape_model_mat}")
 
-        mean, eigenfunctions, eigenvalues, landmarks = load_shape_model(
+        model = load_model_file(
             cfg.shape_model_mat, normalize=cfg.model.normalize,
             atlas_options=cfg.model.atlas.to_options(), verbose=cfg.verbose,
         )
-        self.mean = np.asarray(mean, dtype=np.float64).reshape(-1, 3)
-        self.eigenfunctions = np.asarray(eigenfunctions, dtype=np.float64)
-        self.eigenvalues = np.asarray(eigenvalues, dtype=np.float64).reshape(-1)
-        self.faces = load_shape_model_triangulation(cfg.shape_model_mat)
+        self.mean = np.asarray(model.mean, dtype=np.float64).reshape(-1, 3)
+        self.eigenfunctions = np.asarray(model.eigenfunctions, dtype=np.float64)
+        self.eigenvalues = np.asarray(model.eigenvalues, dtype=np.float64).reshape(-1)
+        self.faces = model.faces
 
         # load_mat_ssm already strips the names and makes the indices 0-based;
-        # the trailing spaces in the keys come from the .mat field names
-        self.landmark_names = [str(n) for n in landmarks["names "]]
-        self.landmark_indices = np.asarray(landmarks["verts "], dtype=np.int64).reshape(-1)
+        # the trailing spaces in the keys come from the .mat field names, and
+        # an .npz model keeps them (model_memory_io.annotate_landmarks)
+        landmarks = model.landmarks
+        self.landmark_names = [str(n) for n in landmarks.get("names ", [])]
+        self.landmark_indices = np.asarray(landmarks.get("verts ", []), dtype=np.int64).reshape(-1)
 
         self._log(f"model:     {len(self.mean)} vertices, "
                   f"{self.eigenfunctions.shape[1]} modes, "
