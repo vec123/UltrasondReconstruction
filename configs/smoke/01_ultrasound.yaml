@@ -1,0 +1,163 @@
+# python scripts/run.py configs/smoke/01_ultrasound.yaml   (or all smoke files: python tests/smoke.py)
+#
+# Smoke run of the ultrasound chain on one case (Casos_Mar 1 / 20 semanas, all
+# its scans): the fused-target chain of configs/pipelines/gen_fused_scan_targets.yaml
+# (same stage files and wiring, fetus SSM fit on the CPU), then the US stages that
+# no master pipeline runs today. Writes only into ${SMOKE}/ultrasound; later
+# smoke files read the fused scan and the landmarks from there.
+#
+# Not here: nrrd_to_world_vtp (its input, the case's Segmentaciones/.../US_transformed
+# volumes, is missing) and vtp_to_nrrd_overlay (it needs a reconstruction; see
+# the evaluation smoke files).
+variables:
+  DATASET: Casos_Mar
+  CASES_ROOT: /home/victor/Projects/UltrasoundLandmarkPredictor/results/inference/${DATASET}
+  LANDMARKS_FRAME: LPS
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  REFERENCE_SCAN: 1-20s-01
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  FUSED_DIR: ${SMOKE}/ultrasound/${SESSION}
+
+stages:
+  - name: nrrd_to_vtp
+    config: ultrasound/stages/01_nrrd_to_vtp.yaml
+  - name: align_to_reference
+    config: ultrasound/stages/02_align_to_reference.yaml
+  - name: align_to_template
+    config: ultrasound/stages/03_align_to_template.yaml
+  - name: roughness_filter
+    config: ultrasound/stages/01b_roughness_filter.yaml
+  - name: landmark_bbox_cut
+    config: ultrasound/stages/03a_landmark_bbox_cut.yaml
+  - name: landmark_distance_cut
+  - name: scan_consistency
+    config: ultrasound/stages/04_scan_consistency.yaml
+  - name: ssm_fit                     # its NICP mesh is the fusion's reference
+    id: fetus_ssm_fit_init_pca
+    config: gpmm/fit/nicp/fetus_init_pca.yaml
+  - name: scan_fusion
+    id: scan_fusion_ssm
+    config: ultrasound/stages/04b_scan_fusion.yaml
+  - name: smoothing_filter
+  - name: landmark_geodesics
+  - name: echotexture
+  - name: point_classify
+
+paths:
+  nrrd_to_vtp:
+    input_dir: ${SCANS_DIR}
+    output_dir: ${FUSED_DIR}
+    cache_dir: ${FUSED_DIR}/Cache
+  align_to_reference:
+    landmarks_csv_dir: ${SCANS_DIR}/LMKS
+    vtp_shapes_dir: nrrd_to_vtp.output_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned
+    raw_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /raw_landmarks_vtp
+    transforms_dir: nrrd_to_vtp.output_dir + /aligned/transforms
+    previous_transforms_dir: null
+    aligned_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned/aligned_shapes_vtp
+    aligned_landmarks_dir: nrrd_to_vtp.output_dir + /aligned/aligned_landmarks
+  align_to_template:
+    template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
+    vtp_shapes_dir: align_to_reference.aligned_shapes_vtp_dir
+    landmarks_csv_dir: align_to_reference.aligned_landmarks_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template
+    out_shapes_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/shapes_vtp
+    out_landmarks_vtp_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_vtp
+    out_landmarks_csv_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmarks_csv
+    transforms_dir: nrrd_to_vtp.output_dir + /aligned_to_template/transforms
+    previous_transforms_dir: align_to_reference.transforms_dir
+  roughness_filter:
+    input_dir: align_to_template.out_shapes_vtp_dir
+    output_dir: align_to_template.output_dir + /roughness_filtered
+    unfiltered_dir: align_to_template.output_dir + /roughness_unfiltered
+    transforms_dir: align_to_template.transforms_dir
+  landmark_bbox_cut:
+    shapes_dir: align_to_template.out_shapes_vtp_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmark_bbox_cut
+    transforms_dir: align_to_template.transforms_dir
+  landmark_distance_cut:
+    shapes_dir: align_to_template.out_shapes_vtp_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /aligned_to_template/landmark_distance_cut
+    transforms_dir: align_to_template.transforms_dir
+  scan_consistency:
+    input_aligned_dir: landmark_bbox_cut.output_dir
+    output_consistency_dir: nrrd_to_vtp.output_dir + /consistency_shapes_vtp
+    output_denoised_dir: nrrd_to_vtp.output_dir + /consistency_thresholds
+    output_merged_dir: nrrd_to_vtp.output_dir + /merged_high_confidence_scan
+    transforms_dir: align_to_template.transforms_dir
+  fetus_ssm_fit_init_pca:
+    inputs:
+      shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/fetus/fetus_pca.npz
+      mesh_vtp: scan_consistency.output_merged_dir + /merged_high_confidence_scan_threshold_0.8.vtp
+      landmarks_json: align_to_template.out_landmarks_csv_dir
+      template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
+    outputs:
+      dir: nrrd_to_vtp.output_dir + /fetus_ssm/init_pca
+  scan_fusion_ssm:
+    input_aligned_dir: scan_consistency.output_denoised_dir + /threshold_0.6
+    reference_vtp: fetus_ssm_fit_init_pca.outputs.dir + /nicp_refined_vertices_map_1x.vtp
+    output_dir: nrrd_to_vtp.output_dir + /fused_scan_ssm
+    transforms_dir: align_to_template.transforms_dir
+  smoothing_filter:
+    input_dir: scan_fusion_ssm.output_dir
+    output_dir: scan_fusion_ssm.output_dir + /smoothed
+  landmark_geodesics:
+    shapes_dir: scan_consistency.output_consistency_dir
+    landmarks_dir: align_to_template.out_landmarks_vtp_dir
+    output_dir: nrrd_to_vtp.output_dir + /geodesic_shapes_vtp
+  echotexture:
+    vtp_dir: nrrd_to_vtp.output_dir
+    nrrd_dir: nrrd_to_vtp.input_dir
+    output_dir: nrrd_to_vtp.output_dir + /echotexture
+  point_classify:
+    input_dir: echotexture.output_dir + /${REFERENCE_SCAN}.vtp
+    output_dir: nrrd_to_vtp.output_dir + /point_classify
+
+# The stages with a config: take its hyperparameters. The others have flat
+# stage files (configs/ultrasound/stages/), which a pipeline cannot include,
+# so their settings are copied here from those files.
+hyperparameters:
+  fetus_ssm_fit_init_pca:
+    nicp:
+      device: cpu
+  landmark_distance_cut:      # 03b_landmark_distance_cut.yaml, but min_bridge_width 0 as in
+    max_distance_mm: 15.0     # ultrasound/end_to_end.yaml: > 0 is not implemented (process.py)
+    keep_largest_component: true
+    min_bridge_width: 0
+    min_bridge_relative: false
+  smoothing_filter:           # 01c_smoothing_filter.yaml
+    iterations: 30
+    pass_band: 0.1
+    boundary_smoothing: true
+    feature_edge_smoothing: false
+  landmark_geodesics:         # 05_landmark_geodesics.yaml
+    heatmap_sigma: 0.0014
+  echotexture:                # 01d_echotexture.yaml, with 16 instead of 64 variability neighbours
+    crop: false
+    crop_threshold: 0
+    crop_margin: 0
+    denoise: null
+    denoise_radius: 5
+    normalize: false
+    clip_percentiles: [1.0, 99.0]
+    norm_out_max: 255.0
+    neighborhood_radius_mm: 1.5
+    interp_order: 1
+    structure_tensor_radius_mm: 1.5
+    variability_radius_mm: 10.0
+    variability_max_neighbors: 16
+    field_prefix: echo_
+  point_classify:             # 06_point_classify.yaml
+    feature_fields: []
+    feature_prefix: echo_
+    exclude_fields: [echo_in_bounds]
+    n_clusters: 5
+    algorithm: minibatch_kmeans
+    random_state: 0
+    n_init: 10
+    batch_size: 10000
+    class_field_name: tissue_cluster

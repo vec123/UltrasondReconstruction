@@ -1,0 +1,54 @@
+# python scripts/run.py configs/smoke/02_point_fields.yaml   (after 01_ultrasound.yaml)
+#
+# Smoke run of the four point_fields kinds (src/shared/point_fields/kinds.py) on
+# the outputs of 01_ultrasound.yaml, written as copies into ${SMOKE}/point_fields:
+# normals, edge and landmark_weight (from its heatmap_* fields) on the fused
+# scan; target_weight (consistency_score x geodesic landmark proximity) on the
+# merged high-confidence scan, which has faces and the consistency_score field.
+# Both scans are in mm, so the decay scales are in mm. Only a few landmarks, to
+# keep it short; the real settings are in configs/surface/.
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+stages:
+  - name: point_fields
+    id: point_fields_fused_scan
+  - name: point_fields
+    id: point_fields_merged_scan
+
+paths:
+  point_fields_fused_scan:
+    input: ${US}/fused_scan_ssm/fused_scan.vtp
+    output: ${SMOKE}/point_fields/fused_scan.vtp
+  point_fields_merged_scan:
+    input: ${US}/merged_high_confidence_scan/merged_high_confidence_scan_threshold_0.8.vtp
+    output: ${SMOKE}/point_fields/merged_high_confidence_scan_threshold_0.8.vtp
+
+hyperparameters:
+  point_fields_fused_scan:
+    fields:
+      - kind: normals
+        weighting: unit
+      - kind: edge
+        combine: [support]
+      - kind: landmark_weight
+        include:
+          - label: n
+            decay_scale: 5.0
+            max_weight: 2
+          - label: prn
+            decay_scale: 5.0
+        min_weight: 0.1
+  point_fields_merged_scan:
+    fields:
+      - kind: target_weight
+        landmarks: ${US}/aligned_to_template/landmarks_csv
+        include: [n, prn, sn]
+        decay_scale: 5.0
+        consistency_field: consistency_score
+        min_weight: 0.05
+        output_field: target_weight

@@ -1,0 +1,23 @@
+# python scripts/run.py configs/smoke/03_similarity_transform.yaml   (after 01_ultrasound.yaml)
+#
+# Smoke run of similarity_transform with the settings of
+# configs/geometry_transforms/similarity_transform.yaml: the baby mean template
+# put onto the landmarks of the reference scan of 01_ultrasound.yaml. Later
+# smoke files (LDDMM pair training) start from this aligned template.
+stage: similarity_transform
+extends: geometry_transforms/similarity_transform.yaml
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  REFERENCE_SCAN: 1-20s-01
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+paths:
+  source_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
+  landmark_path: ${US}/aligned_to_template/landmarks_csv/${REFERENCE_SCAN}.csv
+  output_path: ${SMOKE}/similarity_transform/baby_mean_aligned.vtp
+
+hyperparameters: {}
