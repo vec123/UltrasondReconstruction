@@ -254,7 +254,13 @@ stages:
 - name: vtp_to_nrrd_overlay
   config: ultrasound/stages/vtp_to_nrrd_overlay.yaml
   enabled: false
+# The views of this case: always the last stage.
+- name: render_views
+  config: evaluation/viz/views_casos_mar.yaml
+  enabled: true
 paths:
+  render_views:
+    output_dir: ${OUT}/views
   nrrd_to_vtp:
     input_dir: ${SCANS_DIR}
     output_dir: ${OUT}/${SESSION}
@@ -843,3 +849,6 @@ paths:
       - 0
       - 0
 hyperparameters:
+  # The PNG of this one case, named by it (the columns: configs/evaluation/viz/views_casos_mar.yaml).
+  render_views:
+    case_name: ${CASE_KEY}

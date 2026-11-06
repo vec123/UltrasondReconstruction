@@ -1,0 +1,94 @@
+# python scripts/run.py configs/evaluation/viz/views_casos_mar.yaml
+#
+# One PNG per Casos_Mar case into ${OUT}/views/ (src/evaluation/stages/render_views.py):
+# every scan of the case (frontal), then a frontal row of the two high-confidence
+# unions and all fitted models, then the fitted models from the patient's left and
+# right. Add a new run as a column here so it appears. The cases are those with the
+# camera landmarks (the pair LDDMM eval's reference landmarks). The end_to_end Casos_Mar
+# pipelines include this file as their last stage, for their one case.
+stage: render_views
+
+variables:
+  DATASET: Casos_Mar
+
+paths:
+  output_dir: ${OUT}/views
+
+hyperparameters:
+  landmarks: "${OUT}/resnet_lddmm_baby_mean/${SESSION}/apply/eval/reference_landmarks.vtp"
+  scans:
+    mesh: "${OUT}/${SESSION}/aligned/aligned_shapes_vtp/${SCAN}.vtp"
+    landmarks: "${OUT}/${SESSION}/aligned/aligned_landmarks/${SCAN}_landmarks.csv"
+  views: [frontal, left, right]
+  panel_px: 400
+  overwrite: true
+  columns:
+  - title: High-confidence union
+    mesh: "${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm/eval/target_w_distance.vtp"
+    views: [frontal]
+    camera: false
+    tint: scan
+    landmarks: true
+  - title: High-confidence union
+    mesh: "${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm/eval/target_w_distance.vtp"
+    views: [frontal]
+    camera: false
+    tint: scan
+  - title: "Fetus PCA"
+    mesh: "${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/eval_map/recon_w_distance.vtp"
+  - title: "Fetus PCA + Matern32"
+    mesh: "${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca_sum_matern32/eval_map/recon_w_distance.vtp"
+  - title: "Fused target"
+    mesh: "${OUT}/fetus_ssm/${SESSION}/end_to_end/fused_scan_ssm/eval/recon_w_distance.vtp"
+  - title: "Baby PCA"
+    mesh: "${OUT}/baby_ssm/${SESSION}/end_to_end/pca/eval_map/recon_w_distance.vtp"
+  - title: "Baby PCA + Matern32"
+    mesh: "${OUT}/baby_ssm/${SESSION}/end_to_end/pca_sum_matern32/eval_map/recon_w_distance.vtp"
+  - title: "LDDMM recon"
+    mesh: "${OUT}/resnet_lddmm_baby_mean/${SESSION}/apply/eval/recon_w_distance.vtp"
+  - title: "LDDMM kin5000 no lmk"
+    mesh: "${OUT}/resnet_lddmm_baby_mean_kin5000_nolmk_gpu/${SESSION}/apply/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw g4"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_g4/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw g8"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_g8/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw no grid"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw no grid kin8000"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_nopos_kin8000/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g4 C8"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g4c8/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g4 C8 location weighted"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g4c8_dist/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin8000"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted far x100"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_far100/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin20000"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin20000/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin10000 cherry-tree"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin10000_cherry/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kinetic field"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kinfield/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted stationary field"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "SSM posterior (localized PCA) of the stationary field LDDMM"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/${CASE_KEY}/posterior_baby-pca-times-gaussian_pose_t2r_cutoff1.5mm_spacing3mm_sigma1mm/eval/recon_w_distance.vtp"
+  - title: "SSM posterior (PCA + Matern32) of the stationary field LDDMM"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf/apply/${CASE_KEY}/posterior_baby-pca-sum-matern32_pose_t2r_cutoff1.5mm_spacing3mm_sigma1mm/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree stationary field"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted stationary field kinetic field"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_svf_kinfield/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g8 C2 location weighted kin8000 cherry-tree stationary field kinetic field"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_svf_kinfield/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "Cohort LDDMM fw direct g16 C2 location weighted kin2000 cherry-tree stationary field kinetic field 14000 6x256"
+    mesh: "${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/apply/${CASE_KEY}/eval/recon_w_distance.vtp"
+  - title: "BabySSM flow LayerNorm, codes + shared LayerNorm fitted, cherry-tree"
+    mesh: "${PROJECT_ROOT}/outputs/stage2_flow/babyssm-sobol1000-mlp6x256-layernorm-kin200_free-layernorm-shared_fieldchange200_anchor0.01_code128_codereg1.67_edgeweight3sp-template2scan_cherry30/apply/${CASE_KEY}/eval/recon_w_distance.vtp"

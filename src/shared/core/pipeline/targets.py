@@ -69,6 +69,19 @@ def _matched(patterns, first, variables, source):
     return [Case(values, n_files) for values, _, n_files in ordered]
 
 
+def find_case_paths(pattern, source):
+    """{case name: (its values, path)} of every existing path that fits ``pattern``, in path
+    order. The variables of the pattern (without a value) are the case variables; a stage
+    with a pattern field (StageSpec.patterns) finds its cases with this."""
+    paths = {}
+    for values, path in find_paths(pattern, {}, parse={CASE_KEY: parse_case_key}):
+        name = Case(values).name
+        if name in paths:
+            raise ValueError(f"{source}: case '{name}' fits two paths, '{paths[name][1]}' and '{path}'.")
+        paths[name] = (values, path)
+    return paths
+
+
 def find_cases(targets, variables, source):
     """The cases of a ``targets:`` block, ``variables`` filled in (see the module docstring)."""
     if not isinstance(targets, dict):

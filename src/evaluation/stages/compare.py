@@ -42,9 +42,7 @@ from src.evaluation.stages.distance_distribution_overlay import (
     read_distance_field,
     summarize,
 )
-from src.shared.core.config import find_paths
-from src.shared.core.pipeline.cases import CASE_KEY, parse_case_key
-from src.shared.core.pipeline.targets import Case
+from src.shared.core.pipeline.targets import find_case_paths
 
 MARKER = "distance_summary.json"  # recon_target_distance writes it last
 LANDMARK_FILE = "landmark_distances.json"
@@ -56,13 +54,8 @@ TITLES = {"recon_to_target": "Reconstruction to target", "target_to_recon": "Tar
 
 def find_evals(model, pattern):
     """{case name: evaluation folder} of every folder that fits `pattern`, in path order."""
-    evals = {}
-    for values, path in find_paths(os.path.join(pattern, MARKER), {}, parse={CASE_KEY: parse_case_key}):
-        name = Case(values).name
-        if name in evals:
-            raise ValueError(f"Model '{model}': case '{name}' fits two folders, "
-                             f"'{evals[name]}' and '{os.path.dirname(path)}'.")
-        evals[name] = os.path.dirname(path)
+    evals = {name: os.path.dirname(path)
+             for name, (_, path) in find_case_paths(os.path.join(pattern, MARKER), f"Model '{model}'").items()}
     if not evals:
         raise ValueError(f"No evaluation folder ({MARKER}) fits the pattern of model '{model}': {pattern}")
     return evals

@@ -256,3 +256,64 @@ class CompareConfig:
     clip_percentile: float = 99.5
     normalize: str = "fraction"
     log_y: bool = False
+
+
+@dataclasses.dataclass
+class ViewColumnConfig:
+    """One column of render_views: one mesh per case."""
+
+    title: str = ""
+    # The mesh of a case, as a pattern; the variables without a value are the
+    # case variables. All meshes of a case must be in one frame.
+    mesh: str = ""
+    # The rows (views) this column is drawn in; empty: every view of the stage.
+    views: List[str] = dataclasses.field(default_factory=list)
+    # Draw the camera landmarks on this panel.
+    landmarks: bool = False
+    # This mesh frames the cameras (with the other framing meshes of the case).
+    camera: bool = True
+    # The plain colour of the mesh: "mesh" (a model, skin) or "scan" (blue).
+    tint: str = "mesh"
+
+
+@dataclasses.dataclass
+class ViewScansConfig:
+    """All scans of a case, frontal, above the result rows (wrapped over as many rows as needed)."""
+
+    # Each scan, as a pattern with the case variables and one more (e.g. ${SCAN}).
+    mesh: str = ""
+    # Its landmarks (CSV with label, x, y, z), the same pattern; empty: none.
+    landmarks: str = ""
+
+
+@dataclasses.dataclass
+class ViewColorConfig:
+    """Colour the column meshes by a point field, on a sequential ramp from 0 to `max`."""
+
+    field: str = ""
+    max: float = 3.0
+
+
+@dataclasses.dataclass
+class RenderViewsConfig:
+    columns: List[ViewColumnConfig] = dataclasses.field(default_factory=list)
+    scans: Optional[ViewScansConfig] = None
+
+    # The landmarks that set the cameras of a case (.vtp with a 'label' array,
+    # or CSV), as a pattern; then the cases are those that have them. Empty:
+    # the heatmap fields of the case's first mesh, and the cases of all columns.
+    landmarks: str = ""
+
+    views: List[str] = dataclasses.field(default_factory=lambda: ["frontal", "left", "right"])
+    # per_case: one PNG per case, one row per view (and the scan rows above).
+    # grid: one PNG views.png, one row per case, in the first view only.
+    layout: str = "per_case"
+    color: Optional[ViewColorConfig] = None
+    panel_px: int = 400
+    overwrite: bool = True
+
+    # The name of the one case when every case variable has a value (a run of
+    # one case, e.g. in a pipeline: ${CASE_KEY}); empty: "case".
+    case_name: str = ""
+
+    output_dir: str = ""
