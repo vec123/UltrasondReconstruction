@@ -6,13 +6,32 @@ back to the local name ``Config``).
 """
 
 import dataclasses
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclasses.dataclass
 class ReconTargetDistanceConfig:
     target_path: str = ""
     recon_path: str = ""
+
+    # Or: a model stage's output folder, which gives recon_path and target_path
+    # (then leave those two unset). It is read through a pair layout
+    # (src/evaluation/loader/layouts.py): "auto" finds the layout from the
+    # folder's marker file, e.g. "result" for a folder with result.json.
+    # layout_kwargs selects in the folder, e.g. {result: map_1x} for a GPMM run.
+    result_dir: str = ""
+    layout: str = "auto"
+    layout_kwargs: Dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    # The frame the distances are computed in:
+    #   "landmarks"  a similarity fitted from the recon's heatmap landmarks onto
+    #                landmarks_path (needs landmarks_path)
+    #   "scan"       the recon->scan transform of result_dir: the scan, in mm
+    #   "recon"      the frame recon_path and target_path are written in
+    frame: str = "landmarks"
+
+    # The labelled landmarks of the target's scan (CSV). Unset, and with a
+    # frame other than "landmarks", no landmark distances are computed.
     landmarks_path: str = ""
     landmarks_frame: str = "LPS"  # frame landmarks_path is written in: "LPS" (as-is) or "RAS" (flipped to LPS)
 
@@ -24,8 +43,9 @@ class ReconTargetDistanceConfig:
         default_factory=lambda: [1.0, 2.0, 3.0]
     )
 
-    # Label for the frame `landmarks_path` is in, used in the printed lines,
-    # the plot axis and the JSON outputs. Left unset, "landmark frame units".
+    # Label for the units of `frame`, used in the printed lines, the plot axis
+    # and the JSON outputs. Left unset, "landmark frame units", "mm" or
+    # "model frame units".
     units: str = ""
 
     # 3x3 metric matrix M of the landmark Mahalanobis distance

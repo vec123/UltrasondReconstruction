@@ -10,10 +10,14 @@ This is a point-to-point (vertex-to-nearest-vertex) approximation of the true
 point-to-surface distance, computed with scipy.spatial.cKDTree - same
 approach as scan_consistency.py's consistency scoring.
 
-The reconstruction carries heatmap landmark fields. A similarity transform is
-fit from those landmark vertices to `landmarks_path`, then applied to both the
-reconstruction and target before distances are computed. The saved meshes and
-distance fields therefore share the same landmark frame and can be loaded
+The pair is either given (`recon_path`, `target_path`) or read from a model
+stage's output folder (`result_dir`, through the pair layouts of
+src/evaluation/loader). Both meshes are moved into `frame` before distances
+are computed. For "landmarks" (the default), the reconstruction's heatmap
+landmark fields give its landmark vertices, and a similarity fitted from those
+vertices to `landmarks_path` moves it. For "scan", the recon->scan transform
+of `result_dir` moves it into the scan, in mm. For "recon", nothing moves. The
+saved meshes and distance fields therefore share one frame and can be loaded
 together in ParaView. Distances are reported in that frame's units.
 
 Each direction is also written out as a distance-over-percentage curve, to
@@ -24,12 +28,13 @@ of each other across very different models, because they are dominated by the
 stretch of scan no reconstruction covers, while the share of the scan
 explained to within a millimetre is not.
 
-Those same landmark pairs are also scored directly: for every label shared by
+When `landmarks_path` is set, the landmark pairs are also scored directly: for every label shared by
 the reconstruction's heatmap fields and the landmark CSV, the Mahalanobis
 distance sqrt(d^T M d) between the aligned recon landmark and the CSV landmark
 is written to 'landmark_distances.json'. M is `landmark_metric`, the identity
 by default - in which case this is the plain Euclidean landmark residual left
-over by the similarity fit.
+over by the similarity fit (for frame "landmarks"), or the landmark error of
+the model's own placement (for frame "scan").
 
 The landmarks themselves are saved beside the meshes, in the same landmark
 frame, each with a 'label' string array: 'recon_landmarks.vtp' (every heatmap
@@ -39,6 +44,7 @@ landmarks that LDDMM run guided on, carried by the same similarity as the
 meshes.
 """
 
+import dataclasses
 import json
 import os
 
@@ -49,6 +55,7 @@ import numpy as np
 from vtk.util.numpy_support import vtk_to_numpy
 
 from src.evaluation.config import ReconTargetDistanceConfig as Config
+from src.evaluation.loader import load_pair
 from src.evaluation.metrics import (
     COVERAGE_PERCENT_STEP,
     coverage_curve,
@@ -68,6 +75,47 @@ from src.shared.landmarks.annotations import aggregate, load_annotations, select
 from src.shared.vtk.fields import add_point_field
 from src.shared.vtk.io import load_vtp, save_vtp
 
+FRAMES = ("landmarks", "scan", "recon")
+DEFAULT_UNITS = {"landmarks": "landmark frame units", "scan": "mm", "recon": "model frame units"}
+
+
+def read_pair(cfg):
+    """`cfg` with recon_path and target_path read from result_dir (when it is
+    set) and units filled in, and the recon->scan transform of result_dir
+    (None without result_dir, or when its run kept none)."""
+    if cfg.frame not in FRAMES:
+        raise ValueError(f"frame must be one of {FRAMES}, got {cfg.frame!r}")
+    cfg = dataclasses.replace(cfg, units=cfg.units or DEFAULT_UNITS[cfg.frame])
+    if not cfg.result_dir:
+        return cfg, None
+    if cfg.recon_path or cfg.target_path:
+        raise ValueError("Set result_dir, or recon_path and target_path, not both.")
+    pair = load_pair(cfg.result_dir, cfg.layout, cfg.layout_kwargs or None)
+    print(pair.summary())
+    return dataclasses.replace(cfg, recon_path=str(pair.recon_path), target_path=str(pair.target_path)), \
+        pair.recon_to_surface
+
+
+def frame_transform(cfg, recon_points, recon_to_scan):
+    """The transform that moves both meshes into `cfg.frame`; None for "recon"."""
+    if cfg.frame == "landmarks":
+        if not cfg.landmarks_path:
+            raise ValueError("frame 'landmarks' requires landmarks_path")
+        return fit_landmark_alignment(
+            recon_points,
+            template_vtp=cfg.recon_path,
+            landmark_path=cfg.landmarks_path,
+            landmarks_frame=cfg.landmarks_frame,
+            with_scale=True,
+        )
+    if cfg.frame == "scan":
+        if recon_to_scan is None:
+            raise ValueError(
+                f"frame 'scan' needs the recon->scan transform of result_dir; "
+                f"'{cfg.result_dir or cfg.recon_path}' gives none"
+            )
+        return recon_to_scan
+    return None
 
 
 def draw_coverage(curves, cfg, output_path):
@@ -170,6 +218,7 @@ def save_landmarks(labels, points, path):
 
 
 def run(cfg: Config):
+    cfg, recon_to_scan = read_pair(cfg)
     output_target_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.target_path), "target_w_distance.vtp")
     output_recon_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "recon_w_distance.vtp")
     output_summary_path = os.path.join(cfg.output_dir or os.path.dirname(cfg.recon_path), "distance_summary.json")
@@ -187,39 +236,25 @@ def run(cfg: Config):
     target_points = vtk_to_numpy(target_mesh.GetPoints().GetData())
     recon_points = vtk_to_numpy(recon_mesh.GetPoints().GetData())
 
-    if not cfg.landmarks_path:
-        raise ValueError("recon_target_distance requires landmarks_path")
+    alignment = frame_transform(cfg, recon_points, recon_to_scan)
+    if alignment is not None:
+        recon_mesh = alignment.apply_polydata(recon_mesh)
+        target_mesh = alignment.apply_polydata(target_mesh)
+        recon_points = vtk_to_numpy(recon_mesh.GetPoints().GetData())
+        target_points = vtk_to_numpy(target_mesh.GetPoints().GetData())
 
-    alignment = fit_landmark_alignment(
-        recon_points,
-        template_vtp=cfg.recon_path,
-        landmark_path=cfg.landmarks_path,
-        landmarks_frame=cfg.landmarks_frame,
-        with_scale=True,
-    )
-    recon_mesh = alignment.apply_polydata(recon_mesh)
-    target_mesh = alignment.apply_polydata(target_mesh)
-    recon_points = vtk_to_numpy(recon_mesh.GetPoints().GetData())
-    target_points = vtk_to_numpy(target_mesh.GetPoints().GetData())
+    units = cfg.units
 
-    scale = 1.0
-    units = cfg.units or "landmark frame units"
-
-    def place_geometry(mesh):
-        return mesh
-
-    recon_dist_2_target = nearest_neighbor_distances(recon_points, target_points) / scale
+    recon_dist_2_target = nearest_neighbor_distances(recon_points, target_points)
     add_point_field(recon_mesh, recon_dist_2_target, field_name="recon_dist_2_target")
-    recon_mesh = place_geometry(recon_mesh)
     save_vtp(recon_mesh, output_recon_path)
     print(
         f"recon_dist_2_target ({units}): mean={recon_dist_2_target.mean():.4f} "
         f"max={recon_dist_2_target.max():.4f} -> {output_recon_path}"
     )
 
-    target_dist_2_recon = nearest_neighbor_distances(target_points, recon_points) / scale
+    target_dist_2_recon = nearest_neighbor_distances(target_points, recon_points)
     add_point_field(target_mesh, target_dist_2_recon, field_name="target_dist_2_recon")
-    target_mesh = place_geometry(target_mesh)
     save_vtp(target_mesh, output_target_path)
     print(
         f"target_dist_2_recon ({units}): mean={target_dist_2_recon.mean():.4f} "
@@ -256,31 +291,37 @@ def run(cfg: Config):
         json.dump(coverage, f, indent=2)
     print(f"Saved distance coverage curves to: {output_coverage_path}")
 
-    metric = resolve_metric(cfg.landmark_metric)
-    per_landmark, landmark_dists = landmark_distances(recon_points, cfg, metric)
-    landmark_summary = {
-        "units": units,
-        "recon_path": cfg.recon_path,
-        "landmarks_path": cfg.landmarks_path,
-        "metric": metric.tolist(),
-        "metric_is_identity": bool(np.allclose(metric, np.eye(3))),
-        "landmarks": per_landmark,
-        "summary": summarize(landmark_dists, cfg.coverage_thresholds),
-    }
-    with open(output_landmark_path, "w") as f:
-        json.dump(landmark_summary, f, indent=2)
-    print(
-        f"landmark Mahalanobis distance ({units}, {len(per_landmark)} landmarks): "
-        f"mean={landmark_dists.mean():.4f} max={landmark_dists.max():.4f} "
-        f"-> {output_landmark_path}"
-    )
+    if cfg.landmarks_path:
+        metric = resolve_metric(cfg.landmark_metric)
+        per_landmark, landmark_dists = landmark_distances(recon_points, cfg, metric)
+        landmark_summary = {
+            "units": units,
+            "recon_path": cfg.recon_path,
+            "landmarks_path": cfg.landmarks_path,
+            "metric": metric.tolist(),
+            "metric_is_identity": bool(np.allclose(metric, np.eye(3))),
+            "landmarks": per_landmark,
+            "summary": summarize(landmark_dists, cfg.coverage_thresholds),
+        }
+        with open(output_landmark_path, "w") as f:
+            json.dump(landmark_summary, f, indent=2)
+        print(
+            f"landmark Mahalanobis distance ({units}, {len(per_landmark)} landmarks): "
+            f"mean={landmark_dists.mean():.4f} max={landmark_dists.max():.4f} "
+            f"-> {output_landmark_path}"
+        )
 
-    save_landmarks(*recon_landmarks(recon_points, cfg.recon_path), output_recon_landmarks_path)
-    landmarks_csv_to_polydata(cfg.landmarks_path, output_reference_landmarks_path, frame=cfg.landmarks_frame)
-    print(f"Saved reference landmarks to: {output_reference_landmarks_path}")
+        save_landmarks(*recon_landmarks(recon_points, cfg.recon_path), output_recon_landmarks_path)
+        landmarks_csv_to_polydata(cfg.landmarks_path, output_reference_landmarks_path, frame=cfg.landmarks_frame)
+        print(f"Saved reference landmarks to: {output_reference_landmarks_path}")
+    else:
+        output_landmark_path = None
+        print("No landmarks_path: no landmark distances.")
     if cfg.lddmm_train_config:
         labels, points = lddmm_landmarks(cfg.lddmm_train_config)
-        save_landmarks(labels, alignment.apply_points(points), output_lddmm_landmarks_path)
+        if alignment is not None:
+            points = alignment.apply_points(points)
+        save_landmarks(labels, points, output_lddmm_landmarks_path)
 
     bins = np.histogram_bin_edges(
         np.concatenate((recon_dist_2_target, target_dist_2_recon)), bins=100
