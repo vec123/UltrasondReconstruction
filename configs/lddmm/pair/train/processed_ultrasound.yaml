@@ -33,11 +33,11 @@ loss:
       field_name: null
     target_to_source:
       # target_weight is indexed by TARGET points, read straight off target:
-      # above -- precomputed by write_target_weight_field.py as
+      # above -- precomputed by the point_fields stage (kind target_weight) as
       # consistency_score * geodesic-proximity-to-nearest-landmark, so it is
       # already the weight directly (no field_transform, same as
       # landmark_weight). Regenerate with:
-      #   python scripts/write_target_weight_field.py configs/target_weight_field.yaml
+      #   python scripts/run.py configs/surface/target/target_weight_field.yaml
       weight: 0.0
       base_sigma: 0.1
       field_name: null

@@ -112,7 +112,7 @@ class ChamferSideCfg:
             target_to_source field; a field NAME (e.g. edge_weight) inherits that
             target field instead, which then acts on this direction only (cohort
             mode). With a target field that is 0 on the target's rim
-            (scripts/write_edge_fields.py: edge_weight), a source point the target
+            (configs/surface/target/edge_fields.yaml: edge_weight), a source point the target
             never saw, whose nearest target point lies on the rim, stops pulling
             toward the rim. Multiplies this side's own field when both are set.
             Refused under direction: bidirectional.

@@ -183,7 +183,7 @@ def _compute_weight_field(path: Path, ctx: BuildContext) -> np.ndarray:
         raise ImportError(
             f"computing a weight field from {path.name} needs src.shared.weight_field, which "
             f"imports torch. Either install it, or bake the field onto a mesh once with "
-            f"scripts/weight_fields/write_landmark_weight_field.py and point 'weights' at "
+            f"configs/surface/template/landmark_weight_field.yaml and point 'weights' at "
             f"that .vtp instead ({error})"
         ) from error
 

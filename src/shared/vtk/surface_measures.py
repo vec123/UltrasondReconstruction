@@ -167,7 +167,7 @@ def compute_vertex_normals(polydata, field_name="normal", weighting="unit"):
 
     The ONE place a persisted ``normal`` point array is produced, so the
     convention cannot drift between the pipeline stage that bakes it
-    (scan_fusion) and the standalone re-bake (scripts/write_surface_normals.py).
+    (scan_fusion) and the standalone re-bake (the point_fields kind normals).
     ``io.load_shape`` reads an array of this name into ``Shape.normals``, which
     is what the point-to-plane data term projects onto.
 

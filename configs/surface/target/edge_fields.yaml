@@ -1,0 +1,27 @@
+# python scripts/run.py configs/surface/target/edge_fields.yaml
+#
+# Bakes the edge fields onto every fused target in TARGETS_DIR, in place
+# (src/shared/point_fields/kinds.py, kind edge): edge, edge_distance,
+# edge_weight (0 on the rim and the hole borders -> 1 at ramp_spacings point
+# spacings inside) and support_edge = support x edge_weight. The targets are
+# point clouds with a 'normal' and a 'support' array. The cohort data term
+# reads them with source_to_target.inherit_target_field: edge_weight and
+# target_to_source.field_name: support_edge.
+#
+# For other targets, change TARGETS_DIR. One target alone:
+#    python scripts/run.py configs/surface/target/edge_fields.yaml --case '{"TARGET": "10_20_semanas"}'
+stage: point_fields
+
+variables:
+  TARGETS_DIR: /home/victor/Escritorio/Data/fused_targets/targets
+
+targets:
+  match: ${TARGETS_DIR}/${TARGET}.vtp
+
+input: ${TARGETS_DIR}/${TARGET}.vtp
+fields:
+  - kind: edge
+    k: 16
+    gap_deg: 120.0
+    ramp_spacings: 3.0
+    combine: [support]

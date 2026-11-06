@@ -28,7 +28,7 @@
 # borders), so a template point the scan never saw, matched to the rim, stops pulling. The
 # scan side keeps plain support: every scan point has a counterpart on the full template.
 # The edge fields were written by:
-#    python scripts/write_edge_fields.py /home/victor/Escritorio/Data/fused_targets/targets/*.vtp
+#    python scripts/run.py configs/surface/target/edge_fields.yaml
 #
 # Training set: /home/victor/Escritorio/Data/fused_targets/train_106, links to the 110 fused
 # targets minus 32_20 (a 12 mm cloud of scattered points, not a face) and the hold-outs

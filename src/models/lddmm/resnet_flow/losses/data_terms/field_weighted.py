@@ -344,8 +344,8 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
     A ZERO-length normal (a vertex whose incident faces are degenerate or cancel)
     survives normalisation as zero, so its plane distance is zero and that point
     falls back to the point-to-point half of ``plane_weight``. Graceful, and rare
-    -- write_surface_normals.py prints the count so a target where it is NOT rare
-    is visible before training rather than after.
+    -- the point_fields kind normals prints the count, so a target where it is
+    NOT rare is visible before training rather than after.
 
     ``plane_weight`` blends against plain point-to-point. Pure point-to-plane
     (1.0) leaves tangential motion completely unconstrained, which is degenerate
@@ -421,7 +421,7 @@ class FieldWeightedP2PlaneData(FieldWeightedCDData):
                 "data_name='field_weighted_point2plane_chamfer' needs the TARGET's "
                 "per-vertex normals, but none reached the data term. Bake a 'normal' "
                 "point array onto the target .vtp with "
-                "scripts/write_surface_normals.py -- io.load_shape picks that array "
+                "configs/surface/target/surface_normals.yaml -- io.load_shape picks that array "
                 "up automatically and joint_normalize carries it through. Failing "
                 "loudly rather than falling back to point-to-point on purpose: a "
                 "silent fallback is indistinguishable from the term working."

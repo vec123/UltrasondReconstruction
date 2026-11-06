@@ -62,7 +62,7 @@ def _ensure_source_normals(cfg, source_norm):
         raise ValueError(
             f"the source's 'normal' array has non-finite rows ({cfg.source}). A NaN "
             "normal silently destroys the whole data term; drop the array to have "
-            "it derived from faces, or re-bake it with scripts/write_surface_normals.py."
+            "it derived from faces, or re-bake it with configs/surface/target/surface_normals.yaml."
         )
 
 
@@ -111,7 +111,7 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
                 "scan_fusion (it writes the field itself under compute_normals: "
                 "true, on the final post-min_support topology), or bake it onto "
                 "the existing file with:\n"
-                f"    python scripts/write_surface_normals.py {cfg.target}\n"
+                f"    python scripts/run.py configs/surface/target/surface_normals.yaml --case '{{\"MESH\": \"{cfg.target}\"}}'\n"
                 "(the target has faces, so these are exact mesh normals, not "
                 "estimated ones). io.load_shape reads the array back automatically "
                 "and joint_normalize carries it through unchanged -- its single "
@@ -127,7 +127,7 @@ def _add_field_weighted_chamfer(cfg, source_norm, target_norm, transform, mappin
                 f"the target's 'normal' array has {n_bad} non-finite row(s) "
                 f"({cfg.target}). A NaN normal propagates through the entire data "
                 "term and silently destroys the run. Re-bake it with "
-                "scripts/write_surface_normals.py, which returns degenerate "
+                "configs/surface/target/surface_normals.yaml, which writes degenerate "
                 "vertices as the ZERO vector instead (scored as zero plane-distance, "
                 "falling back to the point-to-point component)."
             )
@@ -217,7 +217,7 @@ def _add_cohort_field_weighted_chamfer(cfg, cohort_norm, template_norm, mapping_
                 raise ValueError(
                     f"data_name={cfg.loss.data_name!r} needs finite 'normal' point arrays "
                     f"on every cohort member; {path} has none or non-finite ones. Bake "
-                    "them with scripts/write_surface_normals.py."
+                    "them with configs/surface/target/surface_normals.yaml."
                 )
 
     template_field = resolve_point_weight_field(

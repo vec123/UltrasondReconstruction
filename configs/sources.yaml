@@ -11,8 +11,8 @@
 #     match: ${SCANS}
 #     first: [REFERENCE_SCAN]
 #
-# The case variables SUBJECT_ID and WEEK come from the YAML, the case or
-# --set; CASE_KEY (1_20_semanas) is made from them in code
+# The case variables SUBJECT_ID and WEEK come from the YAML or the case
+# (--case); CASE_KEY (1_20_semanas) is made from them in code
 # (src/shared/core/pipeline/cases.py).
 variables:
   # One case: subject and gestational age.

@@ -5,7 +5,7 @@ per-landmark importance (peak weight), and a floor.
 Distinct from ``field_weights.py``: that module turns an ALREADY-BAKED point
 field into a runtime weight (generic, knows nothing about landmarks). This
 module is the thing that BAKES a landmark-derived field in the first place,
-offline, via ``scripts/weight_fields/write_landmark_weight_field.py``. The two
+offline, via the point_fields stage (kind ``landmark_weight``). The two
 are siblings, not layered -- neither imports the other's field-specific logic,
 only ``landmarks.resolve_template_points`` for "where is landmark X on the
 mesh".
@@ -54,7 +54,7 @@ _ALLOWED_KEYS = {"vtp", "include", "decay_scale", "max_weight", "min_weight",
 
 @dataclass
 class LandmarkWeightFieldCfg:
-    """One run of ``scripts/weight_fields/write_landmark_weight_field.py``.
+    """One ``landmark_weight`` field of the point_fields stage.
 
     Attributes:
         vtp: template mesh carrying the ``heatmap_<label>`` fields (and the one

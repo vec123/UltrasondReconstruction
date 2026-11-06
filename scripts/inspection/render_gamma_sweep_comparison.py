@@ -1,6 +1,6 @@
 """Grid of a direct SSM fit's gamma/variant sweep: one row per case, one column
 per fit (target first, then free/clamped, then gammas ascending), all sharing
-one frontal camera - the code_distance_ranking.py / render_frontal_views.py
+one frontal camera - the code_distance_ranking.py / render_views stage
 style, reusing their camera and grid-rendering machinery.
 
 With --per-case it writes instead, for each case folder (the one that holds

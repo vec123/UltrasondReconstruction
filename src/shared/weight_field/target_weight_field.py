@@ -60,7 +60,7 @@ _ALLOWED_KEYS = {"vtp", "landmarks", "include", "decay_scale", "max_weight",
 
 @dataclass
 class TargetWeightFieldCfg:
-    """One run of ``scripts/weight_fields/write_target_weight_field.py``.
+    """One ``target_weight`` field of the point_fields stage.
 
     Attributes:
         vtp: target scan carrying face connectivity and ``consistency_field``

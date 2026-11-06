@@ -1,0 +1,17 @@
+# python scripts/run.py configs/surface/target/surface_normals.yaml --case '{"MESH": "path/to/target.vtp"}'
+#
+# Bakes a 'normal' point array onto one mesh from its faces, in place
+# (src/shared/point_fields/kinds.py, kind normals). The data term
+# field_weighted_point2plane_chamfer needs it on its target; io.load_shape reads
+# it into Shape.normals. scan_fusion writes this array itself
+# (compute_normals: true), so this config is for meshes made before that or
+# outside the pipeline. It prints how many vertices get a zero-length normal.
+# For a copy instead of in place, set output. weighting: area averages the
+# incident faces by their area.
+stage: point_fields
+
+input: ${MESH}
+output: ""
+fields:
+  - kind: normals
+    weighting: unit
