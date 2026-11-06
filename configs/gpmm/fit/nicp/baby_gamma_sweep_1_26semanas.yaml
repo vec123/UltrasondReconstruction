@@ -1,8 +1,11 @@
 stage: ssm_fit
+
+variables:
+  DATASET: Casos_Mar
 inputs:
   shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
   mesh_vtp: /home/victor/Escritorio/Data/fused_scan_processing/Casos_Mar/1/26 semanas/fused_scan_ssm/fused_scan.vtp
-  landmarks_json: ${PROJECT_ROOT}/outputs/Casos_Mar/1/26 semanas/aligned_to_template/landmarks_csv
+  landmarks_json: ${OUT}/1/26 semanas/aligned_to_template/landmarks_csv
   template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
 
 outputs:

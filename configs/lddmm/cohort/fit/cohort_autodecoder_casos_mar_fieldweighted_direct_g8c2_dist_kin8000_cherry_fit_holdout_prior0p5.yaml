@@ -15,10 +15,13 @@
 
 stage: resnet_lddmm_train
 
-source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096_fields_fit_holdout
-frame_source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096_fields_cherry_tree
-target: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp
-output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_fit_holdout_prior0p5
+variables:
+  DATASET: Casos_Mar
+
+source: ${OUT}/cohort/fused_targets_4096_fields_fit_holdout
+frame_source: ${OUT}/cohort/fused_targets_4096_fields_cherry_tree
+target: ${OUT}/cohort/template_baby_mean_aligned.vtp
+output_dir: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry_fit_holdout_prior0p5
 
 field:
   kind: time_varying_fourier
@@ -77,7 +80,7 @@ train:
   freeze_flow: true
 
 init:
-  checkpoint: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry/checkpoints/final.pt
+  checkpoint: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g8c2_dist_kin8000_cherry/checkpoints/final.pt
   parts: [flow]
   continue_step_count: false
   code_init: mean

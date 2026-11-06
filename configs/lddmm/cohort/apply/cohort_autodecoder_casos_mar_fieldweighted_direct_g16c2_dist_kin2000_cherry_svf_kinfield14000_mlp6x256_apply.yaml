@@ -8,8 +8,11 @@
 
 stage: resnet_lddmm_apply
 
-train_config: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/config.json
-checkpoint: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/checkpoints
+variables:
+  DATASET: Casos_Mar
+
+train_config: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/config.json
+checkpoint: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256/checkpoints
 device: cuda
 shapes: null   # every member
 export:

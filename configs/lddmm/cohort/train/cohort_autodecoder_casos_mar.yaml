@@ -20,9 +20,12 @@
 
 stage: resnet_lddmm_train
 
-source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096
-target: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp
-output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder
+variables:
+  DATASET: Casos_Mar
+
+source: ${OUT}/cohort/fused_targets_4096
+target: ${OUT}/cohort/template_baby_mean_aligned.vtp
+output_dir: ${OUT}/resnet_lddmm_cohort_autodecoder
 
 field:
   kind: time_varying_fourier

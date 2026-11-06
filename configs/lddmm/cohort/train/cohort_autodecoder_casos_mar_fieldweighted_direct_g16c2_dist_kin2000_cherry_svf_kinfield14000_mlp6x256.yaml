@@ -59,9 +59,12 @@
 
 stage: resnet_lddmm_train
 
-source: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/fused_targets_4096_fields_cherry_tree
-target: ${PROJECT_ROOT}/outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp
-output_dir: ${PROJECT_ROOT}/outputs/Casos_Mar/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256
+variables:
+  DATASET: Casos_Mar
+
+source: ${OUT}/cohort/fused_targets_4096_fields_cherry_tree
+target: ${OUT}/cohort/template_baby_mean_aligned.vtp
+output_dir: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_direct_g16c2_dist_kin2000_cherry_svf_kinfield14000_mlp6x256
 
 field:
   kind: stationary_fourier
