@@ -203,3 +203,31 @@ class DistanceDistributionOverlayConfig:
     units: str = "landmark frame units"
     recon_to_target_title: str = "Reconstruction to target"
     target_to_recon_title: str = "Target to reconstruction"
+
+
+@dataclasses.dataclass
+class CompareConfig:
+    """Several models, compared over the cases that all of them have."""
+
+    # Model name -> the pattern of its evaluation folder (the output_dir of
+    # recon_target_distance) of one case, e.g. ${OUT}/fetus_ssm/${SESSION}/eval.
+    # The variables without a value are the case variables: the stage finds
+    # their values on the disk.
+    models: Dict[str, str] = dataclasses.field(default_factory=dict)
+
+    # Directory the table, the summary and the plots are written into.
+    output_dir: str = ""
+
+    # The units of the evaluation folders. Left unset, read from them; they
+    # must all agree.
+    units: str = ""
+
+    coverage_thresholds: List[float] = dataclasses.field(
+        default_factory=lambda: [1.0, 2.0, 3.0]
+    )
+
+    # The distribution plots, as in DistanceDistributionOverlayConfig.
+    bins: int = 100
+    clip_percentile: float = 99.5
+    normalize: str = "fraction"
+    log_y: bool = False

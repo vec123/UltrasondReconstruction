@@ -1,0 +1,19 @@
+# python scripts/run.py configs/evaluation/compare/compare_models.yaml
+#
+# The fetus and baby GPMM MAP fits and one LDDMM cohort apply, compared over
+# the Casos_Mar cases that all three have (src/evaluation/stages/compare.py).
+# Each model entry is the pattern of its evaluation folder of one case (the
+# output_dir of recon_target_distance). SESSION and CASE_KEY hold the case
+# variables SUBJECT_ID and WEEK; the stage finds their values on the disk.
+# --set SUBJECT_ID=1 compares the cases of subject 1 only.
+stage: compare
+
+variables:
+  DATASET: Casos_Mar
+
+models:
+  fetus_gpmm_map: ${OUT}/fetus_ssm/${SESSION}/end_to_end/init_pca/eval_map
+  baby_gpmm_map: ${OUT}/baby_ssm/${SESSION}/end_to_end/init_pca/eval_map
+  lddmm_cohort_g8: ${OUT}/resnet_lddmm_cohort_autodecoder_fieldweighted_g8/apply/${CASE_KEY}/eval
+
+output_dir: ${OUT}/compare/fetus_gpmm_map_vs_baby_gpmm_map_vs_lddmm_cohort_g8

@@ -12,4 +12,5 @@ STAGE_SPECS = {
                                                    run="run_overview", output="output_path"),
     "recon_target_distance": StageSpec.of_module(f"{_STAGES}.recon_target_distance"),
     "distance_distribution_overlay": StageSpec.of_module(f"{_STAGES}.distance_distribution_overlay"),
+    "compare": StageSpec.of_module(f"{_STAGES}.compare", patterns=("models",)),
 }
