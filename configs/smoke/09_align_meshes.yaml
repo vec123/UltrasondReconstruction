@@ -1,0 +1,39 @@
+# python scripts/run.py configs/smoke/09_align_meshes.yaml   (after 07_gpmm_mean_shape.yaml)
+#
+# Smoke run of align_meshes (correspondence-free similarity, src/models/gpmm/runners/align_meshes.py)
+# with the settings of configs/geometry_transforms/align_fetus_to_baby.yaml, but
+# 20 iterations: the fitted fetus NICP mesh of 01_ultrasound.yaml onto the fetus
+# atlas mean of 07_gpmm_mean_shape.yaml (both in mm), focused on the nose tip by
+# that mean's heatmap_prn field: an atlas folder as target shape_model carries no
+# landmarks here. The BabyFM .mat of the real config is missing, and
+# align_landmarks reads only that .mat, so align_landmarks has no smoke file.
+stage: align_meshes
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+source:
+  mesh_vtp: ${US}/fetus_ssm/init_pca/nicp_refined_vertices_map_1x.vtp
+target:
+  mesh_vtp: ${SMOKE}/gpmm_mean_shape/mean_shape.vtp
+  normalize: false
+  triangulate: true
+outputs:
+  dir: ${SMOKE}/align_meshes
+  transform: similarity_transform.npz
+  aligned: fetus_fit_in_atlas_space.vtp
+  target: atlas_mean.vtp
+  write_target: true
+allow_scale: true
+focus:
+  weight: 8.0
+  field: heatmap_prn
+refine_count: 8
+iterations: 20
+trim_ratio: 0.1
+tolerance: 1.0e-12
+verbose: true

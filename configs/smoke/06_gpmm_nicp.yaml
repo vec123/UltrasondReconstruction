@@ -1,0 +1,50 @@
+# python scripts/run.py configs/smoke/06_gpmm_nicp.yaml   (after 01_ultrasound.yaml)
+#
+# Smoke run of ssm_nicp (the NICP step alone, src/models/gpmm/runners/nicp.py):
+# one ICP run of 3 iterations of the fetus atlas on the fused scan of
+# 01_ultrasound.yaml, on the CPU. The fetus atlas, not a GPMM .npz, because this
+# runner reads only a .mat or an atlas folder (the BabyFM .mat of
+# configs/gpmm/fit/nicp/nicp.yaml is missing). The scan is mapped to the model
+# space by a similarity onto the fetus mean template; distances are in mm.
+stage: ssm_nicp
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+inputs:
+  shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
+  mesh_vtp: ${US}/fused_scan_ssm/fused_scan.vtp
+  to_model_space:
+    template_vtp: ${PROJECT_ROOT}/assets/templates/fetus_mean.vtp
+    transform_npz: null
+    inverse: false
+    allow_scale: true
+    save_transform: true
+  init_vtp: null
+  init_alpha_npz: null
+outputs:
+  dir: ${SMOKE}/gpmm_nicp
+  run_dir: "{run}"
+model:
+  normalize: false
+  atlas:
+    time_points: 11
+    cache: true
+compute:
+  device: cpu
+  dtype: float32
+  seed: 0
+runs:
+  - name: icp_maha_norm_01_i3
+    correspondence:
+      name: constrained
+      kwargs: {max_dist: 5.0, normal_thresh_deg: 90.0, trim_ratio: 0.05, k: 5, use_target_normals: true}
+    loss: {name: matched_l2, kwargs: {reduction: sum}}
+    prior: {name: mahalanobis, kwargs: {weight: 0.1, normalize: true}}
+    solver: {name: normal_equations, kwargs: {iterations: 3, learning_rate: 1.0, damping: 0.0}}
+    projection: {name: none}
+    refresh_every: 1

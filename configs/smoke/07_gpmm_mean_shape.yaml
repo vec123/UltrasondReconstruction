@@ -1,0 +1,39 @@
+# python scripts/run.py configs/smoke/07_gpmm_mean_shape.yaml   (or all smoke files: python tests/smoke.py)
+#
+# Smoke run of ssm_mean_shape with the settings of
+# configs/gpmm/sample/mean_shape_fetus.yaml (a flat file, so copied): the fetus
+# atlas mean with its per-vertex fields and landmarks. 09_align_meshes.yaml
+# aligns onto this mean.
+stage: ssm_mean_shape
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+shape_model_mat: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
+outputs:
+  dir: ${SMOKE}/gpmm_mean_shape
+  files:
+    mean_shape: mean_shape.vtp
+    landmarks_csv: landmark_coordinates.csv
+    landmarks_vtp: landmarks.vtp
+model:
+  normalize: false
+  atlas:
+    kernel_width: null
+    time_points: 11
+    n_components: null
+    variance_threshold: 1.0
+    cache: true
+    landmarks: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4/landmarks.json
+fields:
+  total_std: true
+  mode_count: 5
+  mode_vectors: false
+  curvature: true
+  landmark_distance: true
+  landmark_heatmaps: true
+  combined_heatmap: true
+  combined_mode: max
+  heat_sigma: null
+  heat_normalize: true
+verbose: true

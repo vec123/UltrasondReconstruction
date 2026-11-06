@@ -1,0 +1,46 @@
+# python scripts/run.py configs/smoke/05_gpmm_fit.yaml   (after 01_ultrasound.yaml)
+#
+# Smoke run of ssm_fit with the settings of configs/gpmm/fit/nicp/baby_pca.yaml:
+# the baby PCA model fitted to the fused scan of 01_ultrasound.yaml on the CPU,
+# as baby_ssm_fit_pca of configs/pipelines/end_to_end_casos_mar.yaml does, but
+# 3 solver iterations instead of 10. A list replaces the inherited one as a
+# whole, so the fit entry is copied from baby_pca.yaml. It writes result.json,
+# which the evaluation smoke files read.
+stage: ssm_fit
+extends: gpmm/fit/nicp/baby_pca.yaml
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  US: ${SMOKE}/ultrasound/${SESSION}
+
+paths:
+  inputs:
+    shape_model_mat: ${PROJECT_ROOT}/assets/shape_models/baby/baby_pca.npz
+    mesh_vtp: ${US}/fused_scan_ssm/fused_scan.vtp
+    landmarks_json: ${US}/aligned_to_template/landmarks_csv
+    template_vtp: ${PROJECT_ROOT}/assets/templates/baby_mean.vtp
+  outputs:
+    dir: ${SMOKE}/gpmm_fit/baby_pca
+
+hyperparameters:
+  nicp:
+    device: cpu
+    fits:
+    - name: map_1x
+      correspondence:
+        name: constrained
+        kwargs: {max_dist: 10.0, normal_thresh_deg: 60.0, k: 50, use_target_normals: true, one_to_one: true}
+      loss:
+        name: matched_l2
+        kwargs: {reduction: mean}
+      prior:
+        name: mahalanobis
+        kwargs: {weight: 0.01536, normalize: true}
+      projection: {name: none}
+      solver:
+        name: normal_equations
+        kwargs: {iterations: 3, learning_rate: 1.0, damping: 0}
+      refresh_every: 1

@@ -1,0 +1,22 @@
+# python scripts/run.py configs/smoke/08_sample_gpmm.yaml   (after 04_gpmm_build.yaml)
+#
+# Smoke run of the sample stage (src/shared/sampling/stage.py) on a GPMM: 4
+# shapes from a Sobol sequence over the modes of the model that
+# 04_gpmm_build.yaml built, as configs/gpmm/sample/baby_pca_sobol1000.yaml does
+# for the baby model.
+stage: sample
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+model:
+  kind: gpmm
+  path: ${SMOKE}/gpmm_build/fetus_pca_times_matern52_rank20.npz
+
+codes:
+  source: prior
+  n: 4
+  sampling: sobol
+  seed: 0
+
+output_dir: ${SMOKE}/sample_gpmm

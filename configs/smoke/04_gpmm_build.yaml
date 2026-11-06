@@ -1,0 +1,36 @@
+# python scripts/run.py configs/smoke/04_gpmm_build.yaml   (or all smoke files: python tests/smoke.py)
+#
+# Smoke run of ssm_build: the fetus PCA x Matern52 GPMM of
+# configs/gpmm/build/fetus/pca_times_matern52.yaml (a flat file, so copied),
+# with rank 20 instead of 300. 08_sample_gpmm.yaml draws shapes from it.
+stage: ssm_build
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+domain:
+  source: ${PROJECT_ROOT}/assets/atlases/FetusModel_x4
+  metric: euclidean
+  mass: true
+normalize: false
+kernel:
+  name: product
+  children:
+    - name: pca
+    - name: matern52
+      kwargs:
+        rho: 13.9
+        scale: 1.0
+truncation:
+  n_components: 20
+  variance_threshold: 0.99
+approximation:
+  name: pivoted_cholesky
+  kwargs:
+    max_rank: 20
+    tolerance: 1.0e-3
+inference:
+  name: none
+output:
+  dir: ${SMOKE}/gpmm_build
+  filename: fetus_pca_times_matern52_rank20.npz
