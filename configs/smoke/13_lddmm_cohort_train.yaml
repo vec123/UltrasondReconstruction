@@ -1,0 +1,61 @@
+# python scripts/run.py configs/smoke/13_lddmm_cohort_train.yaml   (after 12_cohort_members.yaml)
+#
+# Smoke run of resnet_lddmm_train in cohort mode (auto-decoder) with the settings of
+# configs/lddmm/cohort/train/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_meancode_template.yaml
+# (a flat file, so copied): the mean-code template of that run's first run onto
+# the 4 members of 12_cohort_members.yaml, 30 steps instead of 3000 (Fourier
+# bands open from step 10 to 20), batch 4, on the GPU. 14 to 16 read this run.
+stage: resnet_lddmm_train
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+  FIRST_RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+
+source: ${SMOKE}/cohort_members
+target: ${FIRST_RUN}/apply/mean_recon/world/deformed.vtp
+output_dir: ${SMOKE}/lddmm_cohort
+field:
+  kind: time_varying_fourier
+  num_steps: 20
+  mlp: [128, 128]
+  activation: relu
+  grad_checkpointing: true
+  fourier_n_e: 3
+  fourier_anneal: {start: 10, end: 20}
+code:
+  kind: auto_decoder
+  n_z: 128
+  position_aware: false
+loss:
+  data_name: field_weighted_point2plane_chamfer
+  data_kwargs:
+    source_to_target:
+      weight: 1
+      base_sigma: 0.01
+      field_name: landmark_weight
+      inherit_target_field: edge_weight
+      loss_distance_handle: {kind: truncated, breakpoint: 0.1, power: 1}
+    target_to_source:
+      weight: 1
+      base_sigma: 0.01
+      field_name: support
+      inherit_source_field: false
+      loss_distance_handle: {kind: quadratic, breakpoint: 0.1, power: 2}
+  kinetic_weight: 200.0
+  code_reg_weight: 0.01
+  isometry_weight: 10.0
+  isometry_type: det
+  landmark_weight: 0.0
+  subsample_M: 1000
+  direction: forward
+train:
+  mode: cohort
+  steps: 30
+  batch: 4
+  lr: 0.0001
+  seed: 42
+  log_every: 10
+  save_every: 30
+  export_shapes: 2
+  export_strategy: sequential
+  device: cuda

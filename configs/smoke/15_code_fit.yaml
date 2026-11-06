@@ -1,0 +1,25 @@
+# python scripts/run.py configs/smoke/15_code_fit.yaml   (after 03, 13)
+#
+# Smoke run of code_fit with the settings of configs/code_fit/fused_target.yaml:
+# the code of the frozen flow of 13_lddmm_cohort_train.yaml fitted to the fused
+# scan of 01_ultrasound.yaml (mm), 20 steps instead of 1000 and fewer points, on
+# the GPU. The model frame is put into the scan by the aligned baby mean of
+# 03_similarity_transform.yaml (same vertices as the run's template).
+stage: code_fit
+extends: code_fit/fused_target.yaml
+
+variables:
+  DATASET: Casos_Mar
+  SUBJECT_ID: "1"
+  WEEK: 20 semanas
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+paths:
+  target: ${SMOKE}/ultrasound/${SESSION}/fused_scan_ssm/fused_scan.vtp
+  output_dir: ${SMOKE}/code_fit
+  frame: {aligned_template: '${SMOKE}/similarity_transform/baby_mean_aligned.vtp'}
+
+hyperparameters:
+  model: {run: '${SMOKE}/lddmm_cohort'}
+  data: {points: 500, fit_points: 1000}
+  steps: 20

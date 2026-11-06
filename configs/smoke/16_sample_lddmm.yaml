@@ -1,0 +1,22 @@
+# python scripts/run.py configs/smoke/16_sample_lddmm.yaml   (after 13_lddmm_cohort_train.yaml)
+#
+# Smoke run of the sample stage on an LDDMM cohort run with the settings of
+# configs/lddmm/cohort/sample/timevarying_kin200_det10_pca_modes.yaml (a flat
+# file, so copied): the first 2 PCA modes of the codes of
+# 13_lddmm_cohort_train.yaml at -1, 0 and +1 SD, decoded on the GPU.
+stage: sample
+
+variables:
+  SMOKE: ${PROJECT_ROOT}/outputs/smoke
+
+model:
+  kind: lddmm
+  run: ${SMOKE}/lddmm_cohort
+  code_prior: pca
+codes:
+  source: modes
+  parameters: 2
+  steps: [-1, 0, 1]
+batch: 6
+device: cuda
+output_dir: ${SMOKE}/sample_lddmm
