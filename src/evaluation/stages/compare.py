@@ -23,7 +23,7 @@ Writes into output_dir:
   cases.
 - recon_to_target_distribution.png, target_to_recon_distribution.png and the
   two *_coverage.png: per model the points of all cases together, drawn by
-  the functions of distance_distribution_overlay.
+  src/evaluation/distance_plots.py, as distance_distribution_overlay draws them.
 """
 
 import csv
@@ -34,14 +34,15 @@ import os
 import numpy as np
 
 from src.evaluation.config import CompareConfig as Config
-from src.evaluation.metrics import fraction_within
-from src.evaluation.stages.distance_distribution_overlay import (
+from src.evaluation.distance_plots import (
     DIRECTIONS,
+    bin_edges,
     draw_coverage_overlay,
     draw_overlay,
     read_distance_field,
     summarize,
 )
+from src.evaluation.metrics import fraction_within
 from src.shared.core.pipeline.targets import find_case_paths
 
 MARKER = "distance_summary.json"  # recon_target_distance writes it last
@@ -89,23 +90,6 @@ def folder_units(eval_dirs):
         raise ValueError(f"The evaluation folders have different units {sorted(map(str, units))}; "
                          f"compare only folders of one frame.")
     return units.pop()
-
-
-def bin_edges(series, cfg):
-    """Bin edges shared by all series, cut at cfg.clip_percentile of the pooled
-    distances, and the footnote that names the share of points past the cut."""
-    pooled = np.concatenate([entry["values"] for entry in series])
-    lower = float(pooled.min())
-    upper = float(pooled.max()) if cfg.clip_percentile >= 100 else float(np.percentile(pooled, cfg.clip_percentile))
-    if upper <= lower:
-        upper = float(pooled.max())
-    beyond = {entry["label"]: float((entry["values"] > upper).mean()) for entry in series}
-    note = ""
-    if max(beyond.values()) > 0:
-        worst = ", ".join(f"{label} {share:.1%}" for label, share in beyond.items() if share > 0)
-        note = (f"x-axis cut at the {cfg.clip_percentile:g}th percentile of the pooled "
-                f"distances ({upper:.2f}); points beyond it are not drawn: {worst}")
-    return np.linspace(lower, upper, cfg.bins + 1), note
 
 
 def over_cases(rows):
@@ -172,7 +156,7 @@ def run(cfg: Config):
     plot_cfg = dataclasses.replace(cfg, units=units)
     for direction, by_model in pooled.items():
         series = [{"label": model, "color": "", "values": np.concatenate(parts)} for model, parts in by_model.items()]
-        edges, note = bin_edges(series, cfg)
+        edges, _, note = bin_edges(series, cfg.bins, cfg.clip_percentile)
         title = f"{TITLES[direction]}, {len(cases)} cases"
         draw_overlay(series, edges, plot_cfg, title, note, os.path.join(cfg.output_dir, f"{direction}_distribution.png"))
         draw_coverage_overlay(series, plot_cfg, title, "", os.path.join(cfg.output_dir, f"{direction}_coverage.png"))

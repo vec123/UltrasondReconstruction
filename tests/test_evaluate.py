@@ -20,7 +20,7 @@ from scripts.pipeline.registry import STAGE_REGISTRY  # noqa: E402
 from src.evaluation.config import ReconTargetDistanceConfig as Config  # noqa: E402
 from src.shared.core.pipeline import engine  # noqa: E402
 from src.evaluation.stages import recon_target_distance  # noqa: E402
-from src.evaluation.stages.distance_distribution_overlay import read_distance_field  # noqa: E402
+from src.evaluation.distance_plots import read_distance_field  # noqa: E402
 from src.shared.results import Result, similarity_record, write_results  # noqa: E402
 from src.shared.transforms.similarity import SimilarityTransform  # noqa: E402
 from src.shared.vtk.create import create_polydata  # noqa: E402
