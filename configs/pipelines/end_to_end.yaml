@@ -490,7 +490,7 @@ paths:
   #
   # target_path is ALWAYS that fit's own rigid_alignment.vtp, never the scan
   # file the fit read. steps.align maps the target scan into MODEL space and
-  # every reconstruction comes out there (see src/models/gpmm/runners/pipeline.py) -
+  # every reconstruction comes out there (see src/models/gpmm/runners/pipeline/alignment.py) -
   # the baby models' frame is ~0.02 units across against the fetus template's
   # ~100, so pairing a recon with the scan in its own frame measures the frame
   # gap, not the fit. rigid_alignment.vtp is that same scan already carried

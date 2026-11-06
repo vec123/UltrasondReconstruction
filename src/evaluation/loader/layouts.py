@@ -73,7 +73,7 @@ def _has_result(case_dir) -> bool:
 @register_layout("direct_ssm_fit")
 @dataclass(frozen=True)
 class DirectSSMFitLayout(PairLayout):
-    """A case folder of the SSM pipeline runner (src/models/gpmm/runners/pipeline.py).
+    """A case folder of the SSM pipeline runner (src/models/gpmm/runners/pipeline/).
 
     recon      the fit named ``fit``: nicp_refined_vertices_<fit>.vtp, or
                refined_vertices.vtp for "refined" (the landmark step's result).
@@ -88,7 +88,7 @@ class DirectSSMFitLayout(PairLayout):
     fit: str
 
     marker: ClassVar[str] = _SSM_FILES.rigid_alignment
-    refined_key: ClassVar[str] = "refined"     # REFINED_KEY in src/models/gpmm/runners/pipeline.py
+    refined_key: ClassVar[str] = "refined"     # REFINED_KEY in src/models/gpmm/runners/pipeline/results.py
 
     @classmethod
     def is_case(cls, case_dir: Path) -> bool:
