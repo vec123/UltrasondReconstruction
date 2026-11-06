@@ -58,7 +58,12 @@ def load_shape(path):
         poly = load_obj(path)
     else:
         raise ValueError(f"Unsupported format: {ext}. Supported: .vtp, .obj")
+    return shape_from_polydata(poly, point_fields=ext == ".vtp")
 
+
+def shape_from_polydata(poly, point_fields=True):
+    """The Shape of a vtkPolyData in memory (see load_shape); ``point_fields``:
+    keep every point array of ``poly`` in Shape.point_fields (an empty dict otherwise)."""
     points_np, faces_np = extract_vtp_points_cells(poly)
     fields = extract_vtp_point_fields(poly, ["area", "normal"])
 
@@ -86,7 +91,7 @@ def load_shape(path):
     # back on the deformed shape. "area"/"normal" are in here too and that is
     # deliberate: they are still point data, and a template exported without them
     # would have lost arrays its input had.
-    point_fields = extract_all_vtp_point_fields(poly) if ext == ".vtp" else {}
+    all_fields = extract_all_vtp_point_fields(poly) if point_fields else {}
 
     return Shape(points=points, faces=faces, weights=weights, normals=normals,
-                 point_fields=point_fields)
+                 point_fields=all_fields)

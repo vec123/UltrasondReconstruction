@@ -10,22 +10,25 @@
 # 12-20 mm 0.90 | beyond 1.0. Stiffness ratio 10:1, mean 0.95.
 #
 # Regenerate with:
-#   python scripts/weight_fields/write_landmark_weight_field.py configs/surface/template/kinteic_weight_field_templates.yaml
+#   python scripts/run.py configs/surface/template/kinteic_weight_field_templates.yaml
 # then re-run similarity_transform_baby_mean so the field reaches
 # baby_mean_aligned.vtp, the file training actually reads.
 
-vtp: assets/templates/baby_mean.vtp
-output_field: kinetic_weight
-invert: true
+stage: point_fields
+input: assets/templates/baby_mean.vtp
+fields:
+  - kind: landmark_weight
+    output_field: kinetic_weight
+    invert: true
 
-decay_scale: 0.0012
-max_weight: 1.0
-min_weight: 0.1
+    decay_scale: 0.0012
+    max_weight: 1.0
+    min_weight: 0.1
 
-include:
-  - aL
-  - aR
-  - acL
-  - acR
-  - prn
-  - sn
+    include:
+      - aL
+      - aR
+      - acL
+      - acR
+      - prn
+      - sn
