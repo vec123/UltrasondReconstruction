@@ -1,0 +1,34 @@
+# Scores the recon of every member of cohort runs against its cohort scan, in one
+# common mm frame. The stage fits a similarity from the recon's landmark vertices to
+# one landmarks CSV (assets/eval_frame) and applies it to the recon and the scan. So
+# the CSV only sets the frame: every case and every run is in the same frame, and the
+# landmark distance of the stage is not an accuracy.
+# The cases run one after the other in this process (no batch: block).
+# The result is <run>/apply/<case>/eval_reference_frame/.
+#
+# Run with:
+#    python scripts/run.py configs/evaluation/fields/recon_target_distance_cohort.yaml
+stage: recon_target_distance
+
+variables:
+  COHORT: ${DATA_ROOT}/fused_targets_full313
+  RUNS_DIR: ${PROJECT_ROOT}/outputs/direct_flow
+
+# One case per member of a run: RUN and CASE_KEY are found on the disk.
+targets:
+  match: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/world/deformed.vtp
+  only:
+  - {RUN: timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281}
+  - {RUN: timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-meancode_template2scan_full313_train281}
+  exclude:
+  - {CASE_KEY: mean_recon}
+
+paths:
+  target_path: ${COHORT}/train/${CASE_KEY}.vtp
+  recon_path: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/world/deformed.vtp
+  landmarks_path: ${PROJECT_ROOT}/assets/eval_frame/reference_frame.csv
+  output_dir: ${RUNS_DIR}/${RUN}/apply/${CASE_KEY}/eval_reference_frame
+
+hyperparameters:
+  units: mm (reference frame)
+  coverage_thresholds: [1.0, 2.0, 3.0]
