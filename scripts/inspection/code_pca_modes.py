@@ -31,7 +31,8 @@ from scripts.inspection.code_pca_views import similarity_map, template_landmarks
 from src.models.lddmm.resnet_flow import registrations  # noqa: E402,F401  (registers all components)
 from src.models.lddmm.resnet_flow.apply.client import DeformationClient  # noqa: E402
 from src.shared.core.pipeline import no_pipeline_context  # noqa: E402
-from src.shared.core.config import interpolate_paths, path_variables  # noqa: E402
+from src.shared.core.pipeline.engine import run_variables  # noqa: E402
+from src.shared.core.config import interpolate_paths  # noqa: E402
 from src.shared.core.config import load_yaml  # noqa: E402
 from src.models.lddmm.resnet_flow.apply.config import ApplyCfg, load_training_config  # noqa: E402
 from src.models.lddmm.resnet_flow.callbacks.checkpoints import load_checkpoint, resolve_checkpoint  # noqa: E402
@@ -83,10 +84,11 @@ def decode(apply_config, steps, region=None, extra=None):
 
     `extra` ({key: function of the [M, n_z] codes -> one code}) decodes further
     codes into the same dict under their own keys, e.g. the zero code."""
-    # As run_stage.py reads a stage config: drop the stage name, fill ${PROJECT_ROOT} etc.
+    # As run_stage.py reads a stage config: drop the stage name, fill the variables as the engine does.
     raw = load_yaml(apply_config)
     raw.pop("stage", None)
-    apply_cfg = ApplyCfg.from_dict(interpolate_paths(raw, path_variables(),
+    variables = run_variables(raw.pop("variables", None), None, apply_config)
+    apply_cfg = ApplyCfg.from_dict(interpolate_paths(raw, variables,
                                                      resolve_ref=no_pipeline_context))
     train_cfg = load_training_config(apply_cfg)
     ref = resolve_checkpoint(apply_cfg.checkpoint, apply_cfg.step)

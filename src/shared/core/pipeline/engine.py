@@ -89,7 +89,7 @@ def _source_variables(base):
     return _own_variables(load_yaml(path).get("variables"), base, path)
 
 
-def _variables(yaml_variables, extra_vars, source):
+def run_variables(yaml_variables, extra_vars, source):
     """The ``${NAME}`` variables of a run: PROJECT_ROOT/DATA_ROOT (.env), then the layout
     of configs/sources.yaml, then the YAML's own ``variables:`` block, then
     ``extra_vars`` (a case of targets:, --set), each overriding the ones before,
@@ -187,10 +187,10 @@ def run_main(config_path, registry, extra_vars=None, case_command=None):
         return {**case.values, **(extra_vars or {})}
 
     def case_variables(case):
-        return _variables(raw.get("variables"), case_extra(case), config_path)
+        return run_variables(raw.get("variables"), case_extra(case), config_path)
 
-    run_variables = _variables(raw.get("variables"), extra_vars, config_path)
-    cases = find_cases(raw["targets"], run_variables, config_path)
+    variables = run_variables(raw.get("variables"), extra_vars, config_path)
+    cases = find_cases(raw["targets"], variables, config_path)
     if raw.get("batch") is None:
         failed = batch.run_in_process(cases, lambda case: run(config_path, registry, case_extra(case)))
     else:
@@ -198,7 +198,7 @@ def run_main(config_path, registry, extra_vars=None, case_command=None):
             raise ValueError(f"'batch:' in '{config_path}' runs each case in its own process, "
                              f"but this caller gives no command for it.")
         failed = batch.run_in_processes(
-            cases, raw["batch"], run_variables, case_variables,
+            cases, raw["batch"], variables, case_variables,
             lambda case: case_command(os.path.abspath(config_path), case_extra(case)), config_path)
     if failed:
         raise batch.CasesFailed(f"{len(failed)} of {len(cases)} cases failed: {failed}")
@@ -224,7 +224,7 @@ def stage_main(config_path, registry, extra_vars=None):
     stage_name = raw.pop("stage", None)
     if stage_name is None:
         raise ValueError(f"'{config_path}' is missing a top-level 'stage: <name>' field.")
-    variables = _variables(raw.pop("variables", None), extra_vars, config_path)
+    variables = run_variables(raw.pop("variables", None), extra_vars, config_path)
     for key in RUN_KEYS:
         raw.pop(key, None)
     if "hyperparameters" in raw:
@@ -293,7 +293,7 @@ def pipeline_main(pipeline_config_path, registry, extra_vars=None):
     """
     pipeline_config_path = os.path.abspath(pipeline_config_path)
     pipeline_cfg = load_yaml(pipeline_config_path)
-    variables = _variables(pipeline_cfg.get("variables"), extra_vars, pipeline_config_path)
+    variables = run_variables(pipeline_cfg.get("variables"), extra_vars, pipeline_config_path)
 
     stages = pipeline_cfg.get("stages", [])
     if not stages:
