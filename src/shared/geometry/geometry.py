@@ -152,21 +152,35 @@ def neighborhood_normal(points):
     normal = vh[:,2,:]
     return normal / np.linalg.norm(normal,axis=-1, keepdims=True)
 
+# A face of cross-product length c weighs c / (c + SLIVER_EPS * diagonal**2) in
+# mesh_vertex_normals: 1 for a normal face, near 0 for a degenerate one. On a mesh
+# with an 85 mm bounding-box diagonal this is the absolute 1e-6 mm^2 used before,
+# so mm meshes keep their normals and every other scale gets the same ones.
+SLIVER_EPS = 1e-6 / 85.0 ** 2
+
+
 def mesh_vertex_normals(verts, faces):
     """Vertex normals, by summing (unit) incident face normals. numpy in / out.
 
-    UNWEIGHTED: a sliver triangle counts as much as a large one at the same
-    vertex. See surface_measures._vertex_normals for the area-weighted variant.
+    UNWEIGHTED: a thin triangle counts as much as a large one at the same
+    vertex; only near-degenerate faces, whose direction is noise, fade out
+    (SLIVER_EPS). The fade is relative to the mesh's size, so the normals do not
+    depend on its scale (mm or the unit frame of a model). See
+    surface_measures._vertex_normals for the area-weighted variant.
 
-    A vertex whose incident faces are degenerate or cancel exactly sums to the
-    zero vector; the epsilon below returns it as zero rather than NaN. That
+    A vertex whose incident faces are degenerate or cancel exactly, or that is in
+    no face, sums to the zero vector and is returned as zero rather than NaN. That
     distinction matters -- a zero normal EXCLUDES that vertex from whatever
     consumes it (a cos-similarity weight becomes 0, a point-to-plane residual
     becomes 0), while a NaN propagates through every downstream reduction and
     silently destroys the whole result. Real meshes have these: the fused scans
-    here carry ~0.1% of them.
+    here carry 1 to 6% of them, points of the cloud that are in no face.
     """
-    face_n = face_normals(verts, faces)
+    raw = face_normals(verts, faces, normalized=False)
+    corners = verts[np.unique(faces)]
+    eps = SLIVER_EPS * float(np.sum(np.ptp(corners, axis=0) ** 2)) if len(corners) else 0.0
+    length = np.linalg.norm(raw, axis=-1, keepdims=True) + eps
+    face_n = np.divide(raw, length, out=np.zeros_like(raw), where=length > 0)
 
     vertex_normals = np.zeros(verts.shape)
     for i in range(3):

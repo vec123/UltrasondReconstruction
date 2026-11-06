@@ -10,7 +10,7 @@ from src.shared.vtk.fields import add_point_field
 
 
 def _vertex_normals(verts, faces):
-    """Area-weighted unit vertex normals (numpy in / numpy out)."""
+    """Area-weighted unit vertex normals (numpy in / numpy out), at any scale; zero where the faces cancel."""
     v0, v1, v2 = verts[faces[:, 0]], verts[faces[:, 1]], verts[faces[:, 2]]
     face_n = np.cross(v1 - v0, v2 - v0)  # magnitude ~ 2 * face area
     n_pts = verts.shape[0]
@@ -19,7 +19,8 @@ def _vertex_normals(verts, faces):
     for i in range(3):
         for c in range(3):
             vertex_normals[:, c] += np.bincount(faces[:, i], weights=face_n[:, c], minlength=n_pts)
-    return vertex_normals / (np.linalg.norm(vertex_normals, axis=-1, keepdims=True) + 1e-12)
+    length = np.linalg.norm(vertex_normals, axis=-1, keepdims=True)
+    return np.divide(vertex_normals, length, out=np.zeros_like(vertex_normals), where=length > 0)
 
 
 def _tangent_frames(normals):
@@ -173,8 +174,9 @@ def compute_vertex_normals(polydata, field_name="normal", weighting="unit"):
 
     ``weighting`` picks how the incident faces are averaged:
 
-    - ``"unit"``: mean of the incident faces' UNIT normals. A sliver counts as
-      much as a large triangle. Matches vtkPolyDataNormals (verified to
+    - ``"unit"``: mean of the incident faces' UNIT normals. A thin triangle counts
+      as much as a large one; only near-degenerate faces fade out, relative to the
+      mesh's size (geometry.SLIVER_EPS). Matches vtkPolyDataNormals (verified to
       |cos| > 0.9999 on 99.9% of a fused scan's vertices) and is what
       ``scan_fusion`` already uses for its normal-agreement weighting.
     - ``"area"``: area-weighted, via ``_vertex_normals``. More robust on
