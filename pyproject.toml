@@ -15,3 +15,8 @@ requires-python = ">=3.12"
 
 [tool.setuptools]
 packages = ["src", "scripts"]
+
+# python -m pytest runs tests/test_*.py. tests/smoke.py is not collected: it runs
+# every configs/smoke/ file (about 3 minutes) and is started on its own.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
