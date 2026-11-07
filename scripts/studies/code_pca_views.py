@@ -116,15 +116,27 @@ def template_landmarks(run, member, to_frame=None, model=None):
 
 
 def target_path(run, member, to_mm=None):
-    """The member's fused scan mesh, in mm, with its original faces where available: the one
-    its eval scored (eval/distance_summary.json, already mm), else the Casos_Mar layout beside
-    the run (members named <case>_<week>_semanas, also already mm), else, for a training source
-    built by scripts/tools/resample_fixed_points.py (whose resampling drops the faces for
-    CohortBatchLoader's equal-count stacking - see its TODO), the manifest resample_fixed_points
-    writes next to the run's own training config's source dir (``original_scans.json``:
-    member name -> its pre-resample fused_scan.vtp, with faces, already mm), else that
-    resampled, faceless source itself - in the run's OWN (world) frame, so ``to_mm`` (see
+    """The member's fused scan mesh, in mm, with its original faces where available: for a
+    training source built by scripts/tools/resample_fixed_points.py (whose resampling drops
+    the faces for CohortBatchLoader's equal-count stacking - see its TODO), the manifest
+    resample_fixed_points writes next to the run's own training config's source dir
+    (``original_scans.json``: member name -> its pre-resample fused_scan.vtp, with faces,
+    already mm), else the one its eval scored (eval/distance_summary.json, already mm), else
+    the Casos_Mar layout beside the run (members named <case>_<week>_semanas, also already
+    mm), else that resampled, faceless source itself - in the run's OWN (world) frame, so ``to_mm`` (see
     similarity_map) is applied and the result written to a temp file, whose path is returned."""
+    with open(os.path.join(run, "config.json")) as f:
+        source = json.load(f)["source"]
+    # Either beside the training source itself (resample_fixed_points.py's own --output-dir),
+    # or one level up (a frame conversion / train-test split sits between the two). First,
+    # as an eval of a resampled source may name that faceless source as its target.
+    for manifest_dir in (source, os.path.dirname(os.path.normpath(source))):
+        manifest_path = os.path.join(manifest_dir, "original_scans.json")
+        if os.path.isfile(manifest_path):
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+            if member in manifest:
+                return manifest[member]
     summary = os.path.join(run, "apply", member, "eval", "distance_summary.json")
     if os.path.isfile(summary):
         with open(summary) as f:
@@ -135,17 +147,6 @@ def target_path(run, member, to_mm=None):
                               FUSED_SCAN.format(case=case, week=week.replace("_", " ")))
         if os.path.isfile(legacy):
             return legacy
-    with open(os.path.join(run, "config.json")) as f:
-        source = json.load(f)["source"]
-    # Either beside the training source itself (resample_fixed_points.py's own --output-dir),
-    # or one level up (a frame conversion / train-test split sits between the two).
-    for manifest_dir in (source, os.path.dirname(os.path.normpath(source))):
-        manifest_path = os.path.join(manifest_dir, "original_scans.json")
-        if os.path.isfile(manifest_path):
-            with open(manifest_path) as f:
-                manifest = json.load(f)
-            if member in manifest:
-                return manifest[member]
     path = os.path.join(source, f"{member}.vtp")
     if to_mm is None:
         return path
