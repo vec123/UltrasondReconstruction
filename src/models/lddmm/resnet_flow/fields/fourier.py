@@ -24,7 +24,7 @@ every checkpoint, so apply reproduces exactly the bandwidth that was trained.
 
 Higher bands make the velocity field steeper, and with a fixed number of Euler
 steps a steep enough step folds the surface. Nothing in the kinetic term charges
-steepness (it charges speed), so watch diag/det_min and diag/flips_count.
+steepness (it charges speed), so watch diag/flips_count.
 """
 
 import math

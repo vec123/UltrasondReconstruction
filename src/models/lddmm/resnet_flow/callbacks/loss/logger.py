@@ -43,7 +43,7 @@ class LossLogger(Callback):
           "skipped": ["code_reg", "isometry"],
           "sum_of_contributions": 6.7412,
           "residual": 0.0,
-          "diagnostics": {"diag/det_min": 0.83, "grad_norm/flow": 1.7e-2}
+          "diagnostics": {"diag/flips_count": 0.0, "grad_norm/flow": 1.7e-2}
         }
 
     ``value`` is the term as the composer received it, UNWEIGHTED -- which is what

@@ -1,17 +1,16 @@
-"""DiagnosticsCallback: how well-behaved the deformation is - Jacobians, triangle flips,
+"""DiagnosticsCallback: how well-behaved the deformation is - triangle flips,
 Lipschitz bound, inverse residual - logged as diag/* metrics."""
 
 import torch
 
 from src.models.lddmm.learning.callbacks.base import Callback
-from src.models.lddmm.resnet_flow.dynamics.diagnostics import jacobian_determinants, triangle_flips, lipschitz_bound, inverse_residual
+from src.models.lddmm.resnet_flow.dynamics.diagnostics import triangle_flips, lipschitz_bound, inverse_residual
 
 
 class DiagnosticsCallback(Callback):
     """Log diagnostic metrics into the training metrics dict.
 
     Computes and records:
-    - Jacobian determinants (invertibility check)
     - Triangle flips (topology check)
     - Lipschitz bound (Lipschitz continuity check)
     - Inverse residual ‖φ⁻¹(φ(q)) - q‖ (inverse-integrator accuracy)
@@ -48,15 +47,6 @@ class DiagnosticsCallback(Callback):
                     metrics["diag/vertices_full"] = float(mapping_error.last_full_vertices)
                 if hasattr(mapping_error, "last_subsample_vertices") and mapping_error.last_subsample_vertices is not None:
                     metrics["diag/vertices_subsampled"] = float(mapping_error.last_subsample_vertices)
-        except Exception:
-            pass
-
-        # Jacobian determinants: should be ≥ 0 (positive measure for diffeomorphism)
-        try:
-            dets = jacobian_determinants(traj, faces)
-            min_det = dets.min().item()
-            metrics["diag/det_min"] = min_det
-            metrics["diag/det_mean"] = dets.mean().item()
         except Exception:
             pass
 
