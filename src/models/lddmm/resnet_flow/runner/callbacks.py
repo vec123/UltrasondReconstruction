@@ -4,7 +4,7 @@ import os
 import torch
 from src.models.lddmm.resnet_flow.callbacks.checkpoints import CheckpointWriter
 from src.models.lddmm.resnet_flow.config import FOURIER_FIELD_KINDS
-from src.models.lddmm.resnet_flow.fields.composite.modes import ModalField, network_of
+from src.models.lddmm.resnet_flow.fields.composite.modes import ModalField, network_of, shared_field_of
 from src.models.lddmm.resnet_flow.fields.composite.prior import PriorResidualField
 from src.models.lddmm.resnet_flow.callbacks.deformation import DiagnosticsCallback, TrajectoryExporter
 from src.models.lddmm.resnet_flow.callbacks.deformation.modes import (
@@ -111,6 +111,11 @@ def complete_callbacks(cfg, callbacks, stepper, transform) -> list:
         callbacks.append(CodeRegWarmup(stepper.composer, cfg.loss.code_reg_weight, **cfg.loss.code_reg_warmup))
     if cfg.field.kind in FOURIER_FIELD_KINDS and cfg.field.fourier_anneal is not None:
         callbacks.append(FourierAnnealing(network_of(stepper.flow.field).encoding, **cfg.field.fourier_anneal))
+    # The shared flow's field (field.shared) has its own encoding and schedule.
+    if cfg.field.shared is not None and cfg.field.kind in FOURIER_FIELD_KINDS \
+            and cfg.field.shared["fourier_anneal"] is not None:
+        callbacks.append(FourierAnnealing(shared_field_of(stepper.flow.field).encoding,
+                                          **cfg.field.shared["fourier_anneal"], metric="fourier/alpha_shared"))
     if cfg.field.kind == "time_varying_local":
         field = network_of(stepper.flow.field)
         if cfg.field.fourier_anneal is not None:
