@@ -108,6 +108,7 @@ class FourierTimeVaryingField(VelocityField):
         n_e: int = 4,
         annealed: bool = False,
         norm: Optional[str] = None,
+        out_dim: int = 3,
     ):
         """Initialize the field.
 
@@ -120,21 +121,24 @@ class FourierTimeVaryingField(VelocityField):
             annealed: start with every band off (alpha = 0), for a
                 FourierAnnealing callback to open; False starts fully open.
             norm: the normalisation inside each block (blocks.norm_layer); None = none.
+            out_dim: output width per point: 3 (a velocity), or 3 * rank for the
+                basis of an AtlasField (fields/composite/atlas.py).
         """
         super().__init__()
         self.conditioning = conditioning or NoConditioning()
         self.encoding = AnnealedFourierFeatures(n_e, alpha=0.0 if annealed else None)
         in_dim = 3 * (2 * n_e + 1) + self.conditioning.dim
         self.blocks = nn.ModuleList(
-            VelocityBlock(in_dim, mlp, activation, norm) for _ in range(num_blocks)
+            VelocityBlock(in_dim, mlp, activation, norm, out_dim=out_dim) for _ in range(num_blocks)
         )
 
     @classmethod
-    def from_cfg(cls, field, conditioning):
+    def from_cfg(cls, field, conditioning, out_dim: int = 3):
         """Build from the ``field`` config section; the bands are annealed if fourier_anneal is set."""
         return cls(num_blocks=field.num_steps, mlp=field.mlp, activation=field.activation,
                    conditioning=conditioning, n_e=field.fourier_n_e,
-                   annealed=field.fourier_anneal is not None, norm=getattr(field, "norm", None))
+                   annealed=field.fourier_anneal is not None, norm=getattr(field, "norm", None),
+                   out_dim=out_dim)
 
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None
@@ -147,7 +151,7 @@ class FourierTimeVaryingField(VelocityField):
             code: [B, N_z] per-shape code (ignored by NoConditioning)
 
         Returns:
-            [B, N, 3] velocity
+            [B, N, out_dim]: the velocity (out_dim 3) or an AtlasField's basis
         """
         zbar = self.conditioning(x, code)
         features = self.encoding(x)
@@ -174,16 +178,18 @@ class FourierStationaryField(FourierTimeVaryingField):
         n_e: int = 4,
         annealed: bool = False,
         norm: Optional[str] = None,
+        out_dim: int = 3,
     ):
         """Initialize the field; arguments as for FourierTimeVaryingField, without num_blocks."""
-        super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed, norm=norm)
+        super().__init__(1, mlp, activation, conditioning, n_e=n_e, annealed=annealed, norm=norm,
+                         out_dim=out_dim)
 
     @classmethod
-    def from_cfg(cls, field, conditioning):
+    def from_cfg(cls, field, conditioning, out_dim: int = 3):
         """Build from the ``field`` config section; the bands are annealed if fourier_anneal is set."""
         return cls(mlp=field.mlp, activation=field.activation, conditioning=conditioning,
                    n_e=field.fourier_n_e, annealed=field.fourier_anneal is not None,
-                   norm=getattr(field, "norm", None))
+                   norm=getattr(field, "norm", None), out_dim=out_dim)
 
     def forward(
         self, x: Tensor, step: Optional[int] = None, code: Optional[Tensor] = None

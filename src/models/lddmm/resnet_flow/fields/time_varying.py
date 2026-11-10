@@ -20,12 +20,13 @@ class TimeVaryingField(VelocityField):
         mlp: Sequence[int] = (512,),
         activation: str = "relu",
         conditioning: Optional[Conditioning] = None,
+        out_dim: int = 3,
     ):
         super().__init__()
         self.conditioning = conditioning or NoConditioning()
         in_dim = 3 + self.conditioning.dim
         self.blocks = nn.ModuleList(
-            VelocityBlock(in_dim, mlp, activation) for _ in range(num_blocks)
+            VelocityBlock(in_dim, mlp, activation, out_dim=out_dim) for _ in range(num_blocks)
         )
 
     def forward(
@@ -39,7 +40,7 @@ class TimeVaryingField(VelocityField):
             code: [B, N_z] per-shape code (ignored by NoConditioning)
 
         Returns:
-            [B, N, 3] velocity
+            [B, N, out_dim]: the velocity (out_dim 3) or an AtlasField's basis
         """
         # Get per-point conditioning features (None under NoConditioning)
         zbar = self.conditioning(x, code)

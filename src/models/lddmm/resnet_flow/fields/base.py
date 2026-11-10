@@ -13,15 +13,17 @@ class VelocityField(nn.Module, abc.ABC):
     """
 
     @classmethod
-    def from_cfg(cls, field, conditioning):
+    def from_cfg(cls, field, conditioning, out_dim: int = 3):
         """Build this field from the ``field`` section of the experiment config.
 
         ``field`` is read by attribute name, so this module needs no import of the
         config (layering rule). The default fits the time-varying fields, one block
         per Euler step; a field whose constructor takes other options overrides it.
+        ``out_dim`` is 3 (a velocity) except for the basis of an AtlasField
+        (fields/composite/atlas.py); only the kinds that one supports take it.
         """
         return cls(num_blocks=field.num_steps, mlp=field.mlp, activation=field.activation,
-                   conditioning=conditioning)
+                   conditioning=conditioning, out_dim=out_dim)
 
     @abc.abstractmethod
     def forward(

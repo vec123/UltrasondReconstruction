@@ -47,11 +47,12 @@ class VelocityBlock(nn.Module):
     has no R_i -- it is the original single-hidden-layer block with the same
     parameter names, so checkpoints trained with ``field.width: w`` still load.
     ``norm`` puts a normalisation N after W1 and inside every R_i (norm_layer);
-    None leaves the block as it was.
+    None leaves the block as it was. ``out_dim`` is the width of W3: 3 (a
+    velocity) by default; an AtlasField asks for 3 * rank (fields/composite/atlas.py).
     """
 
     def __init__(self, in_dim: int, widths: Sequence[int], activation: str = "relu",
-                 norm: Optional[str] = None):
+                 norm: Optional[str] = None, out_dim: int = 3):
         super().__init__()
         self.act = {
             "relu": nn.ReLU(),
@@ -64,12 +65,12 @@ class VelocityBlock(nn.Module):
             ResidualLayer(a, b, self.act, norm) for a, b in zip(widths[:-1], widths[1:])
         )
         self.mix = nn.Linear(widths[-1], widths[-1])  # W2, b2
-        self.proj = nn.Linear(widths[-1], 3, bias=False)  # W3 — no bias
+        self.proj = nn.Linear(widths[-1], out_dim, bias=False)  # W3 — no bias
         # Zero-init proj.weight so v ≡ 0 at init ⇒ flow == identity
         nn.init.zeros_(self.proj.weight)
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
-        """[B, N, in_dim] -> [B, N, 3]."""
+        """[B, N, in_dim] -> [B, N, out_dim]."""
         h = self.act(self.lift_norm(self.lift(h)))
         for layer in self.hidden:
             h = layer(h)
