@@ -45,6 +45,9 @@ class FieldCfg:
     # A field that is exactly zero at the zero code, so the zero code is the template --
     # see fields/composite/atlas.py. {mode: linear | nonlinear, rank: full | r}; None = off.
     atlas: Optional[dict] = None
+    # A shared flow template -> atlas in the first steps, before the atlas field -- see
+    # fields/composite/shared.py. {steps, mlp, fourier_n_e, fourier_anneal, discount}; None = off.
+    shared: Optional[dict] = None
     # Options of the removed equivariant_stationary field. Unused, but kept so that the config.json
     # of a finished run (asdict dumps every field) still loads.
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
@@ -111,6 +114,16 @@ class FieldCfg:
                     raise ValueError(f"field.atlas and field.{other} cannot be combined: "
                                      f"field.{other} makes the velocity non-zero at the zero code")
             d["atlas"] = _parse_atlas(d["atlas"])
+        if d.get("shared") is not None:
+            if d.get("atlas") is None:
+                raise ValueError("field.shared needs field.atlas: only a member field that is zero "
+                                 "at the zero code makes the zero code the atlas")
+            if d.get("symmetry") is not None:
+                raise ValueError("field.shared and field.symmetry cannot be combined yet: the "
+                                 "shared field would need a mirror plane of its own")
+            d["shared"] = _parse_shared(d["shared"], kind, int(d.get("num_steps", cls.num_steps)),
+                                        d.get("mlp", cls.mlp), int(d.get("fourier_n_e", cls.fourier_n_e)),
+                                        d.get("fourier_anneal"))
         if d.get("norm") is not None:
             if d["norm"] not in NORMS:
                 raise ValueError(f"unknown field.norm {d['norm']!r}; expected one of {list(NORMS)} or null")
@@ -278,6 +291,51 @@ def _parse_atlas(atlas) -> dict:
     if rank != "full" and (isinstance(rank, bool) or not isinstance(rank, int) or rank < 1):
         raise ValueError(f"field.atlas.rank must be 'full' or a positive int, got {rank!r}")
     return {"mode": mode, "rank": rank}
+
+
+# field.shared.discount: a number, or "once" = 1/M for a cohort of M members.
+SHARED_DISCOUNT_ONCE = "once"
+
+
+def _parse_shared(shared, kind: str, num_steps: int, mlp, fourier_n_e: int, fourier_anneal) -> dict:
+    """field.shared, validated, with defaults filled in -- a plain dict so config.json round-trips it.
+
+    steps           K_s, the Euler steps of the shared flow (template -> atlas); the atlas
+                    field has the other num_steps - K_s. Required, 1 <= K_s < num_steps.
+    mlp             hidden widths of the shared field's blocks. Default: field.mlp.
+    fourier_n_e     its Fourier bands (Fourier kinds). Default: field.fourier_n_e.
+    fourier_anneal  its {start, end} band schedule, or null for all bands open.
+                    Default: field.fourier_anneal.
+    discount        the shared flow's kinetic price: its energy is charged at
+                    discount * kinetic_weight. 1 = the price of a member's own flow
+                    (default); "once" = 1/M, the shared flow counted once for the cohort
+                    of M members (the hypertemplate model).
+    """
+    if not isinstance(shared, dict):
+        raise ValueError(f"field.shared must be a mapping {{steps, ...}}, got {shared!r}")
+    reject_unknown_keys(shared, {"steps", "mlp", "fourier_n_e", "fourier_anneal", "discount"},
+                        what="field.shared")
+    steps = shared.get("steps")
+    if isinstance(steps, bool) or not isinstance(steps, int) or not 1 <= steps < num_steps:
+        raise ValueError(f"field.shared.steps must be an int with 1 <= steps < field.num_steps "
+                         f"= {num_steps}, got {steps!r}")
+    n_e = int(shared.get("fourier_n_e", fourier_n_e))
+    if kind in FOURIER_FIELD_KINDS and n_e < 1:
+        raise ValueError(f"field.shared.fourier_n_e must be >= 1 for kind {kind!r}, got {n_e}")
+    anneal = shared["fourier_anneal"] if "fourier_anneal" in shared else fourier_anneal
+    if anneal is not None:
+        if kind not in FOURIER_FIELD_KINDS:
+            raise ValueError(f"field.shared.fourier_anneal only applies to kinds {FOURIER_FIELD_KINDS}, "
+                             f"not {kind!r}")
+        anneal = _parse_anneal(anneal, "field.shared.fourier_anneal")
+    discount = shared.get("discount", 1.0)
+    if discount != SHARED_DISCOUNT_ONCE:
+        if isinstance(discount, bool) or not isinstance(discount, (int, float)) or discount < 0:
+            raise ValueError(f"field.shared.discount must be a number >= 0 or "
+                             f"{SHARED_DISCOUNT_ONCE!r}, got {discount!r}")
+        discount = float(discount)
+    return {"steps": steps, "mlp": _parse_widths(shared.get("mlp", list(mlp)), "field.shared.mlp"),
+            "fourier_n_e": n_e, "fourier_anneal": anneal, "discount": discount}
 
 
 def _parse_widths(mlp, what: str) -> list:

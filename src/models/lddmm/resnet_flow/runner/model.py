@@ -5,6 +5,7 @@ from src.models.lddmm.resnet_flow.dynamics.flow import IdentityFlowWrapper, Neur
 from src.models.lddmm.resnet_flow.fields.composite.atlas import AtlasField, basis_rank
 from src.models.lddmm.resnet_flow.fields.composite.modes import ModalField
 from src.models.lddmm.resnet_flow.fields.composite.prior import PriorResidualField
+from src.models.lddmm.resnet_flow.fields.composite.shared import SharedAtlasField
 from src.models.lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
 from src.models.lddmm.resnet_flow.dynamics.integrators import ForwardEuler, ModifiedEuler
 from src.models.lddmm.learning.registry import Registry
@@ -96,6 +97,8 @@ def build_flow(cfg):
         field = PriorResidualField(build_network(prior_cfg, build_conditioning(prior_cfg)),
                                    build_network(cfg, _residual_conditioning(cfg, prior_n_z)),
                                    prior_n_z)
+    elif cfg.field.shared is not None:
+        field = _build_shared_field(cfg)
     else:
         field = build_network(cfg, build_conditioning(cfg))
     if cfg.field.modes is not None:
@@ -134,6 +137,30 @@ def _build_atlas_field(cfg, conditioning):
     rank = None if cfg.field.atlas["rank"] == "full" else cfg.field.atlas["rank"]
     network = build_field(cfg, None if linear else conditioning, out_dim=3 * basis_rank(n_z, rank))
     return AtlasField(network, n_z, rank)
+
+
+def _build_shared_field(cfg):
+    """cfg.field.shared -> a SharedAtlasField: the shared flow (template -> atlas) in the
+    first field.shared.steps Euler steps, then the member network in the others.
+
+    The shared field is a field of the run's kind with no code and the shared flow's
+    own widths, bands and schedule; the member network is build_network's, with the
+    remaining steps as its blocks.
+
+    Raises:
+        ValueError: the run is not a cohort run (one shape has nothing to share).
+    """
+    if cfg.train.mode != "cohort":
+        raise ValueError(f"field.shared needs train.mode cohort: the shared flow is shared by "
+                         f"the members of a cohort; got train.mode {cfg.train.mode!r}")
+    shared = cfg.field.shared
+    steps = shared["steps"]
+    shared_cfg = dataclasses.replace(cfg, field=dataclasses.replace(
+        cfg.field, num_steps=steps, mlp=tuple(shared["mlp"]), fourier_n_e=shared["fourier_n_e"],
+        fourier_anneal=shared["fourier_anneal"], atlas=None, shared=None))
+    member_cfg = dataclasses.replace(cfg, field=dataclasses.replace(cfg.field, num_steps=cfg.field.num_steps - steps))
+    return SharedAtlasField(build_field(shared_cfg, None),
+                            build_network(member_cfg, build_conditioning(member_cfg)), steps)
 
 
 def _residual_conditioning(cfg, prior_n_z):
