@@ -338,7 +338,7 @@ def _build_cohort(cfg, flow, data_term, composer, iso_loss, augmentation, use_en
     # weight field is read from it exactly as a pair run reads it from its source;
     # the stepper passes each step's subsample draw as LossContext.template_idx.
     loss_terms = _add_kinetic_field_term(cfg, target_norm, transform, composer, loss_terms)
-    loss_terms = _add_part_kinetic_terms(cfg, composer, loss_terms)
+    loss_terms = _add_part_kinetic_terms(cfg, composer, loss_terms, num_members=len(cohort_norm))
 
     # Create loader for cohort
     loader = CohortBatchLoader(cohort_norm, target_norm, batch_size=cfg.train.batch)

@@ -3,7 +3,7 @@
 import os
 import numpy as np
 import torch
-from src.models.lddmm.resnet_flow.config import FshapeCfg, PointWeightFieldCfg
+from src.models.lddmm.resnet_flow.config import FshapeCfg, PointWeightFieldCfg, SHARED_DISCOUNT_ONCE
 from src.models.lddmm.resnet_flow.losses.fshape import build_fshape_kwargs
 from src.models.lddmm.resnet_flow.io import export_shape
 from src.models.lddmm.resnet_flow.guidance.landmarks import build_landmark_term_kwargs, resolve_template_points
@@ -262,10 +262,11 @@ def _add_fshape_term(cfg, source_norm, target_norm, transform, composer, loss_te
     return loss_terms
 
 
-def priced_parts(cfg) -> list:
+def priced_parts(cfg, num_members=None) -> list:
     """The flow's priced parts: (metric name, part name, discount), one per configured part.
 
-    The part names are the keys fields/base.py split_velocity returns.
+    The part names are the keys fields/base.py split_velocity returns. ``num_members``
+    is the cohort size M, which field.shared.discount "once" (= 1/M) needs.
     """
     parts = []
     if cfg.field.modes is not None:
@@ -274,25 +275,42 @@ def priced_parts(cfg) -> list:
         parts.append(("prior_kinetic", "prior", cfg.field.prior["discount"]))
     if cfg.field.symmetry is not None and cfg.field.symmetry["mode"] == "split":
         parts.append(("symmetric_kinetic", "symmetric", cfg.field.symmetry["discount"]))
+    if cfg.field.shared is not None:
+        parts.append(("shared_kinetic", "shared", _shared_discount(cfg.field.shared["discount"], num_members)))
     return parts
 
 
-def _add_part_kinetic_terms(cfg, composer, loss_terms):
+def _shared_discount(discount, num_members) -> float:
+    """field.shared.discount as a number: itself, or 1/M for "once".
+
+    Raises:
+        ValueError: "once" without a cohort size.
+    """
+    if discount != SHARED_DISCOUNT_ONCE:
+        return discount
+    if not num_members:
+        raise ValueError(f"field.shared.discount {SHARED_DISCOUNT_ONCE!r} is 1/M and needs the "
+                         f"number of cohort members M")
+    return 1.0 / num_members
+
+
+def _add_part_kinetic_terms(cfg, composer, loss_terms, num_members=None):
     """Charge each priced part's kinetic energy at ``discount * kinetic_weight``.
 
     The priced parts are the designed modes (field.modes), the frozen prior field
-    (field.prior) and the symmetric part (field.symmetry, mode split).
+    (field.prior), the symmetric part (field.symmetry, mode split) and the shared
+    flow (field.shared; ``num_members`` resolves its discount "once").
     ``Trajectory.kinetic_energy`` leaves them out, so without these terms they would
     be free. A part is dropped like any zero-weight term when its price is 0.
 
     Returns:
         ``loss_terms`` unchanged without priced parts; else a NEW dict with
-        "mode_kinetic", "prior_kinetic" and/or "symmetric_kinetic".
+        "mode_kinetic", "prior_kinetic", "symmetric_kinetic" and/or "shared_kinetic".
 
     Raises:
         ValueError: a configured term already has one of those names.
     """
-    parts = priced_parts(cfg)
+    parts = priced_parts(cfg, num_members)
     if not parts:
         return loss_terms
     loss_terms = dict(loss_terms or {})
@@ -304,6 +322,7 @@ def _add_part_kinetic_terms(cfg, composer, loss_terms):
         if weight <= 0:
             print(f"[{part}] discount 0: moving along the {part} part is free")
             continue
+        print(f"[{part}] kinetic price: discount {discount:.6g} * kinetic_weight = {weight:.6g}")
         loss_terms[name] = Registry.create("loss_term", "part_kinetic", part=part)
         composer.terms.append(LossTerm(name, weight=weight))
     return loss_terms
