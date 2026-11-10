@@ -42,6 +42,9 @@ class FieldCfg:
     # Mirror symmetry of the trained network -- see fields/symmetry.py.
     # {mode, discount, pairs, midline, heatmap_prefix}; None = no symmetry.
     symmetry: Optional[dict] = None
+    # A field that is exactly zero at the zero code, so the zero code is the template --
+    # see fields/composite/atlas.py. {mode: linear | nonlinear, rank: full | r}; None = off.
+    atlas: Optional[dict] = None
     # Options of the removed equivariant_stationary field. Unused, but kept so that the config.json
     # of a finished run (asdict dumps every field) still loads.
     hidden_irreps: str = "4x0e + 2x1o"      # intermediate irreps representation (single-layer fallback)
@@ -98,6 +101,16 @@ class FieldCfg:
             if kind not in MODE_FIELD_KINDS:
                 raise ValueError(f"field.symmetry is supported for kinds {MODE_FIELD_KINDS}, not {kind!r}")
             d["symmetry"] = _parse_symmetry(d["symmetry"])
+        if d.get("atlas") is not None:
+            if kind not in ATLAS_FIELD_KINDS:
+                raise ValueError(f"field.atlas is supported for kinds {ATLAS_FIELD_KINDS}, not {kind!r}")
+            # Modes add a velocity at every code, a prior run its own field: either
+            # makes v(z = 0) non-zero, so the zero code would no longer be the template.
+            for other in ("modes", "prior"):
+                if d.get(other) is not None:
+                    raise ValueError(f"field.atlas and field.{other} cannot be combined: "
+                                     f"field.{other} makes the velocity non-zero at the zero code")
+            d["atlas"] = _parse_atlas(d["atlas"])
         if d.get("norm") is not None:
             if d["norm"] not in NORMS:
                 raise ValueError(f"unknown field.norm {d['norm']!r}; expected one of {list(NORMS)} or null")
@@ -120,6 +133,15 @@ FOURIER_FIELD_KINDS = ("time_varying_fourier", "stationary_fourier")
 
 # field.norm values: the normalisation inside each velocity block (fields/blocks.py).
 NORMS = ("layer",)
+
+
+# Field kinds an AtlasField can use as its basis network: the ones whose blocks take
+# an out_dim (fields/composite/atlas.py).
+ATLAS_FIELD_KINDS = ("time_varying", "time_varying_fourier", "stationary_fourier")
+
+
+# field.atlas.mode: the velocity is linear in the code, or non-linear; both are 0 at z = 0.
+ATLAS_MODES = ("linear", "nonlinear")
 
 
 # field.modes.decompose: what DecompositionExporter writes after training.
@@ -233,6 +255,29 @@ def _parse_symmetry(symmetry) -> dict:
         raise ValueError(f"field.symmetry.midline must be a list of landmark labels, got {midline!r}")
     return {"mode": mode, "discount": discount, "pairs": [list(p) for p in pairs],
             "midline": list(midline), "heatmap_prefix": str(symmetry.get("heatmap_prefix", "heatmap_"))}
+
+
+def _parse_atlas(atlas) -> dict:
+    """field.atlas, validated, with defaults filled in -- a plain dict so config.json round-trips it.
+
+    mode  linear = the basis network reads no code, so the velocity is linear in the
+          code; nonlinear = it reads the code through code.conditioning_method /
+          position_aware, so the velocity is non-linear in it. Both are exactly zero at
+          the zero code.
+    rank  full = one basis field per code entry (A = identity); an int r = r basis
+          fields and a learned code map A: n_z -> r, which needs r < code.n_z
+          (checked when the field is built). Default full.
+    """
+    if not isinstance(atlas, dict):
+        raise ValueError(f"field.atlas must be a mapping {{mode, rank}}, got {atlas!r}")
+    reject_unknown_keys(atlas, {"mode", "rank"}, what="field.atlas")
+    mode = atlas.get("mode")
+    if mode not in ATLAS_MODES:
+        raise ValueError(f"field.atlas.mode must be one of {ATLAS_MODES}, got {mode!r}")
+    rank = atlas.get("rank", "full")
+    if rank != "full" and (isinstance(rank, bool) or not isinstance(rank, int) or rank < 1):
+        raise ValueError(f"field.atlas.rank must be 'full' or a positive int, got {rank!r}")
+    return {"mode": mode, "rank": rank}
 
 
 def _parse_widths(mlp, what: str) -> list:

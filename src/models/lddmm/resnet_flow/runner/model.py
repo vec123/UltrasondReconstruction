@@ -2,6 +2,7 @@
 
 import dataclasses
 from src.models.lddmm.resnet_flow.dynamics.flow import IdentityFlowWrapper, NeuralODEFlow
+from src.models.lddmm.resnet_flow.fields.composite.atlas import AtlasField, basis_rank
 from src.models.lddmm.resnet_flow.fields.composite.modes import ModalField
 from src.models.lddmm.resnet_flow.fields.composite.prior import PriorResidualField
 from src.models.lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
@@ -35,7 +36,7 @@ def build_conditioning(cfg):
     return Registry.create("conditioning", cfg.code.conditioning_method, n_z=cfg.code.n_z)
 
 
-def build_field(cfg, conditioning):
+def build_field(cfg, conditioning, out_dim=None):
     """cfg.field -> the VelocityField of kind cfg.field.kind.
 
     Each field class builds itself from the config (VelocityField.from_cfg), so a new
@@ -44,19 +45,30 @@ def build_field(cfg, conditioning):
     Args:
         cfg: ExperimentCfg
         conditioning: Conditioning module or None, from build_conditioning
+        out_dim: None for a velocity field; 3 * rank for an AtlasField's basis
+            (only the config.ATLAS_FIELD_KINDS take it)
 
     Returns:
         VelocityField instance
     """
-    return Registry.resolve("field", cfg.field.kind).from_cfg(cfg.field, conditioning)
+    field_class = Registry.resolve("field", cfg.field.kind)
+    if out_dim is None:
+        return field_class.from_cfg(cfg.field, conditioning)
+    return field_class.from_cfg(cfg.field, conditioning, out_dim=out_dim)
 
 
 def build_network(cfg, conditioning):
-    """cfg.field -> the trained network: build_field, made symmetric when field.symmetry asks.
+    """cfg.field -> the trained network: build_field, anchored at the zero code when
+    field.atlas asks, made symmetric when field.symmetry asks.
 
     The mirror plane is placed later (_place_symmetry) or restored from the checkpoint.
+    The atlas field is inside the symmetry, so a symmetric atlas field is still zero
+    at the zero code.
     """
-    field = build_field(cfg, conditioning)
+    if cfg.field.atlas is not None:
+        field = _build_atlas_field(cfg, conditioning)
+    else:
+        field = build_field(cfg, conditioning)
     if cfg.field.symmetry is not None:
         field = SymmetricField(field, cfg.field.symmetry["mode"])
     return field
@@ -99,6 +111,29 @@ def build_flow(cfg):
     if getattr(cfg, 'freeze_flow_at_identity', False):
         flow = IdentityFlowWrapper(flow)
     return flow
+
+
+def _build_atlas_field(cfg, conditioning):
+    """cfg.field.atlas -> an AtlasField around a basis network of 3 * rank outputs.
+
+    linear: the basis network gets no conditioning, so the velocity is linear in the
+    code. nonlinear: it gets the run's conditioning, so it reads the code too.
+
+    Raises:
+        ValueError: the run has no code, or a linear atlas field is given a
+            position-aware code (which only a conditioning can read).
+    """
+    n_z = code_size(cfg)
+    if n_z == 0:
+        raise ValueError("field.atlas needs a code (code.kind auto_decoder or encoder): "
+                         "the zero code it anchors does not exist without one")
+    linear = cfg.field.atlas["mode"] == "linear"
+    if linear and cfg.code.position_aware:
+        raise ValueError("field.atlas.mode linear reads the code only through A z, so "
+                         "code.position_aware has no effect: set it to false, or use mode nonlinear")
+    rank = None if cfg.field.atlas["rank"] == "full" else cfg.field.atlas["rank"]
+    network = build_field(cfg, None if linear else conditioning, out_dim=3 * basis_rank(n_z, rank))
+    return AtlasField(network, n_z, rank)
 
 
 def _residual_conditioning(cfg, prior_n_z):

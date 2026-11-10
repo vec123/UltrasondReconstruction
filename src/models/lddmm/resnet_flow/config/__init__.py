@@ -11,6 +11,8 @@ from .experiment import (  # noqa: F401
     TrainCfg,
 )
 from .field import (  # noqa: F401
+    ATLAS_FIELD_KINDS,
+    ATLAS_MODES,
     FOURIER_FIELD_KINDS,
     FieldCfg,
     MODE_DECOMPOSITIONS,
@@ -18,6 +20,7 @@ from .field import (  # noqa: F401
     NORMS,
     SYMMETRY_MODES,
     _parse_anneal,
+    _parse_atlas,
     _parse_local_field,
     _parse_modes,
     _parse_prior,
