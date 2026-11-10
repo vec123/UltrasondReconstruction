@@ -23,6 +23,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from src.models.lddmm.resnet_flow.fields.base import VelocityField, split_velocity
+from src.models.lddmm.resnet_flow.fields.composite.atlas import AtlasField
 from src.models.lddmm.resnet_flow.fields.composite.prior import PriorResidualField
 from src.models.lddmm.resnet_flow.fields.composite.symmetry import SymmetricField
 
@@ -139,11 +140,11 @@ class ModalField(VelocityField):
         return self.split(x, step=step, code=code)[0]
 
 
-WRAPPERS = (ModalField, PriorResidualField, SymmetricField)
+WRAPPERS = (ModalField, PriorResidualField, SymmetricField, AtlasField)
 
 
 def network_of(field: VelocityField) -> VelocityField:
-    """The trained network inside ``field`` - itself, unless modes, a prior or a symmetry are wrapped around it."""
+    """The trained network inside ``field`` - itself, unless modes, a prior, a symmetry or an atlas are wrapped around it."""
     while isinstance(field, WRAPPERS):
         field = field.network
     return field
