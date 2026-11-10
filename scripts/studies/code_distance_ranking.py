@@ -4,6 +4,8 @@ code lies from the code mean in the full code space: closest first, farthest las
 The first row holds the references: the template itself (where every flow starts),
 the face decoded from the code mean and the face of the zero code (the
 auto-decoder's prior), the last unless the codes are centred and the two coincide.
+With a shared flow (field.shared) the zero code is the atlas, the shared flow's output;
+it is then always shown, under that name.
 The members start on the second row. Each member tile is one
 member: its reconstruction from the front, the left and the right, then its fused
 target from the front, all with one common camera. The titles give the rank, the
@@ -16,6 +18,7 @@ Run with:
 """
 
 import argparse
+import json
 import os
 
 import numpy as np
@@ -29,6 +32,13 @@ from src.models.gpmm.model.model_memory_io import load_model_file  # noqa: E402
 from src.shared.vtk.io import load_vtp  # noqa: E402
 
 VIEWS = ("frontal", "left", "right")
+
+
+def has_shared_flow(run):
+    """True when the run's field has a shared flow (field.shared): its zero code is then the
+    atlas, the output of the shared flow (src/models/lddmm/resnet_flow/fields/composite/shared.py)."""
+    with open(os.path.join(run, "config.json")) as f:
+        return json.load(f).get("field", {}).get("shared") is not None
 
 
 def main():
@@ -73,10 +83,13 @@ def main():
 
     tiles = [reference_tile(("Template",) + VIEWS[1:], template_points),
              reference_tile(("Code mean (rank 0)",) + VIEWS[1:], mean_points)]
-    # Skipped when the codes are centred, as the zero code is then the mean.
-    if zero_distance > 1e-3 * np.median(distance):
+    # Skipped when the codes are centred, as the zero code is then the mean. With a shared
+    # flow the zero code is the atlas, the shared flow's output: always shown, and named so.
+    shared = has_shared_flow(run)
+    if shared or zero_distance > 1e-3 * np.median(distance):
         zero_shift = np.linalg.norm(points["zero"] - mean_points, axis=1).mean()
-        tiles.append(reference_tile(("Code 0 (zero vector)", f"left  code d={zero_distance:.2f}",
+        zero_title = "Atlas (code 0)" if shared else "Code 0 (zero vector)"
+        tiles.append(reference_tile((zero_title, f"left  code d={zero_distance:.2f}",
                                      f"right  {zero_shift:.2f} mm"), points["zero"]))
     tiles += [[]] * (-len(tiles) % args.members_per_row)  # the members start on a new row
     for rank, i in enumerate(order, start=1):
@@ -99,7 +112,8 @@ def main():
 
     out_path = args.output or os.path.join(run, "code_distance_ranking.png")
     write_grid(rows, per_row * 4,
-               f"{os.path.basename(run)}: row 1 template, code mean, code 0; then recon front/left/right "
+               f"{os.path.basename(run)}: row 1 template, code mean, "
+               f"{'atlas (code 0, shared-flow output)' if shared else 'code 0'}; then recon front/left/right "
                f"+ target, ranked by code d = L2 distance of "
                f"the {codes.shape[1]}-d code to the code mean (median {np.median(distance):.2f}); mm = mean vertex "
                f"distance to the code-mean face (rank 0)",
