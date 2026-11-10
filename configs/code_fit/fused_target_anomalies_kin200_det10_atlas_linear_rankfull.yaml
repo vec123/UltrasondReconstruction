@@ -1,0 +1,34 @@
+# Fit the code of the frozen full-rank linear atlas flow (full313, kin200, det10) to every
+# fused scan of fused_scans_anomalies, with the settings of fused_target.yaml -- the same
+# fit as configs/code_fit/fused_target_anomalies_kin200_det10.yaml, for the atlas run.
+#
+# Run with:
+#    python scripts/run.py configs/code_fit/fused_target_anomalies_kin200_det10_atlas_linear_rankfull.yaml
+# One session alone:
+#    python scripts/run.py configs/code_fit/fused_target_anomalies_kin200_det10_atlas_linear_rankfull.yaml \
+#        --case '{"SUBJECT_ID": "T21-474272", "WEEK": "20 semanas"}'
+stage: code_fit
+extends: code_fit/fused_target.yaml
+
+variables:
+  RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-atlaslinear-rankfull-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+  FITS: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-atlaslinear-rankfull-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281_anomalies_code_fit
+  ANOMALIES: ${DATA_ROOT}/fused_scans_anomalies
+  FUSED_SCAN: ${ANOMALIES}/${SESSION}/fused_scan_ssm/fused_scan.vtp
+
+# SUBJECT_ID and WEEK are the parts that the pattern finds.
+targets:
+  match: ${ANOMALIES}/${SUBJECT_ID}/${WEEK}/fused_scan_ssm/fused_scan.vtp
+
+batch:
+  workers: 1
+  log_dir: ${ANOMALIES}/batch_logs_code_fit
+  skip_if_exists: ${FITS}/${SESSION}
+
+paths:
+  target: ${FUSED_SCAN}
+  output_dir: ${FITS}/${SESSION}
+  frame: {aligned_template: '${PROJECT_ROOT}/outputs/Casos_Mar/cohort/template_baby_mean_aligned.vtp'}
+
+hyperparameters:
+  model: {run: '${RUN}'}

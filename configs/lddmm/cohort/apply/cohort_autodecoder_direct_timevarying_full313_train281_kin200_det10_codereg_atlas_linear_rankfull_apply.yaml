@@ -1,0 +1,22 @@
+# Applies the full-rank linear atlas run to every member and to the mean of all member
+# codes (<run>/apply/mean_recon). With the atlas field the zero code is the template,
+# so the distance of mean_recon from the template shows how far the mean code is from 0.
+#
+# Run with:
+#    python scripts/run.py configs/lddmm/cohort/apply/cohort_autodecoder_direct_timevarying_full313_train281_kin200_det10_codereg_atlas_linear_rankfull_apply.yaml
+
+stage: resnet_lddmm_apply
+
+variables:
+  RUN: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-atlaslinear-rankfull-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281
+
+train_config: ${RUN}/config.json
+checkpoint: ${RUN}/checkpoints
+device: cuda
+shapes: null
+mean_code: true
+export:
+  deformed: true
+  trajectory: false
+  references: true
+  spaces: [world]

@@ -1,0 +1,31 @@
+# python scripts/run.py configs/evaluation/viz/views_anomalies_kin200_det10_atlas_linear_rank32.yaml
+#
+# One PNG per anomaly session into the views/ folder of the code fit of
+# configs/code_fit/fused_target_anomalies_kin200_det10_atlas_linear_rank32.yaml
+# (src/evaluation/stages/render_views.py): the fused target from the front, then the fit
+# of the baseline det10 kin200 flow and the fit of the linear rank-32 atlas flow, each
+# from the front, the patient's left and right. The cameras come from the heatmap fields
+# of the fused target (the first column). All meshes are in the scans' frame (mm).
+stage: render_views
+
+variables:
+  ANOMALIES: ${DATA_ROOT}/fused_scans_anomalies
+  BASELINE_FITS: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281_anomalies_code_fit
+  FITS: ${PROJECT_ROOT}/outputs/direct_flow/timevarying-mlp2x128-atlaslinear-rank32-kin200-det10_code128_codereg0.01_edgeweight3sp-template2scan_full313_train281_anomalies_code_fit
+
+paths:
+  output_dir: ${FITS}/views
+
+hyperparameters:
+  views: [frontal, left, right]
+  panel_px: 400
+  overwrite: true
+  columns:
+  - title: Fused target
+    mesh: ${ANOMALIES}/${SUBJECT_ID}/${WEEK}/fused_scan_ssm/fused_scan.vtp
+    views: [frontal]
+    tint: scan
+  - title: Fit of the det10 kin200 flow
+    mesh: ${BASELINE_FITS}/${SUBJECT_ID}/${WEEK}/fit.vtp
+  - title: Fit of the linear rank-32 atlas flow
+    mesh: ${FITS}/${SUBJECT_ID}/${WEEK}/fit.vtp
